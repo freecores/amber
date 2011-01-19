@@ -1,0 +1,257 @@
+# ----------------------------------------------------------------
+#                                                               //
+#   Xilinx FPGA synthesis constraints file                      //
+#                                                               //
+#   This file is part of the Amber project                      //
+#   http://www.opencores.org/project,amber                      //
+#                                                               //
+#   Description                                                 //
+#                                                               //
+#   Author(s):                                                  //
+#       - Conor Santifort, csantifort.amber@gmail.com           //
+#                                                               //
+#/ ///////////////////////////////////////////////////////////////
+#                                                               //
+#  Copyright (C) 2010 Authors and OPENCORES.ORG                 //
+#                                                               //
+#  This source file may be used and distributed without         //
+#  restriction provided that this copyright statement is not    //
+#  removed from the file and that any derivative work contains  //
+#  the original copyright notice and the associated disclaimer. //
+#                                                               //
+#  This source file is free software; you can redistribute it   //
+#  and/or modify it under the terms of the GNU Lesser General   //
+#  Public License as published by the Free Software Foundation; //
+#  either version 2.1 of the License, or (at your option) any   //
+#  later version.                                               //
+#                                                               //
+#  This source is distributed in the hope that it will be       //
+#  useful, but WITHOUT ANY WARRANTY; without even the implied   //
+#  warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR      //
+#  PURPOSE.  See the GNU Lesser General Public License for more //
+#  details.                                                     //
+#                                                               //
+#  You should have received a copy of the GNU Lesser General    //
+#  Public License along with this source; if not, download it   //
+#  from http://www.opencores.org/lgpl.shtml                     //
+#                                                               //
+# ----------------------------------------------------------------
+
+# 200MHz board clock that feeds the PLL
+NET "u_clocks_resets/brd_clk_ibufg" TNM_NET = "BRD_CLK";
+TIMESPEC "TS_PLL_CLK" = PERIOD "BRD_CLK"  5.0  ns HIGH 50 %;
+
+# 25 MHz Ethernet MII transmit clock
+NET "mtx_clk_pad_i" TNM_NET = "MTX_CLK";
+TIMESPEC "TS_MTX_CLK" = PERIOD "MTX_CLK"  40.0  ns HIGH 50 %;
+
+# 25 MHz Ethernet MII receive clock
+NET "mrx_clk_pad_i" TNM_NET = "MRX_CLK";
+TIMESPEC "TS_MRX_CLK" = PERIOD "MRX_CLK"  40.0  ns HIGH 50 %;
+
+NET "sys_clk" TNM_NET = "SYS_CLK";
+NET "u_xv6_ddr3/u_infrastructure/clk_bufg" TNM_NET = "DDR3_USR_CLK";
+
+TIMESPEC "TS_false1"  = FROM "DDR3_USR_CLK" TO "SYS_CLK" TIG;
+TIMESPEC "TS_false2"  = FROM "SYS_CLK" TO "DDR3_USR_CLK" TIG;
+
+############################################################################
+# DDR3 Timing constraints                                                  #
+############################################################################
+
+NET "sys_clk_p" TNM_NET = TNM_sys_clk;
+TIMESPEC "TS_sys_clk" = PERIOD "TNM_sys_clk" 1.875 ns;
+
+NET "brd_clk_p" TNM_NET = TNM_clk_ref;
+TIMESPEC "TS_clk_ref" = PERIOD "TNM_clk_ref" 5 ns ;
+
+# Constrain BUFR clocks used to synchronize data from IOB to fabric logic
+# Note that ISE cannot infer this from other PERIOD constraints because
+# of the use of OSERDES blocks in the BUFR clock generation path
+NET "u_xv6_ddr3/u_memc_ui_top/u_mem_intfc/phy_top0/clk_rsync[?]" TNM_NET = TNM_clk_rsync;
+TIMESPEC "TS_clk_rsync" = PERIOD "TNM_clk_rsync" 3.75 ns;
+
+# Signal to select between controller and physical layer signals. Four divided by two clock
+# cycles (8 memory clock cycles) are provided by design for the signal to settle down.
+# Used only by the phy modules.
+INST "u_xv6_ddr3/u_memc_ui_top/u_mem_intfc/phy_top0/u_phy_init/u_ff_phy_init_data_sel" TNM = "TNM_PHY_INIT_SEL";
+TIMESPEC "TS_MC_PHY_INIT_SEL" = FROM "TNM_PHY_INIT_SEL" TO FFS = "TS_sys_clk"*4;
+
+disable = reg_sr_o;
+disable = reg_sr_r;
+
+# Temporary workaround to prevent tools from performing timing analysis on
+# ck_p/ck_n feedback path through the MMCM to the MMCM.LOCK signal (which in
+# turn is in reset logic within the CLB fabric). This analysis is not
+# necessary because the MMCM.LOCK signal is synchronized to the BUFG clock
+# before being used.
+
+NET "ddr3_ck_n" TIG;
+NET "ddr3_ck_p" TIG;
+############################################################################
+########################################################################
+# Controller 0
+# Memory Device: DDR3_SDRAM->Components->MT41J64M16XX-15E
+# Supported Part Numbers: MT41J64M16LA-15E
+
+# Data Width:     16
+# Frequency:      533.333
+# Time Period:      1875
+# Data Mask:     1
+########################################################################
+
+
+################################################################################
+# I/O STANDARDS
+################################################################################
+
+NET  "ddr3_dq[*]"                            IOSTANDARD = SSTL15_T_DCI;
+NET  "ddr3_addr[*]"                          IOSTANDARD = SSTL15;
+NET  "ddr3_ba[*]"                            IOSTANDARD = SSTL15;
+NET  "ddr3_ras_n"                            IOSTANDARD = SSTL15;
+NET  "ddr3_cas_n"                            IOSTANDARD = SSTL15;
+NET  "ddr3_we_n"                             IOSTANDARD = SSTL15;
+NET  "ddr3_reset_n"                          IOSTANDARD = SSTL15;
+NET  "ddr3_cs_n"                             IOSTANDARD = SSTL15;
+NET  "ddr3_odt"                              IOSTANDARD = SSTL15;
+NET  "ddr3_cke"                              IOSTANDARD = SSTL15;
+NET  "ddr3_dm[*]"                            IOSTANDARD = SSTL15;
+NET  "sys_clk_p"                             IOSTANDARD = LVDS_25;
+NET  "sys_clk_n"                             IOSTANDARD = LVDS_25;
+NET  "ddr3_dqs_p[*]"                         IOSTANDARD = DIFF_SSTL15_T_DCI;
+NET  "ddr3_dqs_n[*]"                         IOSTANDARD = DIFF_SSTL15_T_DCI;
+NET  "ddr3_ck_p"                             IOSTANDARD = DIFF_SSTL15_T_DCI;
+NET  "ddr3_ck_n"                             IOSTANDARD = DIFF_SSTL15_T_DCI;
+
+
+##################################################################################
+# Location Constraints
+##################################################################################
+NET  "ddr3_dq[0]"                             LOC = "E12" ;          #Bank 26
+NET  "ddr3_dq[1]"                             LOC = "D11" ;          #Bank 26
+NET  "ddr3_dq[2]"                             LOC = "E13" ;          #Bank 26
+NET  "ddr3_dq[3]"                             LOC = "E14" ;          #Bank 26
+NET  "ddr3_dq[4]"                             LOC = "G14" ;          #Bank 26
+NET  "ddr3_dq[5]"                             LOC = "F14" ;          #Bank 26
+NET  "ddr3_dq[6]"                             LOC = "J16" ;          #Bank 26
+NET  "ddr3_dq[7]"                             LOC = "B11" ;          #Bank 26
+NET  "ddr3_dq[8]"                             LOC = "D13" ;          #Bank 26
+NET  "ddr3_dq[9]"                             LOC = "D12" ;          #Bank 26
+NET  "ddr3_dq[10]"                            LOC = "J15" ;          #Bank 26
+NET  "ddr3_dq[11]"                            LOC = "K15" ;          #Bank 26
+NET  "ddr3_dq[12]"                            LOC = "A14" ;          #Bank 26
+NET  "ddr3_dq[13]"                            LOC = "F15" ;          #Bank 26
+NET  "ddr3_dq[14]"                            LOC = "F12" ;          #Bank 26
+NET  "ddr3_dq[15]"                            LOC = "A15" ;          #Bank 26
+NET  "ddr3_addr[12]"                          LOC = "K17" ;          #Bank 25
+NET  "ddr3_addr[11]"                          LOC = "K18" ;          #Bank 25
+NET  "ddr3_addr[10]"                          LOC = "G17" ;          #Bank 25
+NET  "ddr3_addr[9]"                           LOC = "F17" ;          #Bank 25
+NET  "ddr3_addr[8]"                           LOC = "J17" ;          #Bank 25
+NET  "ddr3_addr[7]"                           LOC = "J18" ;          #Bank 25
+NET  "ddr3_addr[6]"                           LOC = "C18" ;          #Bank 25
+NET  "ddr3_addr[5]"                           LOC = "D18" ;          #Bank 25
+NET  "ddr3_addr[4]"                           LOC = "G18" ;          #Bank 25
+NET  "ddr3_addr[3]"                           LOC = "H18" ;          #Bank 25
+NET  "ddr3_addr[2]"                           LOC = "B18" ;          #Bank 25
+NET  "ddr3_addr[1]"                           LOC = "B19" ;          #Bank 25
+NET  "ddr3_addr[0]"                           LOC = "D17" ;          #Bank 25
+NET  "ddr3_ba[2]"                             LOC = "E17" ;          #Bank 25
+NET  "ddr3_ba[1]"                             LOC = "E18" ;          #Bank 25
+NET  "ddr3_ba[0]"                             LOC = "F19" ;          #Bank 25
+NET  "ddr3_ras_n"                             LOC = "A19" ;          #Bank 25
+NET  "ddr3_cas_n"                             LOC = "D20" ;          #Bank 25
+NET  "ddr3_we_n"                              LOC = "E19" ;          #Bank 25
+NET  "ddr3_reset_n"                           LOC = "A21" ;          #Bank 25
+NET  "ddr3_cs_n"                              LOC = "A22" ;          #Bank 25
+NET  "ddr3_odt"                               LOC = "C19" ;          #Bank 25
+NET  "ddr3_cke"                               LOC = "C20" ;          #Bank 25
+NET  "ddr3_dm[0]"                             LOC = "C11" ;          #Bank 26
+NET  "ddr3_dm[1]"                             LOC = "A16" ;          #Bank 26
+NET  "sys_clk_p"                              LOC = "AF10" ;         #Bank 35
+NET  "sys_clk_n"                              LOC = "AE10" ;         #Bank 35
+NET  "ddr3_dqs_p[0]"                          LOC = "H16" ;          #Bank 26
+NET  "ddr3_dqs_n[0]"                          LOC = "G16" ;          #Bank 26
+NET  "ddr3_dqs_p[1]"                          LOC = "C14" ;          #Bank 26
+NET  "ddr3_dqs_n[1]"                          LOC = "B13" ;          #Bank 26
+NET  "ddr3_ck_p"                              LOC = "H19" ;          #Bank 25
+NET  "ddr3_ck_n"                              LOC = "G19" ;          #Bank 25
+
+
+##################################################################################################
+##The following locations must be reserved and cannot be used for external I/O because          ##
+##the I/O elements associated with these sites (IODELAY, OSERDES, and associated routing)       ##
+##are used to generate and route the clocks necessary for read data capture and synchronization ##
+##to the core clock domain. These pins should not be routed out on the user's PCB               ##
+##################################################################################################
+
+##################################################################################################
+##The logic of this pin is used internally to drive a BUFR in the column. This chosen pin must  ##
+##be a clock pin capable of spanning to all of the banks containing data bytes in the particular##
+##column. That is, all byte groups must be within +/- 1 bank of this pin. This pin cannot be    ##
+##used for other functions and should not be connected externally. If a different pin is chosen,##
+##he corresponding LOC constraint must also be changed.                                         ##
+##################################################################################################
+
+CONFIG PROHIBIT = A20;
+
+######################################################################################
+##Place RSYNC OSERDES and IODELAY:                                                  ##
+######################################################################################
+
+##Site: A20 -- Bank 25
+INST "u_xv6_ddr3/u_memc_ui_top/u_mem_intfc/phy_top0/u_phy_read/u_phy_rdclk_gen/gen_loop_col0.u_oserdes_rsync"
+  LOC = "OLOGIC_X1Y63";
+INST "u_xv6_ddr3/u_memc_ui_top/u_mem_intfc/phy_top0/u_phy_read/u_phy_rdclk_gen/gen_loop_col0.u_odelay_rsync"
+  LOC = "IODELAY_X1Y63";
+
+INST "u_xv6_ddr3/u_memc_ui_top/u_mem_intfc/phy_top0/u_phy_read/u_phy_rdclk_gen/gen_loop_col0.u_bufr_rsync"
+  LOC = "BUFR_X1Y3";
+
+##################################################################################################
+##The logic of this pin is used internally to drive a BUFIO for the byte group. Any clock       ##
+##capable pin in the same bank as the data byte group (DQS, DQ, DM if used) can be used for     ##
+##this pin. This pin cannot be used for other functions and should not be connected externally. ##
+##If a different pin is chosen, the corresponding LOC constraint must also be changed.          ##
+##################################################################################################
+
+CONFIG PROHIBIT = B14,F16;
+
+######################################################################################
+##Place CPT OSERDES and IODELAY:                                                    ##
+######################################################################################
+
+##Site: B14 -- Bank 26
+INST "u_xv6_ddr3/u_memc_ui_top/u_mem_intfc/phy_top0/u_phy_read/u_phy_rdclk_gen/gen_ck_cpt[0].u_oserdes_cpt"
+  LOC = "OLOGIC_X1Y101";
+INST "u_xv6_ddr3/u_memc_ui_top/u_mem_intfc/phy_top0/u_phy_read/u_phy_rdclk_gen/gen_ck_cpt[0].u_odelay_cpt"
+  LOC = "IODELAY_X1Y101";
+
+##Site: F16 -- Bank 26
+INST "u_xv6_ddr3/u_memc_ui_top/u_mem_intfc/phy_top0/u_phy_read/u_phy_rdclk_gen/gen_ck_cpt[1].u_oserdes_cpt"
+  LOC = "OLOGIC_X1Y99";
+INST "u_xv6_ddr3/u_memc_ui_top/u_mem_intfc/phy_top0/u_phy_read/u_phy_rdclk_gen/gen_ck_cpt[1].u_odelay_cpt"
+  LOC = "IODELAY_X1Y99";
+
+#########################################################################################
+## The output clock phase monitor must be on a pin that is within +/- 1 bank vertically##
+## relative to the memory interface system ("write") MMCM. The pad is not used.To      ##
+## minimize pin usage, MIG picks a Vref pin which can be used as Vref while the ILOGIC ##
+## and OLOGIC are used for the output clock phase monitor.  If a different pin is      ##
+## chosen, the corresponding LOC constraint must also be changed.                      ##
+#########################################################################################
+
+#########################################################################################
+## SITE CONSTRAINT FOR OUTPUT CLOCK PHASE MONITOR (USE "SPARE" OLOGIC)                 ##
+## Site:J20 -- Bank: 25                                                                ##
+#########################################################################################
+
+INST "u_xv6_ddr3/u_memc_ui_top/u_mem_intfc/phy_top0/gen_enable_ocb_mon.u_phy_ocb_mon_top/u_oserdes_ocb_mon"
+  LOC = "OLOGIC_X1Y50";
+
+######################################################################################
+## MMCM_ADV CONSTRAINTS                                                             ##
+######################################################################################
+
+INST "u_xv6_ddr3/u_infrastructure/u_mmcm_adv"      LOC = "MMCM_ADV_X0Y3"; #Banks 15, 25, 35
+INST "u_xv6_ddr3/u_memc_ui_top/u_mem_intfc/phy_top0/u_phy_read/u_phy_rdclk_gen/u_mmcm_clk_base" LOC = "MMCM_ADV_X0Y2"; #Banks 15, 25, 35
