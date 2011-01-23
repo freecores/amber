@@ -125,56 +125,11 @@ end
 endfunction
 
 
-// Core Module address space
-function in_cm;
-    input [31:0] address;
-begin
-    in_cm = address [31:16] == AMBER_CM_BASE;
-end
-endfunction
-
-
-// System Controller address space
-function in_sc;
-    input [31:0] address;
-begin
-    in_sc = address [31:16] == AMBER_SC_BASE;
-end
-endfunction
-
-
 // Timer Module address space
 function in_tm;
     input [31:0] address;
 begin
     in_tm = address [31:16] == AMBER_TM_BASE;
-end
-endfunction
-
-
-// Real Time Clock address space
-function in_rtc;
-    input [31:0] address;
-begin
-    in_rtc = address [31:16] == AMBER_RTC_BASE;
-end
-endfunction
-
-
-// Keyboard address space
-function in_kbd;
-    input [31:0] address;
-begin
-    in_kbd = address [31:16] == AMBER_KBD_BASE;
-end
-endfunction
-
-
-// Mouse address space
-function in_mouse;
-    input [31:0] address;
-begin
-    in_mouse = address [31:16] == AMBER_MOUSE_BASE;
 end
 endfunction
 
