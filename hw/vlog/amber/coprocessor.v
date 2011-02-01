@@ -139,7 +139,7 @@ always @ ( posedge i_clk )
     if ( !i_fetch_stall )
         case ( i_copro_crn )
             // ID Register - [31:24] Company id, [23:16] Manuf id, [15:8] Part type, [7:0] revision
-            4'd0:    o_copro_read_data <= 32'h4180_3001;
+            4'd0:    o_copro_read_data <= 32'h4156_0300;
             4'd2:    o_copro_read_data <= {29'd0, cache_control}; 
             4'd3:    o_copro_read_data <= cacheable_area; 
             4'd4:    o_copro_read_data <= updateable_area; 
