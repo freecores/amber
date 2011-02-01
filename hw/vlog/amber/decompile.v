@@ -522,21 +522,21 @@ task w_mtrans_type;
     end
 endtask
 
-// mrc	15, 0, r9, cr0, cr0, {0}
+// e.g. mrc	15, 0, r9, cr0, cr0, {0}
 task cortrans_args;
     begin
     // Co-Processor Number
-    $fwrite(decompile_file,"p%1d, ", execute_instruction[11:8]);
+    $fwrite(decompile_file,"%1d, ", execute_instruction[11:8]);
     // opcode1
     $fwrite(decompile_file,"%1d, ", execute_instruction[23:21]);
     // Rd [15:12]
     warmreg(reg_d); 
     // CRn [19:16]
-    $fwrite(decompile_file,", c%1d", execute_instruction[19:16]);
+    $fwrite(decompile_file,", cr%1d", execute_instruction[19:16]);
     // CRm [3:0]
-    $fwrite(decompile_file,", c%1d", execute_instruction[3:0]);
+    $fwrite(decompile_file,", cr%1d", execute_instruction[3:0]);
     // Opcode2 [7:5]
-    $fwrite(decompile_file,", %1d",   execute_instruction[7:5]);
+    $fwrite(decompile_file,", {%1d}",   execute_instruction[7:5]);
     end
 endtask
 
@@ -545,9 +545,9 @@ endtask
 task codtrans_args;
     begin
     // Co-Processor Number
-    $fwrite(decompile_file,"p%1d, ", execute_instruction[11:8]);
+    $fwrite(decompile_file,"%1d, ", execute_instruction[11:8]);
     // CRd [15:12]
-    $fwrite(decompile_file,"c%1d, ", execute_instruction[15:12]);
+    $fwrite(decompile_file,"cr%1d, ", execute_instruction[15:12]);
     // Rd [19:16]
     warmreg(reg_n); 
     end
@@ -748,10 +748,11 @@ endtask
 task warmreg;
 input [3:0] regnum;
     begin
-    if (regnum < 4'd13)
+    if (regnum < 4'd12)
         $fwrite(decompile_file,"r%1d", regnum);
     else
     case (regnum)
+        4'd12   : $fwrite(decompile_file,"ip");
         4'd13   : $fwrite(decompile_file,"sp");
         4'd14   : $fwrite(decompile_file,"lr");
         4'd15   : $fwrite(decompile_file,"pc");
