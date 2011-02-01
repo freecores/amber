@@ -48,15 +48,10 @@ localparam BOOT_MSB             = 12;
 
 localparam MAIN_BASE            = 32'h0000_0000; /*  Main Memory            */
 localparam BOOT_BASE            = 32'h0000_0000; /*  Cachable Boot Memory   */
-localparam AMBER_CM_BASE        = 16'h1000;      /*  Core Module            */
-localparam AMBER_SC_BASE        = 16'h1100;      /*  System Controller      */
 localparam AMBER_TM_BASE        = 16'h1300;      /*  Timers Module          */
 localparam AMBER_IC_BASE        = 16'h1400;      /*  Interrupt Controller   */
-localparam AMBER_RTC_BASE       = 16'h1500;      /*  Real Time Clock        */
 localparam AMBER_UART0_BASE     = 16'h1600;      /*  UART 0                 */
 localparam AMBER_UART1_BASE     = 16'h1700;      /*  UART 1                 */
-localparam AMBER_KBD_BASE       = 16'h1800;      /*  Keyboard Module        */
-localparam AMBER_MOUSE_BASE     = 16'h1900;      /*  Mouse Module           */
 localparam ETHMAC_BASE          = 16'h2000;      /*  Ethernet MAC           */
 localparam HIBOOT_BASE          = 32'h2800_0000; /*  Uncachable Boot Memory */
 localparam TEST_BASE            = 16'hf000;      /*  Test Module            */

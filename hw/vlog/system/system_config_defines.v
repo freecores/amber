@@ -72,9 +72,6 @@
 // Print Interrupt Controller debug messages
 //`define AMBER_IC_DEBUG
 
-// Print Core Module debug messages
-//`define AMBER_CM_DEBUG
-
 // Debug the loading of the memory file into memory
 //`define AMBER_LOAD_MEM_DEBUG
 
