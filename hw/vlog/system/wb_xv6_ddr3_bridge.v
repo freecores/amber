@@ -48,7 +48,9 @@ module wb_xv6_ddr3_bridge
 input                          i_sys_clk,
 input                          i_ddr_clk,
 
-// MBus Ports
+input                          i_mem_ctrl,  // 0=128MB, 1=32MB
+
+// Wishbone Ports
 input       [31:0]             i_wb_adr,
 input       [3:0]              i_wb_sel,
 input                          i_wb_we,
@@ -125,7 +127,7 @@ assign busy                 = cmd_full | wr_full | read_busy;
 
 assign cmd_en               = start_write || start_read;
 assign cmd_instr            = start_write ? 3'd0 : 3'd1;
-assign cmd_addr             = i_wb_adr[26:0];
+assign cmd_addr             = i_mem_ctrl ? {2'd0, i_wb_adr[24:0]} : i_wb_adr[26:0];
 
 assign ddr_rd_valid         = i_ddr_rd_valid && !ddr_rd_valid_r;
 assign ddr_rd_data          = ddr_addr2_r ? i_ddr_rd_data[63:32] : i_ddr_rd_data[31:00];

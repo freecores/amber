@@ -47,6 +47,9 @@
 main () 
 {
     printf ("Hello, World!\n");
+    /* Flush out UART FIFO */
+    printf ("                ");
+    _testpass();
 }
 
 

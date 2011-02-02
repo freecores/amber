@@ -39,10 +39,11 @@
 ----------------------------------------------------------------*/
 
 /* These uart input delay values are correct for a 33MHz system clock */
-#define DLY_1S    1000
-#define DLY_300MS 300
+#define DLY_1S          1000
+#define DLY_300MS       300
 
-#define FILE_LOAD_BASE  0x4000000
-#define FILE_MAX_SIZE   0x1000000  /* 16MB max Xmodem transfer file size */
-#define DEBUG_BUF       0x5000000
+#define JUMP_ADR        0x00080000 /* Boot loader jumps to this default address */
+#define FILE_LOAD_BASE  0x01000000
+#define DEBUG_BUF       0x01800000
+#define FILE_MAX_SIZE   0x00800000 /* 8MB max Xmodem transfer file size        */
 

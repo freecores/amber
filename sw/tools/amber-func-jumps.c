@@ -227,7 +227,7 @@ while ( (bytes_read = getline (&line_buffer, &nbytes, jumps_file)) > 0)
                     {
 
                     if ( exact ) {                    
-                        if ( func_names[to_func_num].address < 0xc0000000 )
+                        if ( func_names[to_func_num].address < 0x02000000 )
                             printf("%9d u %s ->", clk_count, func_names[mid].name);
                         else
                             printf("%9d   %s ->", clk_count, func_names[mid].name);
@@ -238,7 +238,7 @@ while ( (bytes_read = getline (&line_buffer, &nbytes, jumps_file)) > 0)
                             }
                             
                                 
-                        if ( func_names[to_func_num].address < 0xc0000000 )
+                        if ( func_names[to_func_num].address < 0x02000000 )
                             printf("( %s ) %s u\n", 
                                 s_r0,
                                 func_names[to_func_num].name);

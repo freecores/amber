@@ -79,7 +79,7 @@ XST_PROJ_FILE   = source_files.prj
 ifdef VIRTEX6
     # Virtex-6 device
     XILINX_FPGA     = xc6vlx75tff784-3
-    XST_DEFINES     = XILINX_FPGA XILINX_VIRTEX6_FPGA  AMBER_CLK_DIVIDER=12
+    XST_DEFINES     = XILINX_FPGA XILINX_VIRTEX6_FPGA  AMBER_CLK_DIVIDER=11
     # Xilinx placement and timing constraints
     XST_CONST_FILE  = xv6_constraints.ucf
 else

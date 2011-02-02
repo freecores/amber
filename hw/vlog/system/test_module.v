@@ -46,7 +46,7 @@ input                       i_clk,
 
 output                      o_irq,
 output                      o_firq,
-
+output                      o_mem_ctrl,  // 0=128MB, 1=32MB
 input       [31:0]          i_wb_adr,
 input       [3:0]           i_wb_sel,
 input                       i_wb_we,
@@ -74,7 +74,8 @@ reg             tb_uart_push        = 'd0;
 reg [7:0]       tb_uart_txd_reg     = 'd0;
 //synopsys translate_on
 
-reg [1:0]       sim_ctrl_reg        = 'd0; // 1,2 = simulation, 0 = fpga
+reg [2:0]       sim_ctrl_reg        = 'd0; // 0 = fpga, other values for simulations
+reg             mem_ctrl_reg        = 'd0; // 0 = 128MB, 1 = 32MB main memory
 reg [31:0]      test_status_reg     = 'd0;
 reg             test_status_set     = 'd0; // used to terminate tests
      
@@ -91,10 +92,10 @@ assign wb_start_read  = i_wb_stb && !i_wb_we && !o_wb_ack;
 always @( posedge i_clk )
     wb_start_read_d1 <= wb_start_read;
 
-assign o_wb_ack = i_wb_stb && ( wb_start_write || wb_start_read_d1 );
-assign o_wb_err = 1'd0;
-assign o_wb_dat = wb_rdata;
-
+assign o_wb_ack   = i_wb_stb && ( wb_start_write || wb_start_read_d1 );
+assign o_wb_err   = 1'd0;
+assign o_wb_dat   = wb_rdata;
+assign o_mem_ctrl = mem_ctrl_reg;
 
 // ========================================================
 // Register Reads
@@ -103,7 +104,7 @@ always @( posedge i_clk )
     if ( wb_start_read )
         case ( i_wb_adr[15:0] )
             AMBER_TEST_STATUS:           wb_rdata <= test_status_reg;
-            AMBER_TEST_FIRQ_TIMER:        wb_rdata <= {24'd0, firq_timer};
+            AMBER_TEST_FIRQ_TIMER:       wb_rdata <= {24'd0, firq_timer};
             AMBER_TEST_IRQ_TIMER:        wb_rdata <= {24'd0, irq_timer};
             AMBER_TEST_RANDOM_NUM:       wb_rdata <= {24'd0, random_num};
             
@@ -133,7 +134,8 @@ always @( posedge i_clk )
             AMBER_TEST_UART_TXD:         wb_rdata <= {24'd0, tb_uart_txd_reg};
             //synopsys translate_on
             
-            AMBER_TEST_SIM_CTRL:         wb_rdata <= {30'd0, sim_ctrl_reg};
+            AMBER_TEST_SIM_CTRL:         wb_rdata <= {29'd0, sim_ctrl_reg};
+            AMBER_TEST_MEM_CTRL:         wb_rdata <= {31'd0, mem_ctrl_reg};
             default:                     wb_rdata <= 32'haabbccdd;
             
         endcase
@@ -154,7 +156,7 @@ always @( posedge i_clk )
 always @( posedge i_clk )
     begin
     // Value reads as 1 in simulation, and zero in the FPGA
-    sim_ctrl_reg <= 2'd `AMBER_SIM_CTRL ;
+    sim_ctrl_reg <= 3'd `AMBER_SIM_CTRL ;
     end
 //synopsys translate_on
 
@@ -228,6 +230,14 @@ always @( posedge i_clk )
 always @( posedge i_clk )
     if ( wb_start_write && i_wb_adr[15:0] == AMBER_TEST_STATUS )
         test_status_set <= 1'd1;     
+
+
+// ======================================
+// Memory Configuration Register Write
+// ======================================
+always @( posedge i_clk )
+    if ( wb_start_write && i_wb_adr[15:0] == AMBER_TEST_MEM_CTRL )
+        mem_ctrl_reg <= i_wb_dat[0];     
 
 
 // ======================================

@@ -47,7 +47,7 @@ AMBERDIS=amber.dis
 
 
 if [[ -e $VMLINUXDIS ]] ; then
-  ADDR=`grep '<emit_log_char>:' $VMLINUXDIS | awk '{print $1}'`
+  ADDR=`grep '<emit_log_char>:' $VMLINUXDIS | awk '{print $1}' | sed 's/^0*//'`
   grep "to $ADDR" $AMBERDIS | awk '{print $8}' | awk -F "" '{print $7 $8}' | ../../sw/tools/amber-mem-ascii
 else
   echo "Error can't find the file $VMLINUXDIS"

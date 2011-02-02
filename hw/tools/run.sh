@@ -44,7 +44,6 @@
 # Defaults
 #--------------------------------------------------------
 AMBER_LOAD_MAIN_MEM=" "
-AMBER_SIM_CTRL=1
 SET_G=0
 SET_M=0
 SET_D=0
@@ -180,29 +179,45 @@ fi
 
 # First check if its an assembly test
 if [ -f ../tests/${AMBER_TEST_NAME}.S ]; then
-    TEST_TYPE=0
+    # hw-test
+    TEST_TYPE=1
+elif [ ${AMBER_TEST_NAME} == vmlinux ]; then
+    TEST_TYPE=3
+elif [ ${AMBER_TEST_NAME} == hello-world ]; then
+    TEST_TYPE=4
 elif [ -d ../../sw/${AMBER_TEST_NAME} ]; then
     # Does this test type need the boot-loader ?
     if [ -e ../../sw/${AMBER_TEST_NAME}/sections.lds ]; then
-        grep 8000 ../../sw/${AMBER_TEST_NAME}/sections.lds > /dev/null
+        grep 80000 ../../sw/${AMBER_TEST_NAME}/sections.lds > /dev/null
         if [ $? == 0 ]; then
-            TEST_TYPE=2
+            # Needs boot loader, starts at 0x80000
+            TEST_TYPE=3
         else
-            TEST_TYPE=1
+            TEST_TYPE=2
         fi
     else
-        TEST_TYPE=1
+        TEST_TYPE=2
     fi    
 else    
     echo "Test ${AMBER_TEST_NAME} not found"
     exit
 fi
 
+echo "Test ${AMBER_TEST_NAME}, type $TEST_TYPE"
 
 # Now compile the test
 if [ $TEST_TYPE == 1 ]; then
+    # hw assembly test
+    echo "Compile ../tests/${AMBER_TEST_NAME}.S"
+    pushd ../tests > /dev/null
+    make TEST=${AMBER_TEST_NAME}
+    MAKE_STATUS=$?
+    popd > /dev/null
+    BOOT_MEM_FILE="../tests/${AMBER_TEST_NAME}.mem"
+    BOOT_MEM_PARAMS_FILE="../tests/${AMBER_TEST_NAME}_memparams.v"
+    AMBER_LOG_FILE="hw-tests.log"
+elif [ $TEST_TYPE == 2 ]; then
     # sw Stand-alone C test
-    echo do ${AMBER_TEST_NAME}
     pushd ../../sw/${AMBER_TEST_NAME} > /dev/null
     make
     MAKE_STATUS=$?
@@ -210,11 +225,9 @@ if [ $TEST_TYPE == 1 ]; then
     BOOT_MEM_FILE="../../sw/${AMBER_TEST_NAME}/${AMBER_TEST_NAME}.mem"
     BOOT_MEM_PARAMS_FILE="../../sw/${AMBER_TEST_NAME}/${AMBER_TEST_NAME}_memparams.v"
     AMBER_LOG_FILE="${AMBER_TEST_NAME}.log"
-    AMBER_SIM_CTRL=2
 
-elif [ $TEST_TYPE == 2 ]; then
-    # sw Boot-Loader C test
-    echo do ${AMBER_TEST_NAME}
+elif [ $TEST_TYPE == 3 ] || [ $TEST_TYPE == 4 ]; then
+    # sw test using boot loader
     pushd ../../sw/boot-loader > /dev/null
     make
     MAKE_STATUS=$?
@@ -225,7 +238,9 @@ elif [ $TEST_TYPE == 2 ]; then
     fi
     
     pushd ../../sw/${AMBER_TEST_NAME} > /dev/null
-    make
+    if [ -e Makefile ]; then
+        make
+    fi
     MAKE_STATUS=$?
     popd > /dev/null
     
@@ -236,15 +251,7 @@ elif [ $TEST_TYPE == 2 ]; then
     AMBER_LOG_FILE="${AMBER_TEST_NAME}.log"
 
 else
-    # hw assembly test
-    echo "Compile ../tests/${AMBER_TEST_NAME}.S"
-    pushd ../tests > /dev/null
-    make TEST=${AMBER_TEST_NAME}
-    MAKE_STATUS=$?
-    popd > /dev/null
-    BOOT_MEM_FILE="../tests/${AMBER_TEST_NAME}.mem"
-    BOOT_MEM_PARAMS_FILE="../tests/${AMBER_TEST_NAME}_memparams.v"
-    AMBER_LOG_FILE="hw-tests.log"
+    echo "Error unrecognized test type"
 fi
 
 
@@ -271,7 +278,7 @@ if [ $MAKE_STATUS == 0 ]; then
             +define+MAIN_MEM_FILE=\"$MAIN_MEM_FILE\" \
             +define+AMBER_LOG_FILE=\"$AMBER_LOG_FILE\" \
             +define+AMBER_TEST_NAME=\"$AMBER_TEST_NAME\" \
-            +define+AMBER_SIM_CTRL=$AMBER_SIM_CTRL \
+            +define+AMBER_SIM_CTRL=$TEST_TYPE \
             ${FPGA} \
             $AMBER_DUMP_VCD \
             $AMBER_TERMINATE \

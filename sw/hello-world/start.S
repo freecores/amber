@@ -51,9 +51,9 @@ _start:
  
         @ Enable the cache
         mov     r0,  #0xffffffff
-	mcr	p15, 0, r0, c3, c0, 0   @ cacheable area
+	mcr	15, 0, r0, cr3, cr0, 0   @ cacheable area
         mov     r0,  #1
-	mcr	p15, 0, r0, c2, c0, 0   @ cache enable
+	mcr	15, 0, r0, cr2, cr0, 0   @ cache enable
         
         @ initialize the stack pointer
         ldr     sp, AdrStack

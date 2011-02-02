@@ -47,6 +47,8 @@ module wb_xs6_ddr3_bridge
 (
 input                          i_clk,
 
+input                          i_mem_ctrl,  // 0=128MB, 1=32MB
+
 // Wishbone Bus
 input       [31:0]             i_wb_adr,
 input       [3:0]              i_wb_sel,
@@ -77,7 +79,7 @@ wire            start_read;
 reg             start_write_d1;
 reg             start_read_d1;
 reg             start_read_hold = 'd0;
-reg  [31:0]     wb_adr_d1;
+reg  [29:0]     wb_adr_d1;
 wire            ddr3_busy;
 reg             read_ack = 'd0;
 reg             read_ready = 1'd1;
@@ -130,7 +132,7 @@ always @( posedge i_clk )
     
     start_write_d1  <= start_write;
     start_read_d1   <= start_read;
-    wb_adr_d1       <= i_wb_adr;
+    wb_adr_d1       <= i_mem_ctrl ? {5'd0, i_wb_adr[24:0]} : i_wb_adr[29:0];
     
     if ( start_read  )
         start_read_hold <= 1'd1;

@@ -189,9 +189,9 @@ system u_system (
           .dm_tdqs    ( ddr3_dm             ),
           .ba         ( ddr3_ba             ),
           .addr       ( {1'd0, ddr3_addr}   ),
-          .dq         ( ddr3_dq              ),
-          .dqs        ( ddr3_dqs_p           ),
-          .dqs_n      ( ddr3_dqs_n           ),
+          .dq         ( ddr3_dq             ),
+          .dqs        ( ddr3_dqs_p          ),
+          .dqs_n      ( ddr3_dqs_n          ),
           .tdqs_n     (                     ),
           .odt        ( ddr3_odt            ),
           .rst_n      ( ddr3_reset_n        )
@@ -391,14 +391,14 @@ initial
                         `ifdef XILINX_FPGA
                             mm_ddr3_addr = {main_mem_file_address[13:11], main_mem_file_address[26:14], main_mem_file_address[10:4]};
                         
-                            main_mem_file_data_128 = tb.u_ddr3_model_c3.memory [mm_ddr3_addr];
-                            tb.u_ddr3_model_c3.memory [mm_ddr3_addr] =
+                            main_mem_file_data_128 = tb.u_ddr3_model.memory [mm_ddr3_addr];
+                            tb.u_ddr3_model.memory [mm_ddr3_addr] =
                                     insert_32_into_128 ( main_mem_file_address[3:2], 
                                                          main_mem_file_data_128, 
                                                          main_mem_file_data );
                                                 
                             `ifdef AMBER_LOAD_MEM_DEBUG
-                                main_mem_file_data_128 = tb.u_ddr3_model_c3.memory [mm_ddr3_addr];
+                                main_mem_file_data_128 = tb.u_ddr3_model.memory [mm_ddr3_addr];
                                 $display ("Load DDR3: PAddr: 0x%08x, DDR3 Addr 0x%08h, Data 0x%032x", 
                                           main_mem_file_address, mm_ddr3_addr, main_mem_file_data_128);
                             `endif   

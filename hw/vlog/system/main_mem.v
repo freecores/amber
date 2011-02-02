@@ -46,7 +46,7 @@
 module main_mem
 (
 input                          i_clk,
-
+input                          i_mem_ctrl,  // 0=128MB, 1=32MB
 // Wishbone Bus
 input       [31:0]             i_wb_adr,
 input       [3:0]              i_wb_sel,
@@ -96,7 +96,9 @@ always @( posedge i_clk )
                       i_wb_adr[3:2] == 2'd2 ? { 4'hf,    ~i_wb_sel, 8'hff   } : 
                                               {          ~i_wb_sel, 12'hfff } ; 
     wr_data        <= {4{i_wb_dat}};
-    addr_d1        <= i_wb_adr[29:2];
+
+                      // Wrap the address at 32 MB, or full width
+    addr_d1        <= i_mem_ctrl ? {5'd0, i_wb_adr[24:2]} : i_wb_adr[29:2];
     
     if ( wr_en )
         ram [addr_d1[27:2]]  <= masked_wdata;

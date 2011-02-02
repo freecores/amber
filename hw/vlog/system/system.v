@@ -121,6 +121,7 @@ wire            c3_p0_wr_full;
 `endif
 
 wire            phy_init_done;
+wire            test_mem_ctrl;
 
 // ======================================
 // Xilinx Virtex-6 DDR3 Controller connections
@@ -382,6 +383,7 @@ test_module u_test_module (
     
     .o_irq                  ( test_reg_irq   ),
     .o_firq                 ( test_reg_firq  ),
+    .o_mem_ctrl             ( test_mem_ctrl  ),
     .i_wb_adr               ( s_wb_adr  [5]  ),
     .i_wb_sel               ( s_wb_sel  [5]  ),
     .i_wb_we                ( s_wb_we   [5]  ),
@@ -458,6 +460,7 @@ interrupt_controller u_interrupt_controller (
     
     main_mem u_main_mem (
                .i_clk                  ( sys_clk               ),
+               .i_mem_ctrl             ( test_mem_ctrl         ),
                .i_wb_adr               ( s_wb_adr  [2]         ),        
                .i_wb_sel               ( s_wb_sel  [2]         ),        
                .i_wb_we                ( s_wb_we   [2]         ),        
@@ -491,6 +494,7 @@ interrupt_controller u_interrupt_controller (
         .i_rd_data              ( c3_p0_rd_data         ),        
         .i_rd_empty             ( c3_p0_rd_empty        ),
         
+        .i_mem_ctrl             ( test_mem_ctrl         ),
         .i_wb_adr               ( s_wb_adr  [2]         ),        
         .i_wb_sel               ( s_wb_sel  [2]         ),        
         .i_wb_we                ( s_wb_we   [2]         ),        
@@ -594,6 +598,7 @@ interrupt_controller u_interrupt_controller (
         .i_phy_init_done        ( phy_init_done1        ),        
         .o_phy_init_done        ( phy_init_done         ),  // delayed version
               
+        .i_mem_ctrl             ( test_mem_ctrl         ),
         .i_wb_adr               ( s_wb_adr  [2]         ),        
         .i_wb_sel               ( s_wb_sel  [2]         ),        
         .i_wb_we                ( s_wb_we   [2]         ),        

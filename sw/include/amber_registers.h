@@ -48,6 +48,7 @@
 #define ADR_AMBER_TEST_UART_STATUS     0xf0000014
 #define ADR_AMBER_TEST_UART_TXD        0xf0000018
 #define ADR_AMBER_TEST_SIM_CTRL        0xf000001c
+#define ADR_AMBER_TEST_MEM_CTRL        0xf0000020
 /* Allow access to the random register over
    a 16-word address range to load a series
    of random numbers using lmd instruction. */

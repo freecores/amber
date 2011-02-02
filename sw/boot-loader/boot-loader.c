@@ -51,7 +51,7 @@ void parse ( char * buf );
 void printm ( unsigned int address );
 int  get_hex ( char * buf, int start_position, unsigned int *address, unsigned int *length );
 int  get_address_data ( char * buf, unsigned int *address, unsigned int *data );
-void load_run( int type );
+void load_run( int type, unsigned int address );
 void print_spaces ( int num );
 void print_help ( void );
 
@@ -68,23 +68,20 @@ int main ( void ) {
     *(unsigned int *) ADR_AMBER_UART0_LCRH = 0x10;
     
     printf("%cAmber Boot Loader v%s\n", 0xc, AMBER_FPGA_VERSION );  /* 0xc == new page */
-    print_help();
     
-    /* The  ADR_AMBER_TEST_SIM_CTRL register is always 0 in the real fpga
+
+    /* When ADR_AMBER_TEST_SIM_CTRL is non-zero, its a Verilog simulation.
+       The  ADR_AMBER_TEST_SIM_CTRL register is always 0 in the real fpga
        The register is in vlog/system/test_module.v
     */   
-    if ( *(unsigned int *) ADR_AMBER_TEST_SIM_CTRL == 0x1 ) {
-        load_run(2);
-        _testpass();
+    if ( *(unsigned int *) ADR_AMBER_TEST_SIM_CTRL ) {
+        load_run(*(unsigned int *) ADR_AMBER_TEST_SIM_CTRL, 0);
         }
+        
 
-    else if ( *(unsigned int *) ADR_AMBER_TEST_SIM_CTRL == 0x2 ) {
-        _core_status();        
-        print_spaces(16);
-        _testpass();
-        }
-
-    printf("> ");
+    /* Print the instructions */
+    print_help();
+    printf("Ready\n> ");
     
     /* Loop forever on user input */
     while (1) {
@@ -158,19 +155,14 @@ void parse ( char * buf )
                 break;
                 
             case 'l': /* Load */  
-                load_run(1);
+                load_run(1,0);
                 break;
 
-            case 'j': /* Jump to 0x8000 */  
-                load_run(2);
+            case 'j': /* Jump to 0x80000 */  
+                load_run(0,0);
                 break;
 
-            case 'x': /* Load and Jump to 0x8000 */  
-                load_run(0);
-                break;
-                
             case 's': /* Status */    
-                printf  ("Status\n");
                 _core_status();
                 /* Flush out the uart with spaces */
                 print_spaces(16);
@@ -229,6 +221,13 @@ void parse ( char * buf )
                     }
                 break;
 
+            case 'b': /* Load binary file into address */
+                /* Recover the address from the string - the address is written in hex */      
+                if (get_hex ( buf, 2, &address, &length )) { 
+                    load_run (5, address);
+                    }
+                break;
+
             case 'w': /* Write address */
                 /* Get the address */
                 if (get_address_data ( buf, &address, &data )) {
@@ -246,20 +245,28 @@ void parse ( char * buf )
 }
 
 
-/* Load an elf file via the UART, and run it */
-/* The elf file must start at 0x8000         */
-void load_run( int type )
+/* Load a binary file into memory via the UART
+   If its an elf file, copy it into the correct memory areas
+   and execute it.
+*/   
+void load_run( int type, unsigned int address )
 {
     int file_size;        
     
-    if ( type == 0 || type == 1 ) {
+    /* testing tyhe boot loader itself in simulation */
+    if ( type == 2 ) {
+        print_help();
+        _core_status();        
+        print_spaces(16);
+        _testpass();
+        }
+        
+    /* Load a file but don't run it */    
+    else if ( type == 1 ) {
         /* Load a file using the xmodem protocol */
         printf  ("Send file w/ 1K Xmodem protocol from terminal emulator now...\n");
-        /* the following should be changed for your environment:
-           0x30000 is the download address,
-           65536 is the maximum size to be written at this address
-         */
-                                  /* Destination, Destination Size */
+
+                                  /*       Destination,    Destination Size */
         file_size = xmodemReceive((char *) FILE_LOAD_BASE, FILE_MAX_SIZE);   
         if (file_size < 0 || file_size > FILE_MAX_SIZE) {
             printf ("Xmodem error file size 0x%x \n", file_size);
@@ -269,14 +276,32 @@ void load_run( int type )
         printf("\nelf split\n");
         elfsplitter(FILE_LOAD_BASE, file_size);
         }
-        
-    if ( type == 0 || type == 2 ) {    
-        printf("j 0x8000\n");
+
+    /* Hello world special start address - simulations only */    
+    else if ( type == 4 ) {
+        _jump_to_program(0x0080e400);
+        }
+
+
+    /* Load a binary file into memory */    
+    else if ( type == 5 ) {
+                                  /*       Destination,    Destination Size */
+        file_size = xmodemReceive((char *) address, FILE_MAX_SIZE);   
+        if (file_size < 0 || file_size > FILE_MAX_SIZE) {
+            printf ("Xmodem error file size 0x%x \n", file_size);
+            return;
+            }
+        }
+
+    /* Run the program */    
+    else  {    
+        printf("j 0x%08x\n", JUMP_ADR);
         /* Flush the uart tx buffer with spaces */
         print_spaces(16);
         printf("\n");
-        /* in assembly jump to 0x8000 */
-        _jump_to_program();
+        /* pc jump */
+        _jump_to_program(JUMP_ADR);
+        _testpass();
         }
 }
 
@@ -296,6 +321,10 @@ void print_help ( void )
     print_spaces(29);
     printf(": Load elf file\n");
 
+    printf("b <address>");                   
+    print_spaces(19);
+    printf(": Load binary file to <address>\n");
+
     printf("d <start address> <num bytes> : Dump mem\n");
 
     printf("h");                     
@@ -304,7 +333,7 @@ void print_help ( void )
 
     printf("j");                     
     print_spaces(29);
-    printf(": Execute loaded elf, jumping to 0x8000\n");
+    printf(": Execute loaded elf, jumping to 0x%08x\n", JUMP_ADR);
 
     printf("p <address>");                   
     print_spaces(19);
@@ -320,13 +349,7 @@ void print_help ( void )
     
     printf("w <address> <value>");            
     print_spaces(11);
-    printf(": Write mem\n");
-    
-    printf("x");                     
-    print_spaces(29);
-    printf(": Load and execute elf in 1 step\n");
-    
-    printf("\n  Example\n> d 100 200\n  Dumps 512 bytes from 0x100\n\n");
+    printf(": Write mem\n");    
 }
 
 
