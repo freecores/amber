@@ -239,23 +239,66 @@ assign o_sys_rst = rst0 || !calib_done_33mhz;
 
 `ifndef XILINX_FPGA
 
-localparam [7:0] FULL_COUNT     = `AMBER_CLK_DIVIDER / 4;
-localparam [7:0] HALF_COUNT     = FULL_COUNT / 2;
+real      brd_clk_period = 6000;  // use starting value of 6000pS
+real      pll_clk_period = 1000;  // use starting value of 1000pS
+real      brd_temp;
+reg       pll_clk_beh;
+reg       sys_clk_beh;
+integer   pll_div_count = 0;
 
-// e.g. Divide clock by 6 to get 33MHz
-reg [7:0] clk_div_count;
-
+// measure input clock period
 initial
     begin
-    clk_div_count <= FULL_COUNT - 1'd3;
-    forever @ (posedge i_brd_clk_p)
-        if ( clk_div_count == ( FULL_COUNT - 1'd1 ) )
-            clk_div_count <= 8'h0;
-        else
-            clk_div_count <= clk_div_count + 1'd1;
+    @ (posedge i_brd_clk_p)
+    brd_temp = $time;
+    @ (posedge i_brd_clk_p)
+    brd_clk_period = $time - brd_temp;
+    pll_clk_period = brd_clk_period / 4;
     end
     
-assign o_sys_clk        = clk_div_count < HALF_COUNT;
+// Generate an 800MHz pll clock based off the input clock
+always @( posedge i_brd_clk_p )
+    begin
+    pll_clk_beh = 1'd1;
+    # ( pll_clk_period / 2 )
+    pll_clk_beh = 1'd0;
+    # ( pll_clk_period / 2 )
+
+    pll_clk_beh = 1'd1;
+    # ( pll_clk_period / 2 )
+    pll_clk_beh = 1'd0;
+    # ( pll_clk_period / 2 )
+
+    pll_clk_beh = 1'd1;
+    # ( pll_clk_period / 2 )
+    pll_clk_beh = 1'd0;
+    # ( pll_clk_period / 2 )
+
+    pll_clk_beh = 1'd1;
+    # ( pll_clk_period / 2 )
+    pll_clk_beh = 1'd0;
+
+    end
+
+// Divide the pll clock down to get the system clock
+always @( pll_clk_beh )
+    begin
+    if ( pll_div_count == (
+        `AMBER_CLK_DIVIDER 
+        * 2 ) - 1 )
+        pll_div_count <= 'd0;
+    else    
+        pll_div_count <= pll_div_count + 1'd1;
+        
+    if ( pll_div_count == 0 )
+        sys_clk_beh = 1'd1;
+    else if ( pll_div_count == 
+        `AMBER_CLK_DIVIDER 
+        )
+        sys_clk_beh = 1'd0;
+    end
+
+assign o_sys_clk        = sys_clk_beh;
 assign rst0             = i_brd_rst;
 assign calib_done_33mhz = 1'd1;
 assign o_clk_200        = i_brd_clk_p;
