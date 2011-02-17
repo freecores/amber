@@ -41,8 +41,9 @@
 
 module xs6_sram_256x21_line_en
 #(
-parameter DATA_WIDTH    = 21,
-parameter ADDRESS_WIDTH = 8
+parameter DATA_WIDTH         = 21,
+parameter INITIALIZE_TO_ZERO = 0,
+parameter ADDRESS_WIDTH      = 8
 )
 
 (
