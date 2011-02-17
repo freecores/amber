@@ -53,6 +53,11 @@
 
 `include "system_config_defines.v"
 
+// Normally AMBER_UART_BAUD is defined in the system_config_defines.v file.
+`ifndef AMBER_UART_BAUD
+`define AMBER_UART_BAUD 230400
+`endif
+
 module uart (
 input                       i_clk,
 
@@ -93,18 +98,19 @@ localparam [3:0] TXD_IDLE  = 4'd0,
                  TXD_STOP2 = 4'd11,
                  TXD_STOP3 = 4'd12;
                  
-localparam [3:0] RXD_IDLE      = 4'd0,
-                 RXD_START     = 4'd1,
-                 RXD_START_MID = 4'd2,
-                 RXD_DATA0     = 4'd3,
-                 RXD_DATA1     = 4'd4,
-                 RXD_DATA2     = 4'd5,
-                 RXD_DATA3     = 4'd6,
-                 RXD_DATA4     = 4'd7,
-                 RXD_DATA5     = 4'd8,
-                 RXD_DATA6     = 4'd9,
-                 RXD_DATA7     = 4'd10,
-                 RXD_STOP      = 4'd11;
+localparam [3:0] RXD_IDLE       = 4'd0,
+                 RXD_START      = 4'd1,
+                 RXD_START_MID  = 4'd2,
+                 RXD_START_MID1 = 4'd3,
+                 RXD_DATA0      = 4'd4,
+                 RXD_DATA1      = 4'd5,
+                 RXD_DATA2      = 4'd6,
+                 RXD_DATA3      = 4'd7,
+                 RXD_DATA4      = 4'd8,
+                 RXD_DATA5      = 4'd9,
+                 RXD_DATA6      = 4'd10,
+                 RXD_DATA7      = 4'd11,
+                 RXD_STOP       = 4'd12;
 
 
 localparam RX_INTERRUPT_COUNT = 24'h3fffff; 
@@ -116,7 +122,13 @@ localparam RX_INTERRUPT_COUNT = 24'h3fffff;
 
 `ifndef Veritak
 localparam real UART_BAUD         = `AMBER_UART_BAUD;            // Hz
+
+`ifdef XILINX_VIRTEX6_FPGA
+localparam real CLK_FREQ          = 1000.0 / `AMBER_CLK_DIVIDER ; // MHz
+`else
 localparam real CLK_FREQ          = 800.0 / `AMBER_CLK_DIVIDER ; // MHz
+`endif
+
 localparam real UART_BIT_PERIOD   = 1000000000 / UART_BAUD;      // nS
 localparam real UART_WORD_PERIOD  = ( UART_BIT_PERIOD * 12 );    // nS
 localparam real CLK_PERIOD        = 1000 / CLK_FREQ;             // nS
@@ -327,9 +339,9 @@ assign fifo_enable = uart_lcrh_reg[4];
 
 assign   o_uart_txd                 = txd;
 
-assign   tx_fifo_full              = fifo_enable ? tx_fifo_count >= 5'd16 :  tx_fifo_full_flag;
-assign   tx_fifo_empty             = fifo_enable ? tx_fifo_count == 5'd00 : !tx_fifo_full_flag;
-assign   tx_fifo_half_or_less_full =               tx_fifo_count <= 5'd8;
+assign   tx_fifo_full               = fifo_enable ? tx_fifo_count >= 5'd16 :  tx_fifo_full_flag;
+assign   tx_fifo_empty              = fifo_enable ? tx_fifo_count == 5'd00 : !tx_fifo_full_flag;
+assign   tx_fifo_half_or_less_full  =               tx_fifo_count <= 5'd8;
 assign   tx_byte                    = fifo_enable ? tx_fifo[tx_fifo_rp[3:0]] : tx_fifo[0] ;
 
 assign   tx_fifo_push               = wb_start_write && i_wb_adr[15:0] == AMBER_UART_DR;
@@ -423,7 +435,7 @@ always @( posedge i_clk )
 always @( posedge i_clk )
     if ( tx_bit_pulse )
     
-        case (txd_state)
+        case ( txd_state )
         
             TXD_IDLE :
                 begin
@@ -565,11 +577,17 @@ always @( posedge i_clk )
             // Filter out glitches and jaggedy transitions
             if ( rx_start ) 
                 begin
-                rxd_state               <= RXD_START_MID;
+                rxd_state               <= RXD_START_MID1;
                 restart_rx_bit_count    <= 1'd1;
                 end
             else    
                 restart_rx_bit_count    <= 1'd0;
+
+        // This state just delays the check on the
+        // rx_bit_pulse_count value by 1 clock cycle to
+        // give it time to reset
+        RXD_START_MID1 :
+            rxd_state               <= RXD_START_MID;
             
         RXD_START_MID :
             if ( rx_bit_pulse_count == RX_HALFPULSE_COUNT )
@@ -915,34 +933,35 @@ wire    [(10*8)-1:0]    xTXD_STATE;
 wire    [(14*8)-1:0]    xRXD_STATE;
 
  
-assign xTXD_STATE      = txd_state == TXD_IDLE      ? "TXD_IDLE"   :
-                         txd_state == TXD_START     ? "TXD_START"  :
-                         txd_state == TXD_DATA0     ? "TXD_DATA0"  :
-                         txd_state == TXD_DATA1     ? "TXD_DATA1"  :
-                         txd_state == TXD_DATA2     ? "TXD_DATA2"  :
-                         txd_state == TXD_DATA3     ? "TXD_DATA3"  :
-                         txd_state == TXD_DATA4     ? "TXD_DATA4"  :
-                         txd_state == TXD_DATA5     ? "TXD_DATA5"  :
-                         txd_state == TXD_DATA6     ? "TXD_DATA6"  :
-                         txd_state == TXD_DATA7     ? "TXD_DATA7"  :
-                         txd_state == TXD_STOP1     ? "TXD_STOP1"  :
-                         txd_state == TXD_STOP2     ? "TXD_STOP2"  :
-                         txd_state == TXD_STOP3     ? "TXD_STOP3"  :
-                                                      "UNKNOWN"    ;
+assign xTXD_STATE      = txd_state == TXD_IDLE       ? "TXD_IDLE"   :
+                         txd_state == TXD_START      ? "TXD_START"  :
+                         txd_state == TXD_DATA0      ? "TXD_DATA0"  :
+                         txd_state == TXD_DATA1      ? "TXD_DATA1"  :
+                         txd_state == TXD_DATA2      ? "TXD_DATA2"  :
+                         txd_state == TXD_DATA3      ? "TXD_DATA3"  :
+                         txd_state == TXD_DATA4      ? "TXD_DATA4"  :
+                         txd_state == TXD_DATA5      ? "TXD_DATA5"  :
+                         txd_state == TXD_DATA6      ? "TXD_DATA6"  :
+                         txd_state == TXD_DATA7      ? "TXD_DATA7"  :
+                         txd_state == TXD_STOP1      ? "TXD_STOP1"  :
+                         txd_state == TXD_STOP2      ? "TXD_STOP2"  :
+                         txd_state == TXD_STOP3      ? "TXD_STOP3"  :
+                                                       "UNKNOWN"    ;
 
-assign xRXD_STATE      = rxd_state == RXD_IDLE      ? "RXD_IDLE"      :
-                         rxd_state == RXD_START     ? "RXD_START"     :
-                         rxd_state == RXD_START_MID ? "RXD_START_MID" :
-                         rxd_state == RXD_DATA0     ? "RXD_DATA0"     :
-                         rxd_state == RXD_DATA1     ? "RXD_DATA1"     :
-                         rxd_state == RXD_DATA2     ? "RXD_DATA2"     :
-                         rxd_state == RXD_DATA3     ? "RXD_DATA3"     :
-                         rxd_state == RXD_DATA4     ? "RXD_DATA4"     :
-                         rxd_state == RXD_DATA5     ? "RXD_DATA5"     :
-                         rxd_state == RXD_DATA6     ? "RXD_DATA6"     :
-                         rxd_state == RXD_DATA7     ? "RXD_DATA7"     :
-                         rxd_state == RXD_STOP      ? "RXD_STOP"      :
-                                                      "UNKNOWN"       ;
+assign xRXD_STATE      = rxd_state == RXD_IDLE       ? "RXD_IDLE"      :
+                         rxd_state == RXD_START      ? "RXD_START"     :
+                         rxd_state == RXD_START_MID1 ? "RXD_START_MID1":
+                         rxd_state == RXD_START_MID  ? "RXD_START_MID" :
+                         rxd_state == RXD_DATA0      ? "RXD_DATA0"     :
+                         rxd_state == RXD_DATA1      ? "RXD_DATA1"     :
+                         rxd_state == RXD_DATA2      ? "RXD_DATA2"     :
+                         rxd_state == RXD_DATA3      ? "RXD_DATA3"     :
+                         rxd_state == RXD_DATA4      ? "RXD_DATA4"     :
+                         rxd_state == RXD_DATA5      ? "RXD_DATA5"     :
+                         rxd_state == RXD_DATA6      ? "RXD_DATA6"     :
+                         rxd_state == RXD_DATA7      ? "RXD_DATA7"     :
+                         rxd_state == RXD_STOP       ? "RXD_STOP"      :
+                                                       "UNKNOWN"       ;
 
 //synopsys translate_on
 
