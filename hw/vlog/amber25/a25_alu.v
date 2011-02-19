@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////
 //                                                              //
-//  Arithmetic Logic Unit (ALU) for Amber 2 Core                //
+//  Arithmetic Logic Unit (ALU) for Amber 25 Core               //
 //                                                              //
 //  This file is part of the Amber project                      //
 //  http://www.opencores.org/project,amber                      //
@@ -14,7 +14,7 @@
 //                                                              //
 //////////////////////////////////////////////////////////////////
 //                                                              //
-// Copyright (C) 2010 Authors and OPENCORES.ORG                 //
+// Copyright (C) 2011 Authors and OPENCORES.ORG                 //
 //                                                              //
 // This source file may be used and distributed without         //
 // restriction provided that this copyright statement is not    //
@@ -40,7 +40,7 @@
 //////////////////////////////////////////////////////////////////
 
 
-module alu (
+module a25_alu (
 
 input       [31:0]          i_a_in,
 input       [31:0]          i_b_in,

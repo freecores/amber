@@ -1,18 +1,18 @@
 //////////////////////////////////////////////////////////////////
 //                                                              //
-//  Co-processor module for Amber 2 Core                        //
+//  Co-processor module for Amber 25 Core                       //
 //                                                              //
 //  This file is part of the Amber project                      //
 //  http://www.opencores.org/project,amber                      //
 //                                                              //
 //  Description                                                 //
-//  Co_processor 15 registers and control signals               //                                                           //
+//  Co_processor 15 registers and control signals               //
 //  Author(s):                                                  //
 //      - Conor Santifort, csantifort.amber@gmail.com           //
 //                                                              //
 //////////////////////////////////////////////////////////////////
 //                                                              //
-// Copyright (C) 2010 Authors and OPENCORES.ORG                 //
+// Copyright (C) 2011 Authors and OPENCORES.ORG                 //
 //                                                              //
 // This source file may be used and distributed without         //
 // restriction provided that this copyright statement is not    //
@@ -38,10 +38,10 @@
 //////////////////////////////////////////////////////////////////
 
 
-module coprocessor
+module a25_coprocessor
 (
 input                       i_clk,
-input                       i_fetch_stall,    // stall all stages of the cpu at the same time
+input                       i_access_stall,   // stall all stages of the cpu at the same time
 input       [2:0]           i_copro_opcode1,
 input       [2:0]           i_copro_opcode2,
 input       [3:0]           i_copro_crn,      // Register Number 
@@ -98,12 +98,12 @@ assign o_cacheable_area = cacheable_area;
 // Capture an access fault address and status
 // ---------------------------
 always @ ( posedge i_clk )
-    if ( !i_fetch_stall )
+    if ( !i_access_stall )
         begin
         if ( i_fault )
             begin
             
-            `ifdef AMBER_COPRO15_DEBUG    
+            `ifdef A25_COPRO15_DEBUG    
             $display ("Fault status  set to 0x%08x", i_fault_status);
             $display ("Fault address set to 0x%08x", i_fault_address);
             `endif        
@@ -117,7 +117,7 @@ always @ ( posedge i_clk )
 // Register Writes
 // ---------------------------
 always @ ( posedge i_clk )
-    if ( !i_fetch_stall )         
+    if ( !i_access_stall )         
         begin
         if ( i_copro_operation == 2'd2 )
             case ( i_copro_crn )
@@ -129,14 +129,14 @@ always @ ( posedge i_clk )
         end
 
 // Flush the cache
-assign copro15_reg1_write = !i_fetch_stall && i_copro_operation == 2'd2 && i_copro_crn == 4'd1;
+assign copro15_reg1_write = !i_access_stall && i_copro_operation == 2'd2 && i_copro_crn == 4'd1;
 
 
 // ---------------------------
 // Register Reads   
 // ---------------------------
 always @ ( posedge i_clk )        
-    if ( !i_fetch_stall )
+    if ( !i_access_stall )
         case ( i_copro_crn )
             // ID Register - [31:24] Company id, [23:16] Manuf id, [15:8] Part type, [7:0] revision
             4'd0:    o_copro_read_data <= 32'h4156_0300;
@@ -155,20 +155,20 @@ always @ ( posedge i_clk )
 // Debug code - not synthesizable
 // ========================================================
 
-`ifdef AMBER_COPRO15_DEBUG    
+`ifdef A25_COPRO15_DEBUG    
 //synopsys translate_off
 reg [1:0]  copro_operation_d1;
 reg [3:0]  copro_crn_d1;
 
 always @( posedge i_clk )
-    if ( !i_fetch_stall )
+    if ( !i_access_stall )
         begin
         copro_operation_d1  <= i_copro_operation;
         copro_crn_d1        <= i_copro_crn;
         end
 
 always @( posedge i_clk )
-    if ( !i_fetch_stall )
+    if ( !i_access_stall )
         begin
         if ( i_copro_operation == 2'd2 )  // mcr
             case ( i_copro_crn )

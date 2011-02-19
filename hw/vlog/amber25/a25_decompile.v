@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////
 //                                                              //
-// Decompiler for Amber 2 Core                                  //
+// Decompiler for Amber 25 Core                                 //
 //                                                              //
 //  This file is part of the Amber project                      //
 //  http://www.opencores.org/project,amber                      //
@@ -15,7 +15,7 @@
 //                                                              //
 //////////////////////////////////////////////////////////////////
 //                                                              //
-// Copyright (C) 2010 Authors and OPENCORES.ORG                 //
+// Copyright (C) 2011 Authors and OPENCORES.ORG                 //
 //                                                              //
 // This source file may be used and distributed without         //
 // restriction provided that this copyright statement is not    //
@@ -40,12 +40,12 @@
 //                                                              //
 //////////////////////////////////////////////////////////////////
 
-`include "amber_config_defines.v"
+`include "a25_config_defines.v"
 
-module decompile
+module a25_decompile
 (
 input                       i_clk,
-input                       i_fetch_stall,
+input                       i_access_stall,
 input       [31:0]          i_instruction,
 input                       i_instruction_valid,
 input                       i_instruction_undefined,
@@ -53,14 +53,14 @@ input                       i_instruction_execute,
 input       [2:0]           i_interrupt,            // non-zero value means interrupt triggered
 input                       i_interrupt_state,
 input       [31:0]          i_instruction_address,
-input       [1:0]           i_pc_sel,
+input       [2:0]           i_pc_sel,
 input                       i_pc_wen
 
 );
 
-`include "amber_localparams.v"
+`include "a25_localparams.v"
         
-`ifdef AMBER_DECOMPILE
+`ifdef A25_DECOMPILE
 
 integer i;
 
@@ -97,7 +97,7 @@ reg                    execute_undefined = 'd0;
 // Delay instruction to Execute stage
 // ========================================================
 always @( posedge i_clk )
-    if ( !i_fetch_stall && i_instruction_valid )
+    if ( !i_access_stall && i_instruction_valid )
         begin
         execute_instruction <= i_instruction;
         execute_address     <= i_instruction_address;
@@ -109,7 +109,7 @@ always @( posedge i_clk )
 
 
 always @ ( posedge i_clk )
-    if ( !i_fetch_stall )
+    if ( !i_access_stall )
         execute_valid <= i_instruction_valid;
     
 // ========================================================
@@ -118,7 +118,7 @@ always @ ( posedge i_clk )
 integer decompile_file;
 
 initial 
-    #1 decompile_file = $fopen(`AMBER_DECOMPILE_FILE, "w");
+    #1 decompile_file = $fopen(`A25_DECOMPILE_FILE, "w");
 
 
 // ========================================================
@@ -385,7 +385,7 @@ always @( posedge i_clk )
 
 
 always @( posedge i_clk )
-    if ( !i_fetch_stall )
+    if ( !i_access_stall )
         begin
         interrupt_d1 <= i_interrupt;
         
@@ -420,9 +420,9 @@ always @( posedge i_clk )
 // Dont print a jump message for interrupts
 always @( posedge i_clk )
         if ( 
-             i_pc_sel != 2'd0 && 
+             i_pc_sel != 3'd0 && 
              i_pc_wen &&
-             !i_fetch_stall && 
+             !i_access_stall && 
              i_instruction_execute && 
              i_interrupt == 3'd0 &&
              !execute_undefined &&
@@ -439,15 +439,16 @@ always @( posedge i_clk )
             end
 
 // =================================================================================
-// Memory Writes - Peek into fetch module
+// Memory Reads and Writes
 // =================================================================================
 
 reg [31:0] tmp_address;
 
     // Data access
 always @( posedge i_clk )
+    begin
     // Data Write    
-    if ( get_1bit_signal(0) && !get_1bit_signal(1) )
+    if ( get_1bit_signal(0) && !get_1bit_signal(3) )
         begin
         
         $fwrite(decompile_file, "%09d              write   addr ", clk_count);
@@ -458,27 +459,22 @@ always @( posedge i_clk )
                 get_32bit_signal(3),    // u_cache.i_write_data
                 get_4bit_signal (0));   // u_cache.i_byte_enable
                                        
-        if ( get_1bit_signal(2) ) // Abort! address translation failed
-            $fwrite(decompile_file, " aborted!\n");
-        else                                 
-            $fwrite(decompile_file, "\n");
+        $fwrite(decompile_file, "\n");
         end
     
     // Data Read    
-    else if (get_1bit_signal(3) && !get_1bit_signal(0)  && !get_1bit_signal(1))     
+    if ( get_1bit_signal(4) && !get_1bit_signal(1) )     
         begin
-        
         $fwrite(decompile_file, "%09d              read    addr ", clk_count);
-        tmp_address = get_32bit_signal(2);
+        tmp_address = get_32bit_signal(5);
         fwrite_hex_drop_zeros(decompile_file, {tmp_address[31:2], 2'd0} );    
                      
-        $fwrite(decompile_file, ", data %08h", get_32bit_signal(4));  // u_decode.i_read_data
+        $fwrite(decompile_file, ", data %08h to ", get_32bit_signal(4));
+        warmreg(get_4bit_signal(1)); 
                                       
-        if ( get_1bit_signal(2) ) // Abort! address translation failed
-            $fwrite(decompile_file, " aborted!\n");
-        else                                 
-            $fwrite(decompile_file, "\n");
+        $fwrite(decompile_file, "\n");
         end
+    end
 
 
 // =================================================================================
@@ -829,10 +825,12 @@ input [2:0] num;
 begin
     case (num)
         3'd0: get_32bit_signal = `U_EXECUTE.pc_nxt;
-        3'd1: get_32bit_signal = `U_FETCH.i_address;
-        3'd2: get_32bit_signal = `U_FETCH.i_address;
-        3'd3: get_32bit_signal = `U_CACHE.i_write_data;
-        3'd4: get_32bit_signal = `U_DECODE.i_read_data;
+        3'd1: get_32bit_signal = `U_EXECUTE.o_iaddress;
+        3'd2: get_32bit_signal = `U_EXECUTE.o_daddress;
+        3'd3: get_32bit_signal = `U_EXECUTE.o_write_data;
+//         3'd4: get_32bit_signal = `U_EXECUTE.read_data_filtered;
+        3'd4: get_32bit_signal = `U_EXECUTE.i_wb_read_data;
+        3'd5: get_32bit_signal = `U_WB.daddress_r;
     endcase
 end
 endfunction
@@ -842,10 +840,11 @@ function get_1bit_signal;
 input [2:0] num;
 begin
     case (num)
-        3'd0: get_1bit_signal = `U_FETCH.i_write_enable;
-        3'd1: get_1bit_signal = `U_AMBER.fetch_stall;
-        3'd2: get_1bit_signal = 1'd0;
-        3'd3: get_1bit_signal = `U_FETCH.i_data_access;
+        3'd0: get_1bit_signal = `U_EXECUTE.o_write_enable;
+        3'd1: get_1bit_signal = `U_AMBER.mem_stall;
+        3'd2: get_1bit_signal = `U_EXECUTE.o_daddress_valid;
+        3'd3: get_1bit_signal = `U_AMBER.access_stall;
+        3'd4: get_1bit_signal = `U_WB.mem_read_data_valid_r;
     endcase
 end
 endfunction
@@ -855,7 +854,8 @@ function [3:0] get_4bit_signal;
 input [2:0] num;
 begin
     case (num)
-        3'd0: get_4bit_signal = `U_CACHE.i_byte_enable;
+        3'd0: get_4bit_signal = `U_EXECUTE.o_byte_enable;
+        3'd1: get_4bit_signal = `U_WB.mem_load_rd_r;
     endcase
 end
 endfunction

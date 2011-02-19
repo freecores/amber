@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////
 //                                                              //
-//  Barrel Shifter for Amber 2 Core                             //
+//  Barrel Shifter for Amber 25 Core                            //
 //                                                              //
 //  This file is part of the Amber project                      //
 //  http://www.opencores.org/project,amber                      //
@@ -13,7 +13,7 @@
 //                                                              //
 //////////////////////////////////////////////////////////////////
 //                                                              //
-// Copyright (C) 2010 Authors and OPENCORES.ORG                 //
+// Copyright (C) 2011 Authors and OPENCORES.ORG                 //
 //                                                              //
 // This source file may be used and distributed without         //
 // restriction provided that this copyright statement is not    //
@@ -39,7 +39,7 @@
 //////////////////////////////////////////////////////////////////
 
 
-module barrel_shift (
+module a25_barrel_shift (
 
 input       [31:0]          i_in,
 input                       i_carry_in,
@@ -52,7 +52,7 @@ output                      o_carry_out
 
 );
 
-`include "amber_localparams.v"
+`include "a25_localparams.v"
 
   // MSB is carry out
 wire [32:0] lsl_out;

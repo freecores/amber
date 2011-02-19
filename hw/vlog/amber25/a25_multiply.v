@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////
 //                                                              //
-//  Multiplication Module for Amber 2 Core                      //
+//  Multiplication Module for Amber 25 Core                     //
 //                                                              //
 //  This file is part of the Amber project                      //
 //  http://www.opencores.org/project,amber                      //
@@ -15,7 +15,7 @@
 //                                                              //
 //////////////////////////////////////////////////////////////////
 //                                                              //
-// Copyright (C) 2010 Authors and OPENCORES.ORG                 //
+// Copyright (C) 2011 Authors and OPENCORES.ORG                 //
 //                                                              //
 // This source file may be used and distributed without         //
 // restriction provided that this copyright statement is not    //
@@ -53,9 +53,9 @@
 //  case of two max negative numbers another bit is required.
 //
 
-module multiply (
+module a25_multiply (
 input                       i_clk,
-input                       i_fetch_stall,
+input                       i_access_stall,
 
 input       [31:0]          i_a_in,         // Rds
 input       [31:0]          i_b_in,         // Rm
@@ -188,7 +188,7 @@ always @*
 
 
 always @ ( posedge i_clk )
-    if ( !i_fetch_stall )
+    if ( !i_access_stall )
         begin
         count           <= i_execute ? count_nxt          : count;           
         product         <= i_execute ? product_nxt        : product;        

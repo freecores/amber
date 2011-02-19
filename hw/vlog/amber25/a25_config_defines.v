@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////
 //                                                              //
-//  Amber Configuration and Debug for the AMber 2 Core          //
+//  Amber Configuration and Debug for the Amber 25 Core         //
 //                                                              //
 //  This file is part of the Amber project                      //
 //  http://www.opencores.org/project,amber                      //
@@ -14,7 +14,7 @@
 //                                                              //
 //////////////////////////////////////////////////////////////////
 //                                                              //
-// Copyright (C) 2010 Authors and OPENCORES.ORG                 //
+// Copyright (C) 2011 Authors and OPENCORES.ORG                 //
 //                                                              //
 // This source file may be used and distributed without         //
 // restriction provided that this copyright statement is not    //
@@ -39,8 +39,8 @@
 //                                                              //
 //////////////////////////////////////////////////////////////////
 
-`ifndef _AMBER_CONFIG_DEFINES
-`define _AMBER_CONFIG_DEFINES
+`ifndef _A25_CONFIG_DEFINES
+`define _A25_CONFIG_DEFINES
 
 // Cache Ways
 // Changing this parameter is the recommended
@@ -49,20 +49,21 @@
 //   3 ways -> 12KB cache
 //   4 ways -> 16KB cache
 //   8 ways -> 32KB cache
-`define AMBER_CACHE_WAYS 2
+`define A25_ICACHE_WAYS 4
+`define A25_DCACHE_WAYS 4
 
 // --------------------------------------------------------------------
 // Debug switches 
 // --------------------------------------------------------------------
 
 // Enable the decompiler. The default output file is amber.dis
-`define AMBER_DECOMPILE
+`define A25_DECOMPILE
 
 // Co-processor 15 debug. Registers in here control the cache
-//`define AMBER_COPRO15_DEBUG
+//`define A25_COPRO15_DEBUG
 
 // Cache debug
-//`define AMBER_CACHE_DEBUG
+//`define A25_CACHE_DEBUG
 
 // --------------------------------------------------------------------
 
@@ -70,8 +71,8 @@
 // --------------------------------------------------------------------
 // File Names
 // --------------------------------------------------------------------
-`ifndef AMBER_DECOMPILE_FILE
-    `define AMBER_DECOMPILE_FILE    "amber.dis"
+`ifndef A25_DECOMPILE_FILE
+    `define A25_DECOMPILE_FILE    "amber.dis"
 `endif
 
 `endif
