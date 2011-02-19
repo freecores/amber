@@ -49,9 +49,9 @@ main:
         @ Enable the cache
         @ ---------------------
         mov     r0,  #0x00000001
-	mcr	p15, 0, r0, c3, c0, 0   @ cacheable area
+	mcr	15, 0, r0, cr3, cr0, 0   @ cacheable area
         mov     r0,  #1
-	mcr	p15, 0, r0, c2, c0, 0   @ cache enable
+	mcr	15, 0, r0, cr2, cr0, 0   @ cache enable
         nop
         nop
         
@@ -83,7 +83,7 @@ loop:   ldr     r3, AdrTestBase
         ands    r8, r7, #1
         cmpeq   r5, #21
         cmpne   r5, #0x100
-	mcreq   p15, 0, r0, c1, c0, 0   @ cache enable
+	mcreq   15, 0, r0, cr1, cr0, 0   @ cache enable
 
         subs    r5, r5, #1
         bne     2b

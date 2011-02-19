@@ -60,13 +60,13 @@ input                          i_wb_stb,
 output                         o_wb_ack,
 output                         o_wb_err,
 
-output reg                     o_cmd_en         = 'd0,  // Command Enable
+output                         o_cmd_en,                // Command Enable
 output reg [2:0]               o_cmd_instr      = 'd0,  // write = 000, read = 001
 output reg [29:0]              o_cmd_byte_addr  = 'd0,  // Memory address
 input                          i_cmd_full,              // DDR3 I/F Command FIFO is full
 
 input                          i_wr_full,               // DDR3 I/F Write Data FIFO is full
-output reg                     o_wr_en          = 'd0,  // Write data enable
+output                         o_wr_en,                 // Write data enable
 output reg [15:0]              o_wr_mask        = 'd0,  // 1 bit per byte
 output reg [127:0]             o_wr_data        = 'd0,  // 16 bytes write data
 input      [127:0]             i_rd_data,               // 16 bytes of read data
@@ -83,11 +83,12 @@ reg  [29:0]     wb_adr_d1;
 wire            ddr3_busy;
 reg             read_ack = 'd0;
 reg             read_ready = 1'd1;
-
+reg             cmd_en_r = 'd0;
+reg             wr_en_r = 'd0;
 
 assign start_write = i_wb_stb && i_wb_we && !start_read_d1;
 assign start_read  = i_wb_stb && !i_wb_we && read_ready;
-assign ddr3_busy   = i_cmd_full || i_wr_full;
+assign ddr3_busy   = i_cmd_full;// || i_wr_full;
 
 assign o_wb_err    = 'd0;
 
@@ -97,29 +98,33 @@ assign o_wb_err    = 'd0;
 
 // Command FIFO
 always @( posedge i_clk )
-    begin
-    o_cmd_byte_addr  <= {wb_adr_d1[29:4], 4'd0};
-    o_cmd_en         <= !ddr3_busy && ( start_write_d1 || start_read_d1 );
-    o_cmd_instr      <= start_write_d1 ? 3'd0 : 3'd1;
-    end
+    if ( !ddr3_busy )
+        begin
+        o_cmd_byte_addr  <= {wb_adr_d1[29:4], 4'd0};
+        cmd_en_r         <= ( start_write_d1 || start_read_d1 );
+        o_cmd_instr      <= start_write_d1 ? 3'd0 : 3'd1;
+        end
 
+assign o_cmd_en = cmd_en_r && !i_cmd_full;
 
 // ------------------------------------------------------
 // Write
 // ------------------------------------------------------
 always @( posedge i_clk )
-    begin
-    o_wr_en    <= start_write;
-    
-    o_wr_mask  <= i_wb_adr[3:2] == 2'd0 ? { 12'hfff, ~i_wb_sel          } : 
-                  i_wb_adr[3:2] == 2'd1 ? { 8'hff,   ~i_wb_sel, 4'hf    } : 
-                  i_wb_adr[3:2] == 2'd2 ? { 4'hf,    ~i_wb_sel, 8'hff   } : 
-                                          {          ~i_wb_sel, 12'hfff } ; 
-    
-    o_wr_data  <= {4{i_wb_dat}};
-    end
+    if ( !ddr3_busy )
+        begin
+        wr_en_r    <= start_write;
+        
+        o_wr_mask  <= i_wb_adr[3:2] == 2'd0 ? { 12'hfff, ~i_wb_sel          } : 
+                      i_wb_adr[3:2] == 2'd1 ? { 8'hff,   ~i_wb_sel, 4'hf    } : 
+                      i_wb_adr[3:2] == 2'd2 ? { 4'hf,    ~i_wb_sel, 8'hff   } : 
+                                              {          ~i_wb_sel, 12'hfff } ; 
+        
+        o_wr_data  <= {4{i_wb_dat}};
+        end
 
-    
+assign o_wr_en = wr_en_r && !i_cmd_full;
+ 
 // ------------------------------------------------------
 // Read
 // ------------------------------------------------------
@@ -130,10 +135,13 @@ always @( posedge i_clk )
     else if ( start_read )
         read_ready <= 1'd0;
     
-    start_write_d1  <= start_write;
-    start_read_d1   <= start_read;
-    wb_adr_d1       <= i_mem_ctrl ? {5'd0, i_wb_adr[24:0]} : i_wb_adr[29:0];
-    
+    if ( !ddr3_busy )
+        begin
+        start_write_d1  <= start_write;
+        start_read_d1   <= start_read;
+        wb_adr_d1       <= i_mem_ctrl ? {5'd0, i_wb_adr[24:0]} : i_wb_adr[29:0];
+        end
+        
     if ( start_read  )
         start_read_hold <= 1'd1;
     else if ( read_ack )
@@ -151,7 +159,7 @@ always @( posedge i_clk )
         read_ack  <= 1'd0;
     end
                     
-assign o_wb_ack = i_wb_stb && ( start_write || read_ack );
+assign o_wb_ack = i_wb_stb && ( start_write || read_ack ) && !i_cmd_full;
 
     
 endmodule

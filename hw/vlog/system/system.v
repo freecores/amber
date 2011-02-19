@@ -122,6 +122,7 @@ wire            c3_p0_wr_full;
 
 wire            phy_init_done;
 wire            test_mem_ctrl;
+wire            system_rdy;
 
 // ======================================
 // Xilinx Virtex-6 DDR3 Controller connections
@@ -211,14 +212,17 @@ clocks_resets u_clocks_resets (
 // -------------------------------------------------------------
 // Instantiate Amber Processor Core
 // -------------------------------------------------------------
-
-amber u_amber (
+`ifdef AMBER_A25_CORE
+a25_core u_amber (
+`else
+a23_core u_amber (
+`endif
     .i_clk          ( sys_clk         ),
     
     .i_irq          ( amber_irq       ),
     .i_firq         ( amber_firq      ),
 
-    .i_system_rdy   ( phy_init_done   ),
+    .i_system_rdy   ( system_rdy      ),
     
     .o_wb_adr       ( m_wb_adr  [1]   ),
     .o_wb_sel       ( m_wb_sel  [1]   ),
@@ -302,6 +306,8 @@ generic_iobuf u_iobuf (
 // Ethernet MII PHY reset
 assign phy_reset_n = !sys_rst;
 
+// Halt core until system is ready
+assign system_rdy = phy_init_done && !sys_rst;
 
 // -------------------------------------------------------------
 // Instantiate Boot Memory - 8KBytes of Embedded SRAM

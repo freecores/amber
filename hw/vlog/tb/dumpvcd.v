@@ -59,22 +59,10 @@ initial
     $dumpfile(`AMBER_VCD_FILE);
     $dumpvars(1, `U_TB.clk_count);
     
-    $dumpvars(1, `U_FETCH.o_read_data);
     $dumpvars(1, `U_DECOMPILE.xINSTRUCTION_EXECUTE);
-    $dumpvars(1, `U_DECODE.firq_request);
-    $dumpvars(1, `U_DECODE.irq_request);
-    $dumpvars(1, `U_DECODE.swi_request);
-    $dumpvars(1, `U_DECODE.interrupt);
-    $dumpvars(1, `U_DECODE.next_interrupt);
-    $dumpvars(1, `U_DECODE.interrupt_mode);
-    $dumpvars(1, `U_DECODE.instruction_valid);
-    $dumpvars(1, `U_DECODE.instruction_execute);
-    $dumpvars(1, `U_DECODE.instruction);
-    $dumpvars(1, `U_EXECUTE.i_fetch_stall);
     $dumpvars(1, `U_EXECUTE.o_write_enable);
     $dumpvars(1, `U_EXECUTE.o_exclusive);
     $dumpvars(1, `U_EXECUTE.o_write_data);
-    $dumpvars(1, `U_EXECUTE.o_address);
     $dumpvars(1, `U_EXECUTE.base_address);
     $dumpvars(1, `U_EXECUTE.u_register_bank.r0);
     $dumpvars(1, `U_EXECUTE.u_register_bank.r1);
@@ -94,13 +82,18 @@ initial
     $dumpvars(1, `U_EXECUTE.u_register_bank.r15);
 
 
-    $dumpvars(1, `U_COPRO15);
+    $dumpvars(1, `U_FETCH);
     $dumpvars(1, `U_CACHE);
+    $dumpvars(1, `U_DECODE);
+//     $dumpvars(1, `U_COPRO15);
     $dumpvars(1, `U_WISHBONE);
     $dumpvars(1, `U_AMBER);    
-
-    $dumpvars(1, `U_SYSTEM.u_main_mem); 
-
+     
+    `ifdef AMBER_A25_CORE
+    $dumpvars(1, `U_MEM);
+    $dumpvars(1, `U_DCACHE);
+    `endif
+    
     $dumpoff;    
     end
     

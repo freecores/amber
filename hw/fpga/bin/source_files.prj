@@ -77,18 +77,34 @@ verilog work ../../vlog/ethmac/eth_txstatem.v
 verilog work ../../vlog/ethmac/eth_wishbone.v
 verilog work ../../vlog/ethmac/xilinx_dist_ram_16x32.v
 
-# Amber
-verilog work ../../vlog/amber/alu.v
-verilog work ../../vlog/amber/amber.v
-verilog work ../../vlog/amber/barrel_shift.v
-verilog work ../../vlog/amber/cache.v
-verilog work ../../vlog/amber/coprocessor.v
-verilog work ../../vlog/amber/decode.v
-verilog work ../../vlog/amber/execute.v
-verilog work ../../vlog/amber/fetch.v
-verilog work ../../vlog/amber/multiply.v
-verilog work ../../vlog/amber/register_bank.v
-verilog work ../../vlog/amber/wishbone.v
+# Amber 23
+verilog work ../../vlog/amber23/a23_alu.v
+verilog work ../../vlog/amber23/a23_barrel_shift.v
+verilog work ../../vlog/amber23/a23_cache.v
+verilog work ../../vlog/amber23/a23_coprocessor.v
+verilog work ../../vlog/amber23/a23_core.v
+verilog work ../../vlog/amber23/a23_decode.v
+verilog work ../../vlog/amber23/a23_execute.v
+verilog work ../../vlog/amber23/a23_fetch.v
+verilog work ../../vlog/amber23/a23_multiply.v
+verilog work ../../vlog/amber23/a23_register_bank.v
+verilog work ../../vlog/amber23/a23_wishbone.v
+
+# Amber 25
+verilog work ../../vlog/amber25/a25_alu.v
+verilog work ../../vlog/amber25/a25_barrel_shift.v
+verilog work ../../vlog/amber25/a25_coprocessor.v
+verilog work ../../vlog/amber25/a25_core.v
+verilog work ../../vlog/amber25/a25_dcache.v
+verilog work ../../vlog/amber25/a25_decode.v
+verilog work ../../vlog/amber25/a25_execute.v
+verilog work ../../vlog/amber25/a25_fetch.v
+verilog work ../../vlog/amber25/a25_icache.v
+verilog work ../../vlog/amber25/a25_mem.v
+verilog work ../../vlog/amber25/a25_multiply.v
+verilog work ../../vlog/amber25/a25_register_bank.v
+verilog work ../../vlog/amber25/a25_wishbone.v
+verilog work ../../vlog/amber25/a25_write_back.v
 
 # Xilinx Spartan-6 FPGA Hardware wrappers
 verilog work ../../vlog/lib/xs6_addsub_n.v

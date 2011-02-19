@@ -45,7 +45,7 @@ TEST_LIST="
            change_sbits change_mode \
            bl bcc \
            ldr ldr_str_pc strb \
-           ldm1 ldm2 ldm3 ldm4 stm1 stm2 \
+           ldm1 ldm2 ldm3 ldm4 stm1 stm2 ldm_stm_onetwo stm_stream \
            mul mla  \
            swp \
            \
@@ -53,6 +53,8 @@ TEST_LIST="
            \
            cache1 cache2 cache3 cache_swap \
            cacheable_area cache_flush \
+           \
+           flow1 flow2 flow3 \
            \
            hiboot_mem ddr31 ddr32 ddr33 \
            \
@@ -70,7 +72,7 @@ date >> hw-tests.log
 
 for i in $TEST_LIST; do
     echo "Run test $i"
-    ../tools/run.sh ${i} $1
+    ../tools/run.sh ${i} $1 $2
 done
 
 echo "----------------------------------" >> hw-tests.log

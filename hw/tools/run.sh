@@ -44,6 +44,7 @@
 # Defaults
 #--------------------------------------------------------
 AMBER_LOAD_MAIN_MEM=" "
+AMBER_TIMEOUT=0
 SET_G=0
 SET_M=0
 SET_D=0
@@ -51,6 +52,7 @@ SET_T=0
 SET_S=0
 SET_V=0
 SET_A=0
+SET_5=0
 
 
 # show program usage
@@ -64,6 +66,7 @@ show_usage() {
     echo " -t <cycle number to start dumping>: Create vcd file and terminate"
     echo " -s : Use Xilinx Spatran6 Libraries (slower sim)"
     echo " -v : Use Xilinx Virtex6 Libraries (slower sim)"
+    echo " -5 : Use Amber25 core instead of Amber23 core"
     echo ""
     exit
 }
@@ -102,6 +105,8 @@ do
                 -s)     SET_S=1   # Xilinx libs
                         shift ;;
                 -v)     SET_V=1   # Xilinx libs
+                        shift ;;
+                -5)     SET_5=1   # Xilinx libs
                         shift ;;
                 -g)     SET_G=1   # Bring up GUI
                         shift ;;
@@ -154,6 +159,12 @@ else
     AMBER_DUMP_VCD=" "
 fi
 
+if [ $SET_5 == 1 ]; then
+    AMBER_CORE="+define+AMBER_A25_CORE"
+else    
+    AMBER_CORE=" "
+fi
+
 if [ $SET_T == 1 ]; then
     AMBER_TERMINATE="+define+AMBER_TERMINATE"
 else    
@@ -162,15 +173,21 @@ fi
 
 if [ $SET_A == 1 ]; then
     if [ $SET_S == 1 ]; then
-        ../tools/all.sh -s
-        exit
+        TECH="-s"
     elif [ $SET_V == 1 ]; then
-        ../tools/all.sh -v
-        exit 
-    else       
-        ../tools/all.sh
-        exit
+        TECH="-v"
+    else    
+        TECH=" "
     fi        
+
+    if [ $SET_5 == 1 ]; then
+        CORE="-5"
+    else    
+        CORE=" "
+    fi
+    
+    ../tools/all.sh $TECH $CORE
+    exit
 fi
 
 #--------------------------------------------------------
@@ -216,6 +233,9 @@ if [ $TEST_TYPE == 1 ]; then
     BOOT_MEM_FILE="../tests/${AMBER_TEST_NAME}.mem"
     BOOT_MEM_PARAMS_FILE="../tests/${AMBER_TEST_NAME}_memparams.v"
     AMBER_LOG_FILE="hw-tests.log"
+    # Get timeout
+    AMBER_TIMEOUT=`../tools/get_timeout.sh ${AMBER_TEST_NAME}`
+    echo "Timeout $AMBER_TIMEOUT"
 elif [ $TEST_TYPE == 2 ]; then
     # sw Stand-alone C test
     pushd ../../sw/${AMBER_TEST_NAME} > /dev/null
@@ -265,9 +285,9 @@ if [ $MAKE_STATUS == 0 ]; then
 
    if [ $? == 0 ]; then
        vlog +libext+.v \
-            +incdir+../vlog/amber+../vlog/system+../vlog/tb+../vlog/ethmac \
+            +incdir+../vlog/amber23+../vlog/amber25+../vlog/system+../vlog/tb+../vlog/ethmac \
             +incdir+../vlog/lib+../vlog/xs6_ddr3+../vlog/xv6_ddr3 \
-            -y ../vlog/amber -y ../vlog/system  -y ../vlog/tb -y ../vlog/ethmac \
+            -y ../vlog/amber23 -y ../vlog/amber25 -y ../vlog/system  -y ../vlog/tb -y ../vlog/ethmac \
             -y ../vlog/lib   -y ../vlog/xs6_ddr3 -y ../vlog/xv6_ddr3  \
             -y $XILINX/verilog/src/unisims \
             -y $XILINX/verilog/src \
@@ -279,14 +299,25 @@ if [ $MAKE_STATUS == 0 ]; then
             +define+AMBER_LOG_FILE=\"$AMBER_LOG_FILE\" \
             +define+AMBER_TEST_NAME=\"$AMBER_TEST_NAME\" \
             +define+AMBER_SIM_CTRL=$TEST_TYPE \
+            +define+AMBER_TIMEOUT=$AMBER_TIMEOUT \
             ${FPGA} \
+            $AMBER_CORE \
             $AMBER_DUMP_VCD \
             $AMBER_TERMINATE \
-            $AMBER_BEH_MEM \
             $AMBER_LOAD_MAIN_MEM
                   
         if [ $? == 0 ]; then
             vsim -voptargs="+acc=rnpc" tb ${RUN_OPTIONS}
+            
+            # Set a timeout value for the test if it passed
+            if [ $TEST_TYPE == 1 ]; then
+                tail -1 < hw-tests.log | grep Passed > /dev/null
+                if  [ $? == 0 ]; then
+                    TICKS=`tail -1 < hw-tests.log | awk '{print $3}'`
+                    TOTICKS=$(( $TICKS * 4 + 1000 ))
+                    ../tools/set_timeout.sh ${AMBER_TEST_NAME} $TOTICKS
+                fi
+            fi
         fi
    fi
 

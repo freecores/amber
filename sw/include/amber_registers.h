@@ -111,3 +111,5 @@
 #define ADR_ETHMAC_MIIRXDATA           0x20000038
 #define ADR_ETHMAC_MIISTATUS           0x2000003C
 #define ADR_ETHMAC_BDBASE              0x20000400
+
+#define ADR_HIBOOT_BASE                0x28000000

@@ -42,15 +42,20 @@
 `ifndef _SYSTEM_CONFIG_DEFINES
 `define _SYSTEM_CONFIG_DEFINES
 
+// Select the A23 or A25 version of the core
+// You can also select the A25 core on the command line using the run script
+//`define AMBER_A25_CORE
+
+
 // Frequency = 800 / AMBER_CLK_DIVIDER
-// 10 = 80.00 MHz
+// 20 = 40.00 MHz
 // 24 = 33.33 MHz
 // 29 = 27.58 MHz
 // 40 = 20.00 MHz
 //
 // Note that for FPGA synthesis this value is overridden
 // by a value specified in $AMBER_BASE/hw/fpga/bin/Makefile
-`define AMBER_CLK_DIVIDER 24
+`define AMBER_CLK_DIVIDER 20
 
 // Specify a device, if none defined then the
 // generic library is used which is the fastest for simulations
@@ -59,6 +64,7 @@
 
 // UART Baud rate for both uarts
 // e.g. 921600, 460800, 230400, 57600
+// `define AMBER_UART_BAUD 921600
 `define AMBER_UART_BAUD 921600
 
 

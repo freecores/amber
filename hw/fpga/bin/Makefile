@@ -75,17 +75,25 @@ XST_PROJ_FILE   = source_files.prj
 #   800 MHz / 24 = 33.33 MHz
 # For Virtex-6 divide 1000MHz by this number to get the frequency
 
+# Select either the A23 or A25 core
+ifdef A25
+    AMBER_CORE = AMBER_A25_CORE
+else
+    AMBER_CORE = 
+endif
+
+
 ## FPGA type
 ifdef VIRTEX6
     # Virtex-6 device
     XILINX_FPGA     = xc6vlx75tff784-3
-    XST_DEFINES     = XILINX_FPGA XILINX_VIRTEX6_FPGA  AMBER_CLK_DIVIDER=11
+    XST_DEFINES     = XILINX_FPGA XILINX_VIRTEX6_FPGA  $(AMBER_CORE) AMBER_CLK_DIVIDER=12
     # Xilinx placement and timing constraints
     XST_CONST_FILE  = xv6_constraints.ucf
 else
     # The spartan6 device used on SP605 Development board
     XILINX_FPGA     = xc6slx45tfgg484-3
-    XST_DEFINES     = XILINX_FPGA XILINX_SPARTAN6_FPGA  AMBER_CLK_DIVIDER=20
+    XST_DEFINES     = XILINX_FPGA XILINX_SPARTAN6_FPGA $(AMBER_CORE) AMBER_CLK_DIVIDER=20
     # Xilinx placement and timing constraints
     XST_CONST_FILE  = xs6_constraints.ucf
 endif
@@ -170,7 +178,7 @@ help :
 	@echo "              trce       Running timing analysis. Don't run buitgen"
 	@echo "              help       Print this message"
 	@echo ""
-	@echo "Optional switches: VIRTEX6=1 WORK=<work directory name>"
+	@echo "Optional switches: VIRTEX6=1 A25=1 WORK=<work directory name>"
 	@echo "e.g. > make VIRTEX6=1 WORK=work1 map"
 
 clean :

@@ -46,7 +46,7 @@
 `ifndef _GLOBAL_DEFINES
 `define _GLOBAL_DEFINES
 
-`define AMBER_INIT_ZERO = `d0
+`define AMBER_TIMEOUT 0
 
 `define U_TB                    tb
 `define U_SYSTEM                `U_TB.u_system
@@ -55,15 +55,22 @@
 `define U_FETCH                 `U_AMBER.u_fetch
 `define U_MMU                   `U_FETCH.u_mmu
 `define U_CACHE                 `U_FETCH.u_cache
-`define U_WISHBONE              `U_FETCH.u_wishbone
 `define U_COPRO15               `U_AMBER.u_coprocessor
 `define U_EXECUTE               `U_AMBER.u_execute
+`define U_WB                    `U_AMBER.u_write_back
 `define U_REGISTER_BANK         `U_EXECUTE.u_register_bank
 `define U_DECODE                `U_AMBER.u_decode
 `define U_DECOMPILE             `U_DECODE.u_decompile
 `define U_L2CACHE               `U_SYSTEM.u_l2cache
 `define U_TEST_MODULE           `U_SYSTEM.u_test_module
 
+`ifdef AMBER_A25_CORE
+    `define U_MEM               `U_AMBER.u_mem
+    `define U_DCACHE            `U_MEM.u_dcache
+    `define U_WISHBONE          `U_AMBER.u_wishbone
+`else    
+    `define U_WISHBONE          `U_FETCH.u_wishbone
+`endif
 // ---------------------------------------------------------------
 
 `define TB_DEBUG_MESSAGE        $display("\nDEBUG in %m @ tick %8d ", `U_TB.clk_count );

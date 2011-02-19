@@ -54,7 +54,7 @@ reg                     clk_533mhz;
 `endif
 reg                     clk_200mhz;
 reg                     clk_25mhz;
-reg [31:0]              clk_count;
+reg [31:0]              clk_count = 'd0;
 
 integer                 log_file;
 
@@ -254,7 +254,7 @@ initial
 initial
     begin
     sysrst = 1'd1;
-    #15002500
+    #40000
     sysrst = 1'd0;
     end
 
@@ -263,10 +263,7 @@ initial
 // Counter of system clock ticks        
 // ======================================
 always @ ( posedge `U_SYSTEM.sys_clk )
-    if ( `U_SYSTEM.sys_rst )
-        clk_count <= 'd0;
-    else
-        clk_count <= clk_count + 1'd1;
+    clk_count <= clk_count + 1'd1;
 
         
 
@@ -437,8 +434,13 @@ dumpvcd u_dumpvcd();
 // ======================================
 // Terminate Test  
 // ======================================
-`include "amber_localparams.v"
-`include "amber_functions.v"
+`ifdef AMBER_A25_CORE
+    `include "a25_localparams.v"
+    `include "a25_functions.v"
+`else
+    `include "a23_localparams.v"
+    `include "a23_functions.v"
+`endif
 
 reg testfail;
 wire        test_status_set;
@@ -458,9 +460,9 @@ always @*
                 begin
                 display_registers;
                 $display("++++++++++++++++++++");
-                $write("Passed %s\n", `AMBER_TEST_NAME);
+                $write("Passed %s %0d ticks\n", `AMBER_TEST_NAME, `U_TB.clk_count);
                 $display("++++++++++++++++++++");
-                $fwrite(`U_TB.log_file,"Passed %s\n", `AMBER_TEST_NAME);
+                $fwrite(`U_TB.log_file,"Passed %s %0d ticks\n", `AMBER_TEST_NAME, `U_TB.clk_count);
                 $finish;
                 end
             else
@@ -469,9 +471,9 @@ always @*
                 if ( testfail )
                     begin
                     $display("++++++++++++++++++++");
-                    $write("Failed %s - assertion error\n", `AMBER_TEST_NAME);
+                    $write("Failed %s\n", `AMBER_TEST_NAME);
                     $display("++++++++++++++++++++");
-                    $fwrite(`U_TB.log_file,"Failed %s - assertion error\n", `AMBER_TEST_NAME);
+                    $fwrite(`U_TB.log_file,"Failed %s\n", `AMBER_TEST_NAME);
                     $finish;
                     end
                 else
@@ -493,7 +495,17 @@ always @*
         end
 
 
-
+// ======================================
+// Timeout
+// ======================================
+always @ ( posedge `U_SYSTEM.sys_clk )
+    if ( `AMBER_TIMEOUT != 0 )
+        if (`U_TB.clk_count >= `AMBER_TIMEOUT)
+            begin
+            `TB_ERROR_MESSAGE
+            $display("Timeout Error");
+            end
+            
 // ======================================
 // Tasks
 // ======================================
@@ -569,54 +581,7 @@ begin
      endcase
 end
 endfunction
-    
+
+
 endmodule
 
-
-
-
-module WireDelay # (
-  parameter Delay_g = 0,
-  parameter Delay_rd = 0
-)
-(
-  inout A,
-  inout B,
-  input reset
-);
-
-  reg A_r;
-  reg B_r;
-  reg line_en;
-
-  assign A = A_r;
-  assign B = B_r;
-
-  always @(*) begin
-    if (!reset) begin
-      A_r <= 1'bz;
-      B_r <= 1'bz;
-      line_en <= 1'b0;
-    end else begin
-      if (line_en) begin
-        A_r <= #Delay_rd B;
-	B_r <= 1'bz;
-      end else begin
-        B_r <= #Delay_g A;
-	A_r <= 1'bz;
-      end
-    end
-  end
-
-  always @(A or B) begin
-    if (!reset) begin
-      line_en <= 1'b0;
-    end else if (A !== A_r) begin
-      line_en <= 1'b0;
-    end else if (B_r !== B) begin
-      line_en <= 1'b1;
-    end else begin
-      line_en <= line_en;
-    end
-  end
-endmodule

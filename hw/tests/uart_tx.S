@@ -60,10 +60,13 @@ main:
         ldrb    r6, [r5], #1
         @ transmit byte from test_uart
         str     r6, [r4]
-        bl      uart_rx_check
+        bl      uart_rx_check        
+        @ keep doing this until get to the end of the message
         cmp     r5, r7
         bne     1b
 
+        @ The complete message has now been transmitted
+        @ but some bytes are still en route
         @ check the last few bytes received
         bl      uart_rx_check
         
