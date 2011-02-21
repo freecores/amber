@@ -64,6 +64,7 @@ initial
     $dumpvars(1, `U_EXECUTE.o_exclusive);
     $dumpvars(1, `U_EXECUTE.o_write_data);
     $dumpvars(1, `U_EXECUTE.base_address);
+    $dumpvars(1, `U_EXECUTE.pc);
     $dumpvars(1, `U_EXECUTE.u_register_bank.r0);
     $dumpvars(1, `U_EXECUTE.u_register_bank.r1);
     $dumpvars(1, `U_EXECUTE.u_register_bank.r2);
@@ -79,13 +80,13 @@ initial
     $dumpvars(1, `U_EXECUTE.u_register_bank.r12);
     $dumpvars(1, `U_EXECUTE.u_register_bank.r13_out);
     $dumpvars(1, `U_EXECUTE.u_register_bank.r14_out);
+    $dumpvars(1, `U_EXECUTE.u_register_bank.r14_irq);
     $dumpvars(1, `U_EXECUTE.u_register_bank.r15);
 
 
     $dumpvars(1, `U_FETCH);
     $dumpvars(1, `U_CACHE);
     $dumpvars(1, `U_DECODE);
-//     $dumpvars(1, `U_COPRO15);
     $dumpvars(1, `U_WISHBONE);
     $dumpvars(1, `U_AMBER);    
      
@@ -102,32 +103,32 @@ always @(posedge `U_DECOMPILE.i_clk)
     if ( `U_DECOMPILE.clk_count == 10 )
         begin
         $dumpon;
-        $display("Dump on at  %d ticks", `U_DECOMPILE.clk_count);
+        $display("\nDump on at  %d ticks", `U_DECOMPILE.clk_count);
         end
             
     if ( `U_DECOMPILE.clk_count == 20 )
         begin
         $dumpoff;
-        $display("Dump off at %d ticks", `U_DECOMPILE.clk_count);
+        $display("\nDump off at %d ticks", `U_DECOMPILE.clk_count);
         end
 
 
     if ( `U_DECOMPILE.clk_count == ( `AMBER_DUMP_START + 0 ) )
         begin
         $dumpon;
-        $display("Dump on at  %d ticks", `U_DECOMPILE.clk_count);
+        $display("\nDump on at  %d ticks", `U_DECOMPILE.clk_count);
         end
                                    
     if ( `U_DECOMPILE.clk_count == ( `AMBER_DUMP_START + `AMBER_DUMP_LENGTH ) )
         begin
         $dumpoff;
-        $display("Dump off at %d ticks", `U_DECOMPILE.clk_count);
+        $display("\nDump off at %d ticks", `U_DECOMPILE.clk_count);
         end
         
     `ifdef AMBER_TERMINATE
     if ( `U_DECOMPILE.clk_count == ( `AMBER_DUMP_START + `AMBER_DUMP_LENGTH + 100) )
         begin
-        $display("Automatic test termination after dump has completed");
+        $display("\nAutomatic test termination after dump has completed");
         `TB_ERROR_MESSAGE
         end
     `endif

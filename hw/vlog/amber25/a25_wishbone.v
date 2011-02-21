@@ -7,11 +7,11 @@
 //                                                              //
 //  Description                                                 //
 //  Turns memory access requests from the execute stage and     //
-//  cache into wishbone bus cycles. For 4-word read requests    //
-//  from the cache and swap accesses ( read followed by write   //
-//  to the same address) from the execute stage,                //
-//  a block transfer is done. All other requests result in      //
-//  single word transfers.                                      //
+//  instruction and data caches into wishbone bus cycles.       //
+//  For 4-word read requests from either cache and swap         //
+//  accesses ( read followed by write to the same address)      //
+//  from the execute stage, a block transfer is done.           //
+//  All other requests result in single word transfers.         //
 //                                                              //
 //  Write accesses can be done in a single clock cycle on       //
 //  the wishbone bus, is the destination allows it. The         //

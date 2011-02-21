@@ -49,7 +49,7 @@ TEST_LIST="
            mul mla  \
            swp \
            \
-           irq firq swi undefined_ins addr_ex \
+           irq firq swi undefined_ins addr_ex irq_stm \
            \
            cache1 cache2 cache3 cache_swap \
            cacheable_area cache_flush \
@@ -66,14 +66,15 @@ TEST_LIST="
            mlas_bug inflate_bug swp_lock_bug \
            cache_swap_bug \
            "
+LOF_FILE=$1
 
-echo "----------------------------------" >> hw-tests.log
-date >> hw-tests.log
+echo "----------------------------------" >> ${LOF_FILE}
+date >> ${LOF_FILE}
 
 for i in $TEST_LIST; do
     echo "Run test $i"
-    ../tools/run.sh ${i} $1 $2
+    ../tools/run.sh ${i} $2 $3
 done
 
-echo "----------------------------------" >> hw-tests.log
+echo "----------------------------------" >> ${LOF_FILE}
 

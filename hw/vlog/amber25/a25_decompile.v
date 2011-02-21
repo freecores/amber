@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////
 //                                                              //
-// Decompiler for Amber 25 Core                                 //
+//  Decompiler for Amber 25 Core                                //
 //                                                              //
 //  This file is part of the Amber project                      //
 //  http://www.opencores.org/project,amber                      //

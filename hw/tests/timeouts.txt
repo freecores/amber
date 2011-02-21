@@ -29,6 +29,7 @@ firq 30540
 swi 1620
 undefined_ins 2748
 addr_ex 1772
+irq_stm 10220
 cache1 16308
 cache2 1460
 cache3 106064
@@ -48,7 +49,7 @@ ethmac_tx 18172
 uart_reg 1824
 uart_tx 136588
 uart_rx 132384
-uart_rxint 127264
+uart_rxint 127204
 bic_bug 1524
 movs_bug 1592
 flow_bug 1500

@@ -125,7 +125,7 @@
     `define BOOT_MEM_PARAMS_FILE    "not-defined"
 `endif
 `ifndef AMBER_LOG_FILE
-    `define AMBER_LOG_FILE          "test.log"
+    `define AMBER_LOG_FILE          "tests.log"
 `endif
 `ifndef AMBER_VCD_FILE
     `define AMBER_VCD_FILE          "sim.vcd"

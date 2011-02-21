@@ -684,8 +684,9 @@ assign next_interrupt = dabt_request     ? 3'd1 :  // Data Abort
         // interrupt is triggered if the execute condition is met in the execute stage
 assign interrupt      = next_interrupt != 3'd0 && 
                         next_interrupt != 3'd7 &&  // SWI
-                        next_interrupt != 3'd6 ;   // undefined interrupt
-
+                        next_interrupt != 3'd6 &&  // undefined interrupt
+                        !conflict               ;  // Wait for conflicts to resolve before
+                                                   // triggering int
 
 assign interrupt_mode = next_interrupt == 3'd2 ? FIRQ :
                         next_interrupt == 3'd3 ? IRQ  :

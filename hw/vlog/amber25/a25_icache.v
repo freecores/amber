@@ -6,12 +6,10 @@
 //  http://www.opencores.org/project,amber                      //
 //                                                              //
 //  Description                                                 //
-//  Synthesizable L1 Unified Data and Instruction Cache         //
-//  Cache is 4-way, 256 line and 16 bytes per line for          //
-//  a total of 16KB. The cache policy is write-through and      //
-//  read allocate. For swap instructions (SWP and SWPB) the     //
-//  location is evicted from the cache and read from main       //
-//  memory.                                                     //
+//  Synthesizable L1 Instruction Cache.                         //
+//  Cache is 2,3,4 or 8 way, 256 line and 16 bytes per line.    //
+//  a total of 16KB. The cache is read only. Writes from        //
+//  the core to through the data cache.                         //
 //                                                              //
 //  Author(s):                                                  //
 //      - Conor Santifort, csantifort.amber@gmail.com           //

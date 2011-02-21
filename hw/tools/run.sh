@@ -45,6 +45,7 @@
 #--------------------------------------------------------
 AMBER_LOAD_MAIN_MEM=" "
 AMBER_TIMEOUT=0
+AMBER_LOG_FILE="tests.log"
 SET_G=0
 SET_M=0
 SET_D=0
@@ -186,7 +187,7 @@ if [ $SET_A == 1 ]; then
         CORE=" "
     fi
     
-    ../tools/all.sh $TECH $CORE
+    ../tools/all.sh ${AMBER_LOG_FILE} ${TECH} ${CORE}
     exit
 fi
 
@@ -232,7 +233,6 @@ if [ $TEST_TYPE == 1 ]; then
     popd > /dev/null
     BOOT_MEM_FILE="../tests/${AMBER_TEST_NAME}.mem"
     BOOT_MEM_PARAMS_FILE="../tests/${AMBER_TEST_NAME}_memparams.v"
-    AMBER_LOG_FILE="hw-tests.log"
     # Get timeout
     AMBER_TIMEOUT=`../tools/get_timeout.sh ${AMBER_TEST_NAME}`
     echo "Timeout $AMBER_TIMEOUT"
@@ -244,7 +244,6 @@ elif [ $TEST_TYPE == 2 ]; then
     popd > /dev/null
     BOOT_MEM_FILE="../../sw/${AMBER_TEST_NAME}/${AMBER_TEST_NAME}.mem"
     BOOT_MEM_PARAMS_FILE="../../sw/${AMBER_TEST_NAME}/${AMBER_TEST_NAME}_memparams.v"
-    AMBER_LOG_FILE="${AMBER_TEST_NAME}.log"
 
 elif [ $TEST_TYPE == 3 ] || [ $TEST_TYPE == 4 ]; then
     # sw test using boot loader
@@ -268,7 +267,6 @@ elif [ $TEST_TYPE == 3 ] || [ $TEST_TYPE == 4 ]; then
     BOOT_MEM_PARAMS_FILE="../../sw/boot-loader/boot-loader_memparams.v"
     MAIN_MEM_FILE="../../sw/${AMBER_TEST_NAME}/${AMBER_TEST_NAME}.mem"
     AMBER_LOAD_MAIN_MEM="+define+AMBER_LOAD_MAIN_MEM"
-    AMBER_LOG_FILE="${AMBER_TEST_NAME}.log"
 
 else
     echo "Error unrecognized test type"
@@ -311,9 +309,9 @@ if [ $MAKE_STATUS == 0 ]; then
             
             # Set a timeout value for the test if it passed
             if [ $TEST_TYPE == 1 ]; then
-                tail -1 < hw-tests.log | grep Passed > /dev/null
+                tail -1 < ${AMBER_LOG_FILE} | grep Passed > /dev/null
                 if  [ $? == 0 ]; then
-                    TICKS=`tail -1 < hw-tests.log | awk '{print $3}'`
+                    TICKS=`tail -1 < ${AMBER_LOG_FILE} | awk '{print $3}'`
                     TOTICKS=$(( $TICKS * 4 + 1000 ))
                     ../tools/set_timeout.sh ${AMBER_TEST_NAME} $TOTICKS
                 fi

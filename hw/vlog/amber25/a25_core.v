@@ -7,7 +7,9 @@
 //                                                              //
 //  Description                                                 //
 //  Instantiates the core consisting of fetch, instruction      //
-//  decode, execute, and co-processor.                          //
+//  decode, execute, memory access and write back. The          //
+//  Wishbone interface and Co-Processor modules are also        //
+//  instantiated here.                                          //
 //                                                              //
 //  Author(s):                                                  //
 //      - Conor Santifort, csantifort.amber@gmail.com           //
@@ -73,7 +75,6 @@ wire      [31:0]          execute_daddress_nxt; // un-registered version of exec
 wire      [31:0]          write_data;
 wire                      write_enable;
 wire      [31:0]          fetch_instruction;
-// wire                      priviledged;
 wire                      decode_exclusive;
 wire                      decode_iaccess;
 wire                      decode_daccess;
@@ -118,7 +119,6 @@ wire     [2:0]            pc_sel;
 wire     [1:0]            byte_enable_sel;         
 wire     [2:0]            status_bits_sel;                
 wire     [2:0]            reg_write_sel;           
-// wire                      user_mode_regs_load;     
 wire                      user_mode_regs_store_nxt;    
 wire                      firq_not_user_mode;
 
@@ -261,7 +261,6 @@ a25_decode u_decode (
     .o_byte_enable_sel                  ( byte_enable_sel                   ),
     .o_status_bits_sel                  ( status_bits_sel                   ),
     .o_reg_write_sel                    ( reg_write_sel                     ),
-//     .o_user_mode_regs_load              ( user_mode_regs_load               ),
     .o_user_mode_regs_store_nxt         ( user_mode_regs_store_nxt          ),
     .o_firq_not_user_mode               ( firq_not_user_mode                ),
     .o_write_data_wen                   ( write_data_wen                    ),
@@ -350,7 +349,6 @@ a25_execute u_execute (
     .i_byte_enable_sel                  ( byte_enable_sel                   ),   
     .i_status_bits_sel                  ( status_bits_sel                   ),   
     .i_reg_write_sel                    ( reg_write_sel                     ),   
-//     .i_user_mode_regs_load              ( user_mode_regs_load               ),   
     .i_user_mode_regs_store_nxt         ( user_mode_regs_store_nxt          ),   
     .i_firq_not_user_mode               ( firq_not_user_mode                ),   
     .i_write_data_wen                   ( write_data_wen                    ),   

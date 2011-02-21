@@ -1,14 +1,14 @@
 //////////////////////////////////////////////////////////////////
 //                                                              //
-//  L1 Instruction Cache for Amber 25 Core                      //
+//  L1 Data Cache for Amber 25 Core                             //
 //                                                              //
 //  This file is part of the Amber project                      //
 //  http://www.opencores.org/project,amber                      //
 //                                                              //
 //  Description                                                 //
-//  Synthesizable L1 Unified Data and Instruction Cache         //
-//  Cache is 4-way, 256 line and 16 bytes per line for          //
-//  a total of 16KB. The cache policy is write-through and      //
+//  Synthesizable L1 Data Cache                                 //
+//  Cache is 2, 3, 4 or 8 way, 256 line and 16 bytes per line.  //
+//  The cache policy is write-through and                       //
 //  read allocate. For swap instructions (SWP and SWPB) the     //
 //  location is evicted from the cache and read from main       //
 //  memory.                                                     //
