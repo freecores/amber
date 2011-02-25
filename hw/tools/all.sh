@@ -54,7 +54,7 @@ TEST_LIST="
            cache1 cache2 cache3 cache_swap \
            cacheable_area cache_flush \
            \
-           flow1 flow2 flow3 \
+           flow1 flow2 flow3 conflict_rd \
            \
            hiboot_mem ddr31 ddr32 ddr33 \
            \

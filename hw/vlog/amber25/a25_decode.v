@@ -125,8 +125,11 @@ output      [7:0]           o_iabt_status,
 output                      o_dabt_trigger,
 output      [31:0]          o_dabt_address,
 output      [7:0]           o_dabt_status,
-output                      o_conflict
-
+output                      o_conflict,
+output reg                  o_rn_use_read,
+output reg                  o_rm_use_read,
+output reg                  o_rs_use_read,
+output reg                  o_rd_use_read
 
 );
 
@@ -270,6 +273,7 @@ reg     [7:0]          hold_instruction_iabt_status = 'd0;            // status 
 
 wire                   instruction_valid;
 wire                   instruction_execute;
+reg                    instruction_execute_r = 'd0;
 
 reg     [3:0]          mtrans_reg1;             // the current register being accessed as part of stm/ldm
 reg     [3:0]          mtrans_reg2;             // the next register being accessed as part of stm/ldm
@@ -327,6 +331,10 @@ wire                   conflict1;          // Register conflict1 with ldr operat
 wire                   conflict2;          // Register conflict1 with ldr operation
 wire                   conflict;          // Register conflict1 with ldr operation
 reg                    conflict_r = 'd0;
+reg                    rn_conflict1_r = 'd0;
+reg                    rm_conflict1_r = 'd0;
+reg                    rs_conflict1_r = 'd0;
+reg                    rd_conflict1_r = 'd0;
 
 
 // ========================================================
@@ -512,32 +520,32 @@ assign alu_function_nxt     = { alu_swap_sel_nxt,
 // ========================================================
 // Register Conflict Detection
 // ========================================================
-assign rn_valid      = type == REGOP || type == MULT || type == SWAP || type == TRANS || type == MTRANS || type == CODTRANS;
-assign rm_valid      = type == REGOP || type == MULT || type == SWAP || (type == TRANS && immediate_shift_op);
-assign rs_valid      = rds_use_rs;
-assign rd_valid      = type == TRANS  && store_op;           // str instruction
-assign stm_valid     = type == MTRANS && !instruction[20];   // stm instruction
- 
-assign rn_conflict1   = rn_valid  && ( load_rd_d1_nxt[4] && rn_sel_nxt         == load_rd_d1_nxt[3:0] );
-assign rn_conflict2   = rn_valid  && ( load_rd_d1    [4] && rn_sel_nxt         == load_rd_d1    [3:0] );
-assign rm_conflict1   = rm_valid  && ( load_rd_d1_nxt[4] && rm_sel_nxt         == load_rd_d1_nxt[3:0] );
-assign rm_conflict2   = rm_valid  && ( load_rd_d1    [4] && rm_sel_nxt         == load_rd_d1    [3:0] );
-assign rs_conflict1   = rs_valid  && ( load_rd_d1_nxt[4] && rs_sel_nxt         == load_rd_d1_nxt[3:0] );
-assign rs_conflict2   = rs_valid  && ( load_rd_d1    [4] && rs_sel_nxt         == load_rd_d1    [3:0] );
-assign rd_conflict1   = rd_valid  && ( load_rd_d1_nxt[4] && instruction[15:12] == load_rd_d1_nxt[3:0] );
-assign rd_conflict2   = rd_valid  && ( load_rd_d1    [4] && instruction[15:12] == load_rd_d1    [3:0] );
-assign stm_conflict1a = stm_valid && ( load_rd_d1_nxt[4] && mtrans_reg1        == load_rd_d1_nxt[3:0] ); 
-assign stm_conflict1b = stm_valid && ( load_rd_d1_nxt[4] && mtrans_reg2        == load_rd_d1_nxt[3:0] ); 
-assign stm_conflict2a = stm_valid && ( load_rd_d1    [4] && mtrans_reg1        == load_rd_d1    [3:0] );
-assign stm_conflict2b = stm_valid && ( load_rd_d1    [4] && mtrans_reg2        == load_rd_d1    [3:0] );
+assign rn_valid       = type == REGOP || type == MULT || type == SWAP || type == TRANS || type == MTRANS || type == CODTRANS;
+assign rm_valid       = type == REGOP || type == MULT || type == SWAP || (type == TRANS && immediate_shift_op);
+assign rs_valid       = rds_use_rs;
+assign rd_valid       = (type == TRANS  && store_op) || (type == REGOP || type == SWAP);
+assign stm_valid      = type == MTRANS && !instruction[20];   // stm instruction
+
+
+assign rn_conflict1   = instruction_execute   && rn_valid  && ( load_rd_d1_nxt[4] && rn_sel_nxt         == load_rd_d1_nxt[3:0] );
+assign rn_conflict2   = instruction_execute_r && rn_valid  && ( load_rd_d1    [4] && rn_sel_nxt         == load_rd_d1    [3:0] );
+assign rm_conflict1   = instruction_execute   && rm_valid  && ( load_rd_d1_nxt[4] && rm_sel_nxt         == load_rd_d1_nxt[3:0] );
+assign rm_conflict2   = instruction_execute_r && rm_valid  && ( load_rd_d1    [4] && rm_sel_nxt         == load_rd_d1    [3:0] );
+assign rs_conflict1   = instruction_execute   && rs_valid  && ( load_rd_d1_nxt[4] && rs_sel_nxt         == load_rd_d1_nxt[3:0] );
+assign rs_conflict2   = instruction_execute_r && rs_valid  && ( load_rd_d1    [4] && rs_sel_nxt         == load_rd_d1    [3:0] );
+assign rd_conflict1   = instruction_execute   && rd_valid  && ( load_rd_d1_nxt[4] && instruction[15:12] == load_rd_d1_nxt[3:0] );
+assign rd_conflict2   = instruction_execute_r && rd_valid  && ( load_rd_d1    [4] && instruction[15:12] == load_rd_d1    [3:0] );
+
+assign stm_conflict1a = instruction_execute   && stm_valid && ( load_rd_d1_nxt[4] && mtrans_reg1        == load_rd_d1_nxt[3:0] ); 
+assign stm_conflict1b = instruction_execute   && stm_valid && ( load_rd_d1_nxt[4] && mtrans_reg2        == load_rd_d1_nxt[3:0] ); 
+assign stm_conflict2a = instruction_execute_r && stm_valid && ( load_rd_d1    [4] && mtrans_reg1        == load_rd_d1    [3:0] );
+assign stm_conflict2b = instruction_execute_r && stm_valid && ( load_rd_d1    [4] && mtrans_reg2        == load_rd_d1    [3:0] );
              
 assign conflict1      = instruction_valid &&
                         (rn_conflict1 || rm_conflict1 || rs_conflict1 || rd_conflict1 || 
                          stm_conflict1a || stm_conflict1b);
 
-assign conflict2      = instruction_valid &&
-                        (rn_conflict2 || rm_conflict2 || rs_conflict2 || rd_conflict2 || 
-                         stm_conflict2a || stm_conflict2b);
+assign conflict2      = instruction_valid && (stm_conflict2a || stm_conflict2b);
 
 assign conflict       = conflict1 || conflict2;
 
@@ -545,7 +553,16 @@ assign conflict       = conflict1 || conflict2;
 always @( posedge i_clk )
     if ( !i_access_stall )
         begin
-        conflict_r <= conflict;
+        conflict_r              <= conflict;
+        instruction_execute_r   <= instruction_execute;
+        rn_conflict1_r          <= rn_conflict1 && instruction_execute;
+        rm_conflict1_r          <= rm_conflict1 && instruction_execute;
+        rs_conflict1_r          <= rs_conflict1 && instruction_execute;
+        rd_conflict1_r          <= rd_conflict1 && instruction_execute;
+        o_rn_use_read           <= instruction_valid && ( rn_conflict1_r || rn_conflict2 );
+        o_rm_use_read           <= instruction_valid && ( rm_conflict1_r || rm_conflict2 );
+        o_rs_use_read           <= instruction_valid && ( rs_conflict1_r || rs_conflict2 );
+        o_rd_use_read           <= instruction_valid && ( rd_conflict1_r || rd_conflict2 );
         end
 
 assign o_conflict = conflict;

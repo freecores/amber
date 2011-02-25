@@ -178,7 +178,10 @@ wire     [31:0]           icache_wb_read_data;
 wire                      icache_wb_ready;
 
 wire                      conflict;
-
+wire                      rn_use_read;
+wire                      rm_use_read;
+wire                      rs_use_read;
+wire                      rd_use_read;
 
 // data abort has priority
 assign decode_fault_status  = dabt_trigger ? dabt_fault_status  : iabt_fault_status;
@@ -287,7 +290,11 @@ a25_decode u_decode (
     .o_dabt_address                     ( dabt_fault_address                ),
     .o_dabt_status                      ( dabt_fault_status                 ),
     
-    .o_conflict                         ( conflict                          )
+    .o_conflict                         ( conflict                          ),
+    .o_rn_use_read                      ( rn_use_read                       ),
+    .o_rm_use_read                      ( rm_use_read                       ),
+    .o_rs_use_read                      ( rs_use_read                       ),
+    .o_rd_use_read                      ( rd_use_read                       )
 );
 
 
@@ -360,7 +367,11 @@ a25_execute u_execute (
     .i_status_bits_irq_mask_wen         ( status_bits_irq_mask_wen          ),   
     .i_status_bits_firq_mask_wen        ( status_bits_firq_mask_wen         ),   
     .i_copro_write_data_wen             ( copro_write_data_wen              ),
-    .i_conflict                         ( conflict                          )
+    .i_conflict                         ( conflict                          ),
+    .i_rn_use_read                      ( rn_use_read                       ),
+    .i_rm_use_read                      ( rm_use_read                       ),
+    .i_rs_use_read                      ( rs_use_read                       ),
+    .i_rd_use_read                      ( rd_use_read                       )
 );
 
 

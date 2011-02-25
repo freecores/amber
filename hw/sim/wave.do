@@ -31,36 +31,48 @@ add wave -noupdate -group System -group {DDR3 Bus} -format Logic /tb/u_system/dd
 add wave -noupdate -group System -group {DDR3 Bus} -format Logic /tb/u_system/ddr3_reset_n
 add wave -noupdate -group System -group {DDR3 Bus} -format Logic /tb/u_system/ddr3_we_n
 add wave -noupdate -expand -group Amber -format Logic /tb/u_system/u_amber/fetch_stall
-add wave -noupdate -expand -group Amber -group Fetch -format Logic /tb/u_system/u_amber/u_fetch/o_fetch_stall
-add wave -noupdate -expand -group Amber -group Fetch -format Logic /tb/u_system/u_amber/u_fetch/sel_cache
-add wave -noupdate -expand -group Amber -group Fetch -group {Instruction Cache} -format Logic /tb/u_system/u_amber/u_fetch/u_cache/o_stall
-add wave -noupdate -expand -group Amber -group Fetch -group {Instruction Cache} -format Logic /tb/u_system/u_amber/u_fetch/u_cache/read_stall
-add wave -noupdate -expand -group Amber -group Fetch -group {Instruction Cache} -format Logic /tb/u_system/u_amber/u_fetch/u_cache/o_wb_req
-add wave -noupdate -expand -group Amber -group Fetch -group {Instruction Cache} -format Literal -radix ascii /tb/u_system/u_amber/u_fetch/u_cache/xC_STATE
-add wave -noupdate -expand -group Amber -group Fetch -group {Instruction Cache} -format Literal /tb/u_system/u_amber/u_fetch/u_cache/miss_address
-add wave -noupdate -expand -group Amber -group Fetch -group {Instruction Cache} -format Logic /tb/u_system/u_amber/u_fetch/u_cache/read_miss
-add wave -noupdate -expand -group Amber -group Fetch -group {Instruction Cache} -format Literal /tb/u_system/u_amber/u_fetch/u_cache/o_read_data
-add wave -noupdate -expand -group Amber -group Fetch -group {Instruction Cache} -format Logic /tb/u_system/u_amber/u_coprocessor/o_cache_enable
-add wave -noupdate -expand -group Amber -group Fetch -group {Instruction Cache} -format Logic /tb/u_system/u_amber/u_fetch/u_cache/i_core_stall
-add wave -noupdate -expand -group Amber -group Fetch -group {Instruction Cache} -format Logic /tb/u_system/u_amber/u_fetch/u_cache/i_select
-add wave -noupdate -expand -group Amber -group Fetch -group {Instruction Cache} -format Logic /tb/u_system/u_amber/u_fetch/sel_cache
-add wave -noupdate -expand -group Amber -group Fetch -group {Instruction Cache} -format Literal /tb/u_system/u_amber/u_fetch/u_cache/tag_wdata
-add wave -noupdate -expand -group Amber -group Fetch -group {Instruction Cache} -format Literal /tb/u_system/u_amber/u_fetch/u_cache/tag_address
-add wave -noupdate -expand -group Amber -group Fetch -group {Instruction Cache} -format Logic /tb/u_system/u_amber/u_fetch/u_cache/tag_wenable
-add wave -noupdate -expand -group Amber -group Fetch -group {Instruction Cache} -format Literal /tb/u_system/u_amber/u_fetch/u_cache/data_wdata
+add wave -noupdate -expand -group Amber -format Logic /tb/u_system/u_amber/mem_stall
+add wave -noupdate -expand -group Amber -expand -group Fetch -format Literal /tb/u_system/u_amber/u_fetch/i_iaddress
+add wave -noupdate -expand -group Amber -expand -group Fetch -format Logic /tb/u_system/u_amber/u_fetch/i_iaddress_valid
+add wave -noupdate -expand -group Amber -expand -group Fetch -format Literal /tb/u_system/u_amber/u_fetch/o_fetch_instruction
+add wave -noupdate -expand -group Amber -expand -group Fetch -format Logic /tb/u_system/u_amber/u_fetch/o_wb_req
+add wave -noupdate -expand -group Amber -expand -group Fetch -format Logic /tb/u_system/u_amber/u_fetch/o_fetch_stall
+add wave -noupdate -expand -group Amber -expand -group Fetch -format Logic /tb/u_system/u_amber/u_fetch/sel_cache
+add wave -noupdate -expand -group Amber -expand -group Fetch -group {Instruction Cache} -format Logic /tb/u_system/u_amber/u_fetch/u_cache/o_stall
+add wave -noupdate -expand -group Amber -expand -group Fetch -group {Instruction Cache} -format Logic /tb/u_system/u_amber/u_fetch/u_cache/read_stall
+add wave -noupdate -expand -group Amber -expand -group Fetch -group {Instruction Cache} -format Logic /tb/u_system/u_amber/u_fetch/u_cache/o_wb_req
+add wave -noupdate -expand -group Amber -expand -group Fetch -group {Instruction Cache} -format Literal -radix ascii /tb/u_system/u_amber/u_fetch/u_cache/xC_STATE
+add wave -noupdate -expand -group Amber -expand -group Fetch -group {Instruction Cache} -format Literal /tb/u_system/u_amber/u_fetch/u_cache/miss_address
+add wave -noupdate -expand -group Amber -expand -group Fetch -group {Instruction Cache} -format Logic /tb/u_system/u_amber/u_fetch/u_cache/read_miss
+add wave -noupdate -expand -group Amber -expand -group Fetch -group {Instruction Cache} -format Literal /tb/u_system/u_amber/u_fetch/u_cache/o_read_data
+add wave -noupdate -expand -group Amber -expand -group Fetch -group {Instruction Cache} -format Logic /tb/u_system/u_amber/u_coprocessor/o_cache_enable
+add wave -noupdate -expand -group Amber -expand -group Fetch -group {Instruction Cache} -format Logic /tb/u_system/u_amber/u_fetch/u_cache/i_core_stall
+add wave -noupdate -expand -group Amber -expand -group Fetch -group {Instruction Cache} -format Logic /tb/u_system/u_amber/u_fetch/u_cache/i_select
+add wave -noupdate -expand -group Amber -expand -group Fetch -group {Instruction Cache} -format Logic /tb/u_system/u_amber/u_fetch/sel_cache
+add wave -noupdate -expand -group Amber -expand -group Fetch -group {Instruction Cache} -format Literal /tb/u_system/u_amber/u_fetch/u_cache/tag_wdata
+add wave -noupdate -expand -group Amber -expand -group Fetch -group {Instruction Cache} -format Literal /tb/u_system/u_amber/u_fetch/u_cache/tag_address
+add wave -noupdate -expand -group Amber -expand -group Fetch -group {Instruction Cache} -format Logic /tb/u_system/u_amber/u_fetch/u_cache/tag_wenable
+add wave -noupdate -expand -group Amber -expand -group Fetch -group {Instruction Cache} -format Literal /tb/u_system/u_amber/u_fetch/u_cache/data_wdata
+add wave -noupdate -expand -group Amber -expand -group Decode -format Literal -radix ascii /tb/u_system/u_amber/u_decode/xTYPE
 add wave -noupdate -expand -group Amber -expand -group Decode -format Literal -radix ascii /tb/u_system/u_amber/u_decode/xMODE
 add wave -noupdate -expand -group Amber -expand -group Decode -format Literal -radix ascii /tb/u_system/u_amber/u_decode/xCONTROL_STATE
+add wave -noupdate -expand -group Amber -expand -group Decode -format Logic /tb/u_system/u_amber/u_decode/instruction_execute
+add wave -noupdate -expand -group Amber -expand -group Decode -format Logic /tb/u_system/u_amber/u_decode/decode_iaccess_nxt
 add wave -noupdate -expand -group Amber -expand -group Decode -format Logic /tb/u_system/u_amber/u_decode/interrupt
 add wave -noupdate -expand -group Amber -expand -group Decode -format Literal /tb/u_system/u_amber/u_decode/mtrans_num_registers
 add wave -noupdate -expand -group Amber -expand -group Decode -format Logic /tb/u_system/u_amber/u_decode/pre_fetch_instruction_wen
+add wave -noupdate -expand -group Amber -expand -group Decode -format Literal /tb/u_system/u_amber/u_decode/fetch_instruction_r
 add wave -noupdate -expand -group Amber -expand -group Decode -format Literal /tb/u_system/u_amber/u_decode/instruction
 add wave -noupdate -expand -group Amber -expand -group Decode -format Logic /tb/u_system/u_amber/u_decode/instruction_valid
-add wave -noupdate -expand -group Amber -expand -group Decode -format Logic /tb/u_system/u_amber/u_decode/instruction_execute
 add wave -noupdate -expand -group Amber -expand -group Decode -format Logic /tb/u_system/u_amber/u_decode/saved_current_instruction_wen
 add wave -noupdate -expand -group Amber -expand -group Decode -format Logic /tb/u_system/u_amber/u_decode/use_saved_current_instruction
 add wave -noupdate -expand -group Amber -expand -group Decode -format Logic /tb/u_system/u_amber/u_decode/pc_wen_nxt
 add wave -noupdate -expand -group Amber -expand -group Decode -format Logic /tb/u_system/u_amber/u_decode/write_pc
-add wave -noupdate -expand -group Amber -expand -group Decode -expand -group Conflict -format Logic /tb/u_system/u_amber/u_decode/instruction_valid
+add wave -noupdate -expand -group Amber -expand -group Decode -expand -group Conflict -format Logic /tb/u_system/u_amber/u_decode/rn_conflict1
+add wave -noupdate -expand -group Amber -expand -group Decode -expand -group Conflict -format Logic /tb/u_system/u_amber/u_decode/rn_conflict2
+add wave -noupdate -expand -group Amber -expand -group Decode -expand -group Conflict -format Logic /tb/u_system/u_amber/u_decode/conflict1
+add wave -noupdate -expand -group Amber -expand -group Decode -expand -group Conflict -format Logic /tb/u_system/u_amber/u_decode/conflict2
+add wave -noupdate -expand -group Amber -group Execute -format Logic /tb/u_system/u_amber/u_execute/execute
 add wave -noupdate -expand -group Amber -group Execute -format Literal -radix ascii /tb/u_system/u_amber/u_decode/u_decompile/xINSTRUCTION_EXECUTE
 add wave -noupdate -expand -group Amber -group Execute -format Literal /tb/u_system/u_amber/u_execute/i_pc_sel
 add wave -noupdate -expand -group Amber -group Execute -expand -group Registers -format Literal /tb/u_system/u_amber/u_execute/u_register_bank/r0
@@ -95,6 +107,7 @@ add wave -noupdate -expand -group Amber -group Execute -group internals -format 
 add wave -noupdate -expand -group Amber -group Wishbone -expand -group {WB Bus} -format Logic /tb/u_system/u_amber/o_wb_cyc
 add wave -noupdate -expand -group Amber -group Wishbone -expand -group {WB Bus} -format Logic /tb/u_system/u_amber/o_wb_stb
 add wave -noupdate -expand -group Amber -group Wishbone -expand -group {WB Bus} -format Logic /tb/u_system/u_amber/i_wb_ack
+add wave -noupdate -expand -group Amber -group Wishbone -expand -group {WB Bus} -format Literal /tb/u_system/u_amber/u_wishbone/o_wb_adr
 add wave -noupdate -expand -group Amber -group Wishbone -expand -group {WB Bus} -format Literal /tb/u_system/u_amber/o_wb_dat
 add wave -noupdate -expand -group Amber -group Wishbone -expand -group {WB Bus} -format Literal /tb/u_system/u_amber/o_wb_sel
 add wave -noupdate -expand -group Amber -group Wishbone -expand -group {WB Bus} -format Logic /tb/u_system/u_amber/o_wb_we
@@ -102,12 +115,8 @@ add wave -noupdate -expand -group Amber -group Wishbone -expand -group {WB Bus} 
 add wave -noupdate -expand -group Amber -group Wishbone -expand -group {WB Bus} -format Logic /tb/u_system/u_amber/i_wb_err
 add wave -noupdate -expand -group Amber -group Co-Processor -format Literal /tb/u_system/u_amber/u_coprocessor/fault_address
 add wave -noupdate -expand -group Amber -group Co-Processor -format Literal /tb/u_system/u_amber/u_coprocessor/fault_status
-add wave -noupdate -format Literal /tb/u_system/u_amber/u_execute/pc
-add wave -noupdate -format Literal /tb/u_system/u_amber/u_execute/u_register_bank/r14_irq
-add wave -noupdate -format Literal /tb/u_system/u_amber/u_execute/i_pc_sel
-add wave -noupdate -format Logic /tb/u_system/u_amber/u_execute/pc_wen
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {44481286 ps} 0} {{Cursor 3} {10386717250 ps} 0}
+WaveRestoreCursors {{Cursor 1} {1138913 ps} 0} {{Cursor 3} {10386717250 ps} 0}
 configure wave -namecolwidth 279
 configure wave -valuecolwidth 174
 configure wave -justifyvalue left
@@ -122,4 +131,4 @@ configure wave -griddelta 4000
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {57117684 ps} {57628017 ps}
+WaveRestoreZoom {913193 ps} {1614177 ps}

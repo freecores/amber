@@ -119,8 +119,11 @@ input                       i_status_bits_mode_wen,
 input                       i_status_bits_irq_mask_wen,
 input                       i_status_bits_firq_mask_wen,
 input                       i_copro_write_data_wen,
-input                       i_conflict
-
+input                       i_conflict,
+input                       i_rn_use_read,
+input                       i_rm_use_read,
+input                       i_rs_use_read,
+input                       i_rd_use_read
 );
 
 `include "a25_localparams.v"
@@ -142,6 +145,10 @@ wire [31:0]         rm;
 wire [31:0]         rs;
 wire [31:0]         rd;
 wire [31:0]         rn;
+wire [31:0]         reg_bank_rn;
+wire [31:0]         reg_bank_rm;
+wire [31:0]         reg_bank_rs;
+wire [31:0]         reg_bank_rd;
 wire [31:0]         pc;
 wire [31:0]         pc_nxt;
 wire [31:0]         interrupt_vector;
@@ -173,6 +180,10 @@ reg  [31:0]         base_address = 'd0;             // Saves base address during
                                                     // case of data abort
 wire [31:0]         read_data_filtered1;
 wire [31:0]         read_data_filtered;
+wire [31:0]         read_data_filtered_c;
+reg  [31:0]         read_data_filtered_r = 'd0;
+reg  [3:0]          load_rd_r = 'd0;
+wire [3:0]          load_rd_c;
 
 wire                write_enable_nxt;
 wire                daddress_valid_nxt;
@@ -446,7 +457,31 @@ assign write_enable_nxt = execute && i_write_data_wen;
 // Address Valid
 // ========================================================
 assign daddress_valid_nxt = execute && i_decode_daccess && !i_access_stall;
-assign iaddress_valid_nxt = i_decode_iaccess;
+
+// For some multi-cycle instructions, the stream of instrution
+// reads can be paused. However if the instruction does not execute
+// then the read stream must not be interrupted.
+assign iaddress_valid_nxt = i_decode_iaccess || !execute;
+
+
+// ========================================================
+// Use read value from data memory instead of from register
+// ========================================================
+assign rn = i_rn_use_read && i_rn_sel == load_rd_c ? read_data_filtered_c : reg_bank_rn;
+assign rm = i_rm_use_read && i_rm_sel == load_rd_c ? read_data_filtered_c : reg_bank_rm;
+assign rs = i_rs_use_read && i_rs_sel == load_rd_c ? read_data_filtered_c : reg_bank_rs;
+assign rd = i_rd_use_read && i_rs_sel == load_rd_c ? read_data_filtered_c : reg_bank_rd;
+
+
+always@( posedge i_clk )
+    if ( i_wb_read_data_valid )
+        begin
+        read_data_filtered_r <= read_data_filtered;
+        load_rd_r            <= i_wb_load_rd[3:0];
+        end
+
+assign read_data_filtered_c = i_wb_read_data_valid ? read_data_filtered : read_data_filtered_r;
+assign load_rd_c            = i_wb_read_data_valid ? i_wb_load_rd[3:0]  : load_rd_r;
 
 
 // ========================================================
@@ -576,12 +611,13 @@ a25_register_bank u_register_bank(
     // use one-hot version for speed, combine with i_user_mode_regs_store
     .i_mode_rds_exec         ( status_bits_mode_rds_oh   ),  
     
-    .o_rm                    ( rm                        ),
-    .o_rs                    ( rs                        ),
-    .o_rd                    ( rd                        ),
-    .o_rn                    ( rn                        ),
+    .o_rm                    ( reg_bank_rm               ),
+    .o_rs                    ( reg_bank_rs               ),
+    .o_rd                    ( reg_bank_rd               ),
+    .o_rn                    ( reg_bank_rn               ),
     .o_pc                    ( pc                        )
 );
+
 
 
 // ========================================================
