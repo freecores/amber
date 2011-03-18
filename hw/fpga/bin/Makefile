@@ -270,7 +270,9 @@ $(WORK_FOLDER)/$(RTL_TOP).ngd : $(WORK_FOLDER)/$(RTL_TOP).ngc $(BIN_FOLDER)/$(XS
 # Note -iobuf YES is needed for the top-level verilog
 # module synthesis
 
-$(WORK_FOLDER)/$(RTL_TOP).ngc : $(WORK_FOLDER)/run_id.txt write_config $(XST_PROJ_FILE)
+$(WORK_FOLDER)/$(RTL_TOP).ngc : $(WORK_FOLDER)/run_id.txt $(XST_PROJ_FILE)
+	@echo "work: $(WORK_FOLDER)" > $(LOG_FOLDER)/$(RTL_TOP).cfg.$(RUN_ID).txt
+	@echo "$(XST_DEFINES)" >> $(LOG_FOLDER)/$(RTL_TOP).cfg.$(RUN_ID).txt
 	export XST_DESIGN=$(RTL_TOP)
 	export XST_OFN=$(RTL_TOP)
 	rm -Rf $(WORK_FOLDER)/$(RTL_TOP)xst $(WORK_FOLDER)/_ngo
@@ -303,10 +305,3 @@ $(WORK_FOLDER)/run_id.txt :
 	$(BIN_FOLDER)/set_fpga_version.sh $(WORK_FOLDER)/run_id.txt
 	$(MAKE) -C ../../../sw/boot-loader
 
-
-# ----------------------------------------------------
-# Store the build configuration to a log file
-# ----------------------------------------------------
-write_config :
-	@echo "work: $(WORK_FOLDER)" > $(LOG_FOLDER)/$(RTL_TOP).cfg.$(RUN_ID).txt
-	@echo "$(XST_DEFINES)" >> $(LOG_FOLDER)/$(RTL_TOP).cfg.$(RUN_ID).txt
