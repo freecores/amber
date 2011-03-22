@@ -60,8 +60,6 @@ VERILOG_INCLUDE_PATH    = ../../vlog/lib ../../../sw/boot-loader
 # Name of top level verilog file (must be the same as its module name)
 RTL_TOP         = system
 
-# List of verilog source files
-XST_PROJ_FILE   = source_files.prj
 
 
 # ----------------------------------------------------                
@@ -90,12 +88,16 @@ ifdef VIRTEX6
     XST_DEFINES     = XILINX_FPGA XILINX_VIRTEX6_FPGA  $(AMBER_CORE) AMBER_CLK_DIVIDER=12
     # Xilinx placement and timing constraints
     XST_CONST_FILE  = xv6_constraints.ucf
+    # List of verilog source files for Xilinx Virtex-6 device
+    XST_PROJ_FILE   = xv6_source_files.prj
 else
     # The spartan6 device used on SP605 Development board
     XILINX_FPGA     = xc6slx45tfgg484-3
     XST_DEFINES     = XILINX_FPGA XILINX_SPARTAN6_FPGA $(AMBER_CORE) AMBER_CLK_DIVIDER=20
     # Xilinx placement and timing constraints
     XST_CONST_FILE  = xs6_constraints.ucf
+    # List of verilog source files for Xilinx Spartan-6 device
+    XST_PROJ_FILE   = xs6_source_files.prj
 endif
 
 
