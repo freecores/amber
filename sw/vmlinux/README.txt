@@ -67,7 +67,7 @@ run vmlinux
 # +++++++++++++++++++++++++++++++++++++++++++
 This file is the disk image that Linux mounts as
 part of the boot process. It contains a bare bones Linux directory
-structure and an init file (which is jsut hello-world renamed).
+structure and an init file (which is just hello-world renamed).
 
 # Set the location on your system where the Amber project is located
 export AMBER_BASE=/proj/opencores-svn/trunk
