@@ -156,6 +156,7 @@ DYNAMIC and HASH: This holds information related to dynamic linking.
 
 char SHT_NAME[80];
 
+#ifdef _PRINT_IT
 char* pSHT ( int sh_type )
 {
    switch (sh_type) {
@@ -183,6 +184,7 @@ char* pSHT ( int sh_type )
    }
    return &SHT_NAME[0];
 }
+#endif
 
 
 

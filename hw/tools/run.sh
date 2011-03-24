@@ -235,7 +235,6 @@ if [ $TEST_TYPE == 1 ]; then
     BOOT_MEM_PARAMS_FILE="../tests/${AMBER_TEST_NAME}_memparams.v"
     # Get timeout
     AMBER_TIMEOUT=`../tools/get_timeout.sh ${AMBER_TEST_NAME}`
-    echo "Timeout $AMBER_TIMEOUT"
 elif [ $TEST_TYPE == 2 ]; then
     # sw Stand-alone C test
     pushd ../../sw/${AMBER_TEST_NAME} > /dev/null
