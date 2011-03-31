@@ -46,7 +46,9 @@
 `ifndef _GLOBAL_DEFINES
 `define _GLOBAL_DEFINES
 
-`define AMBER_TIMEOUT 0
+`ifndef AMBER_TIMEOUT
+    `define AMBER_TIMEOUT 0
+`endif
 
 `define U_TB                    tb
 `define U_SYSTEM                `U_TB.u_system

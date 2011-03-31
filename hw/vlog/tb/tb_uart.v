@@ -38,6 +38,7 @@
 //                                                              //
 //////////////////////////////////////////////////////////////////
 
+`timescale  1 ps / 1 ps
 
 module tb_uart (
 input                       i_uart_cts_n,          // Clear To Send
@@ -47,7 +48,6 @@ input                       i_uart_rxd
 
 );
 
-// assign o_uart_txd   = 1'd1;
 assign o_uart_rts_n = 1'd0;  // allow the other side to transmit all the time
 
 // -------------------------------------------------------------------------
