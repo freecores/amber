@@ -1,8 +1,6 @@
 onerror {resume}
 
-
-add list -r sim:/tb/*
-#add list sim:/tb/*
+log -r /tb/*
 
 configure list -usestrobe 0
 configure list -strobestart {0 ps} -strobeperiod {0 ps}

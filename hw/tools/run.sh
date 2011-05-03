@@ -54,6 +54,7 @@ SET_S=0
 SET_V=0
 SET_A=0
 SET_5=0
+SET_L=0
 
 
 # show program usage
@@ -65,6 +66,7 @@ show_usage() {
     echo " -g : Use Modelsim GUI"
     echo " -d <cycle number to start dumping>: Create vcd file"
     echo " -t <cycle number to start dumping>: Create vcd file and terminate"
+    echo " -l : Create wlf dump of complete design"
     echo " -s : Use Xilinx Spatran6 Libraries (slower sim)"
     echo " -v : Use Xilinx Virtex6 Libraries (slower sim)"
     echo " -5 : Use Amber25 core instead of Amber23 core"
@@ -111,6 +113,8 @@ do
                         shift ;;
                 -g)     SET_G=1   # Bring up GUI
                         shift ;;
+                -l)     SET_L=1   # Create wlf wave dump file
+                        shift ;;
                 -d)     SET_D=1
                         DUMP_START=$2
                         shift 2;;
@@ -138,7 +142,11 @@ done
 if [ $SET_G == 1 ]; then
     RUN_OPTIONS="-do cmd.do"
 else    
-    RUN_OPTIONS="${RUN_OPTIONS} -c -do run.do"
+    if [ $SET_L == 1 ]; then
+        RUN_OPTIONS="${RUN_OPTIONS} -c -do run-log.do"
+    else    
+        RUN_OPTIONS="${RUN_OPTIONS} -c -do run.do"
+    fi
 fi
 
 if [ $SET_S == 1 ]; then
