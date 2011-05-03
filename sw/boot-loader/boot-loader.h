@@ -47,3 +47,11 @@
 #define DEBUG_BUF       0x01800000
 #define FILE_MAX_SIZE   0x00800000 /* 8MB max Xmodem transfer file size        */
 
+/* Function prototypes */
+void parse ( char * buf );
+void printm ( unsigned int address );
+int  get_hex ( char * buf, int start_position, unsigned int *address, unsigned int *length );
+int  get_address_data ( char * buf, unsigned int *address, unsigned int *data );
+void load_run( int type, unsigned int address );
+void print_spaces ( int num );
+void print_help ( void );
