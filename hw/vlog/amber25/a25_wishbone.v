@@ -141,18 +141,26 @@ wire                        icache_read_req_in;
 wire                        icache_read_ready;
 reg                         servicing_dcache_cached_read_r = 'd0;
 reg                         servicing_dcache_uncached_read_r = 'd0;
+reg                         servicing_dcache_cached_write_r = 'd0;
+reg                         servicing_dcache_uncached_write_r = 'd0;
 reg                         servicing_icache_r = 'd0;
-wire                        extra_write;
-reg                         extra_write_r = 'd0;
-reg     [31:0]              extra_write_data_r;
-reg     [31:0]              extra_write_address_r;
-reg     [3:0]               extra_write_be_r;
+wire                        buffer_write;
+reg                         buffer_write_r = 'd0;
+reg     [31:0]              buffer_write_data_r;
+reg     [31:0]              buffer_write_address_r;
+reg     [3:0]               buffer_write_be_r;
+wire                        write_ack;
+
 
 assign read_ack                 = !o_wb_we && i_wb_ack;
 
 assign dcache_cached_rready     = dcache_cached_rreq_r   && servicing_dcache_cached_read_r   && read_ack;
 assign dcache_uncached_rready   = dcache_uncached_rreq_r && servicing_dcache_uncached_read_r && read_ack;
 
+assign dcache_cached_wready     = (dcache_cached_wreq_c && wishbone_st == WB_IDLE && !dcache_cached_rreq_c)  || 
+                                  (servicing_dcache_cached_write_r && i_wb_ack  && wishbone_st == WB_WAIT_ACK && !dcache_cached_rreq_c);
+assign dcache_uncached_wready   = (dcache_uncached_wreq_c && wishbone_st == WB_IDLE && !dcache_uncached_rreq_c) ||
+                                  (servicing_dcache_uncached_write_r && i_wb_ack  && wishbone_st == WB_WAIT_ACK && !dcache_uncached_rreq_c);
 
 assign o_dcache_cached_ready    = dcache_cached_rready   || dcache_cached_wready;
 assign o_dcache_uncached_ready  = dcache_uncached_rready || dcache_uncached_wready;
@@ -161,7 +169,6 @@ assign o_dcache_read_data       = i_wb_dat;
 assign icache_read_ready        = servicing_icache_r && read_ack;
 assign o_icache_ready           = icache_read_ready; 
 assign o_icache_read_data       = i_wb_dat;
-
 
 assign dcache_cached_rreq_in    = i_dcache_cached_req   && !i_dcache_write;
 assign dcache_cached_wreq_in    = i_dcache_cached_req   &&  i_dcache_write;
@@ -186,9 +193,6 @@ assign start_access             = !wait_write_ack && (dcache_req_c || icache_rea
 // For writes the byte enable is always 4'hf
 assign byte_enable              = write_req_c ? i_dcache_byte_enable : 4'hf;
                                     
-
-assign dcache_cached_wready     = (dcache_cached_wreq_c && wishbone_st == WB_IDLE);
-assign dcache_uncached_wready   = (dcache_uncached_wreq_c && wishbone_st == WB_IDLE);
 assign dcache_cached_wreq_c     = dcache_cached_wreq_in   || dcache_cached_wreq_r;
 assign dcache_uncached_wreq_c   = dcache_uncached_wreq_in || dcache_uncached_wreq_r;
 
@@ -197,15 +201,9 @@ assign dcache_uncached_wreq_c   = dcache_uncached_wreq_in || dcache_uncached_wre
 // Register Accesses
 // ======================================
 
-assign extra_write =  wishbone_st == WB_IDLE && !i_wb_ack && ((dcache_cached_wreq_c && dcache_cached_wready)||
-                                                              (dcache_uncached_wreq_c && dcache_uncached_wready));
+assign buffer_write   = dcache_cached_wreq_in  || dcache_uncached_wreq_in;
+assign write_buffered = dcache_uncached_wreq_r || dcache_uncached_wreq_r;
 
-always @( posedge i_clk )
-    if ( wishbone_st == WB_WAIT_ACK && i_wb_ack && extra_write_r )
-        o_wb_dat <= extra_write_data_r;
-    else if ( start_access )
-        o_wb_dat <= i_dcache_write_data;
-   
 
 
 always @( posedge i_clk )
@@ -215,16 +213,49 @@ always @( posedge i_clk )
     if ( i_icache_req ) icache_read_addr_r  <= i_icache_address;
         
     dcache_read_qword_r    <= i_dcache_qword      || dcache_read_qword_c;
-    dcache_cached_wreq_r   <= dcache_cached_wreq_c   && (wishbone_st != WB_IDLE || (o_wb_stb && !i_wb_ack));
-    dcache_uncached_wreq_r <= dcache_uncached_wreq_c && (wishbone_st != WB_IDLE || (o_wb_stb && !i_wb_ack));
-    
-    
-    // A buffer to hold a second write while on eis in progress
-    if ( extra_write )
+
+    // Buffer Write requests
+    case (wishbone_st)
+        WB_WAIT_ACK :
+            begin
+            if (servicing_dcache_uncached_write_r && i_wb_ack && !buffer_write)
+                dcache_uncached_wreq_r <= 1'd0;
+            else    
+                dcache_uncached_wreq_r <= dcache_uncached_wreq_c;
+                
+            if (servicing_dcache_cached_write_r && i_wb_ack && !buffer_write)
+                dcache_cached_wreq_r <= 1'd0;
+            else    
+                dcache_cached_wreq_r <= dcache_cached_wreq_c;
+            end
+            
+        WB_IDLE:
+            begin
+            if (dcache_uncached_wreq_c && o_wb_stb && !i_wb_ack)
+                dcache_uncached_wreq_r <= 1'd1;
+            else    
+                dcache_uncached_wreq_r <= 1'd0;
+                
+            if (dcache_cached_wreq_c && o_wb_stb && !i_wb_ack)
+                dcache_cached_wreq_r <= 1'd1;
+            else    
+                dcache_cached_wreq_r <= 1'd0;
+            end
+            
+        default:
+            begin
+            dcache_uncached_wreq_r <= dcache_uncached_wreq_c;
+            dcache_cached_wreq_r   <= dcache_cached_wreq_c;
+            end
+    endcase
+            
+        
+    // A buffer to hold a second write while on is in progress
+    if ( buffer_write )
         begin
-        extra_write_data_r      <= i_dcache_write_data;
-        extra_write_address_r   <= i_dcache_address;
-        extra_write_be_r        <= i_dcache_byte_enable;
+        buffer_write_data_r      <= i_dcache_write_data;
+        buffer_write_address_r   <= i_dcache_address;
+        buffer_write_be_r        <= i_dcache_byte_enable;
         end
 
 
@@ -235,30 +266,31 @@ always @( posedge i_clk )
             dcache_cached_rreq_r <= dcache_cached_rreq_c && !o_dcache_cached_ready;
         end    
     else    
-        dcache_cached_rreq_r <= dcache_cached_rreq_c && !o_dcache_cached_ready;
+        dcache_cached_rreq_r <= dcache_cached_rreq_c && (!o_dcache_cached_ready || dcache_cached_wreq_r);
+        
     if ( dcache_uncached_rreq_r )
         begin
         if ( wishbone_st == WB_IDLE || wishbone_st == WB_WAIT_ACK )
             dcache_uncached_rreq_r <= dcache_uncached_rreq_c && !o_dcache_uncached_ready;
         end    
     else    
-        dcache_uncached_rreq_r <= dcache_uncached_rreq_c && !o_dcache_uncached_ready;
+        dcache_uncached_rreq_r <= dcache_uncached_rreq_c && (!o_dcache_uncached_ready || dcache_uncached_wreq_r);
     end
     
 assign wait_write_ack = o_wb_stb && o_wb_we && !i_wb_ack;
+assign write_ack      = o_wb_stb && o_wb_we && i_wb_ack;
 
 
 always @( posedge i_clk )
     case ( wishbone_st )
         WB_IDLE :
-            begin 
-            extra_write_r <= extra_write;
-            
+            begin            
             if ( start_access )
                 begin
                 o_wb_stb            <= 1'd1; 
                 o_wb_cyc            <= 1'd1; 
                 o_wb_sel            <= byte_enable;
+                o_wb_dat            <= write_buffered ? buffer_write_data_r : i_dcache_write_data;   
                 end
             else if ( !wait_write_ack )
                 begin
@@ -272,9 +304,11 @@ always @( posedge i_clk )
             if ( wait_write_ack )
                 begin
                 // still waiting for last (write) access to complete
-                wishbone_st                      <= WB_WAIT_ACK;
-                servicing_dcache_cached_read_r   <= dcache_cached_rreq_c;
-                servicing_dcache_uncached_read_r <= dcache_uncached_rreq_c;
+                wishbone_st                         <= WB_WAIT_ACK;
+                servicing_dcache_cached_read_r      <= dcache_cached_rreq_c;
+                servicing_dcache_uncached_read_r    <= dcache_uncached_rreq_c;
+                servicing_dcache_cached_write_r     <= dcache_cached_wreq_c;
+                servicing_dcache_uncached_write_r   <= dcache_uncached_wreq_c;
                 end 
             // dcache accesses have priority over icache     
             else if ( dcache_cached_rreq_c || dcache_uncached_rreq_c )
@@ -372,15 +406,23 @@ always @( posedge i_clk )
         // Wait for the wishbone ack to be asserted
         WB_WAIT_ACK:   
             if ( i_wb_ack )
+                begin
+                servicing_dcache_cached_read_r      <= 1'd0;
+                servicing_dcache_uncached_read_r    <= 1'd0;
+                servicing_dcache_cached_write_r     <= 1'd0;
+                servicing_dcache_uncached_write_r   <= 1'd0;
+                servicing_icache_r                  <= 1'd0;
+                    
                 // Another write that was acked and needs to be sent before returning to IDLE ?
-                if ( extra_write_r )
+                if ( write_buffered )
                     begin
-                    extra_write_r                       <= 'd0;
+                    wishbone_st                         <= WB_IDLE;
                     o_wb_stb                            <= 1'd1; 
                     o_wb_cyc                            <= exclusive_access; 
-                    o_wb_sel                            <= extra_write_be_r;
+                    o_wb_sel                            <= buffer_write_be_r;
                     o_wb_we                             <= 1'd1;
-                    o_wb_adr[31:0]                      <= extra_write_address_r;
+                    o_wb_adr[31:0]                      <= buffer_write_address_r;
+                    o_wb_dat                            <= buffer_write_data_r;   
                     end
                 else    
                     begin
@@ -388,11 +430,8 @@ always @( posedge i_clk )
                     o_wb_stb                            <= 1'd0; 
                     o_wb_cyc                            <= exclusive_access; 
                     o_wb_we                             <= 1'd0;
-                    servicing_dcache_cached_read_r      <= 1'd0;
-                    servicing_dcache_uncached_read_r    <= 1'd0;
-                    servicing_icache_r                  <= 1'd0;
                     end
-                         
+                end                         
             
     endcase
 
