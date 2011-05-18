@@ -107,6 +107,8 @@ _inbyte:
         @ Divide r0 by r1
         @ Answer returned in r1
         .globl _div
+        .globl __aeabi_idiv
+__aeabi_idiv:
 _div:
         stmdb   sp!, {r4, lr}
 
@@ -175,17 +177,283 @@ _div:
 3:      ldmia	sp!, {r4, pc}^
 
 
-/* strcpy: String copy function */
+/* strcpy: String copy function 
+    char * strcpy ( char * destination, const char * source );
+    destination is returned
+*/    
         @ r0 points to destination
         @ r1 points to source string which terminates with a 0    
         .globl strcpy
-strcpy: 
+strcpy:
+        stmdb   sp!, {r4-r7, lr}
+        mov     r6, r0
+        @ get relative alignment of strings
+        and     r2, r6, #3
+        and     r3, r1, #3
+        @ only if both strings are zero-aligned use the fast 'aligned' algorithm
+        orrs    r2, r3
+        bne     strcpy_slow
+
+strcpy_fast:
+        @ process strings 12 bytes at a time
+        ldmia   r1!, {r2-r5}
+
+        @ check for a zero byte
+        @ only need to examine one of the strings because
+        @ they are equal up to this point!
+        ands    r7, r2, #0xff
+        andnes  r7, r2, #0xff00
+        andnes  r7, r2, #0xff0000
+        andnes  r7, r2, #0xff000000
+        strne   r2, [r6], #4
+        subeq   r1, r1, #4
+                
+        andnes  r7, r3, #0xff
+        andnes  r7, r3, #0xff00
+        andnes  r7, r3, #0xff0000
+        andnes  r7, r3, #0xff000000
+        strne   r3, [r6], #4
+        subeq   r1, r1, #4
+        
+        andnes  r7, r4, #0xff
+        andnes  r7, r4, #0xff00
+        andnes  r7, r4, #0xff0000
+        andnes  r7, r4, #0xff000000
+        strne   r4, [r6], #4
+        subeq   r1, r1, #4
+
+        andnes  r7, r5, #0xff
+        andnes  r7, r5, #0xff00
+        andnes  r7, r5, #0xff0000
+        andnes  r7, r5, #0xff000000
+        strne   r5, [r6], #4
+        subeq   r1, r1, #4
+        
+        @ loop back to look at next 12 bytes
+        bne     strcpy_fast
+
+        @ the source string contains a zero character
+
+strcpy_slow:
+        @ unroll the loop 4 times
         ldrb    r3, [r1], #1
+        strb    r3, [r6], #1
         cmp     r3, #0
-        beq     1f
-        strb    r3, [r0], #1
-        b       strcpy
-1:      moveqs  pc, lr
+        ldmeqia	sp!, {r4-r7, pc}^
+        
+        ldrb    r3, [r1], #1
+        strb    r3, [r6], #1
+        cmp     r3, #0
+        ldmeqia	sp!, {r4-r7, pc}^
+        
+        ldrb    r3, [r1], #1
+        strb    r3, [r6], #1
+        cmp     r3, #0
+        ldmeqia	sp!, {r4-r7, pc}^
+        
+        ldrb    r3, [r1], #1
+        strb    r3, [r6], #1
+        cmp     r3, #0
+        ldmeqia	sp!, {r4-r7, pc}^
+        
+        b       strcpy_slow
+
+
+/* int strcmp ( const char * str1, const char * str2 );
+   A value greater than zero indicates that the first character 
+   that does not match has a greater value in str1 than in str2; 
+   And a value less than zero indicates the opposite.
+*/   
+        .globl strcmp
+strcmp: 
+        stmdb   sp!, {r4-r8, lr}
+        
+        @ only if both strings are zero-aligned use the fast 'aligned' algorithm
+        orr     r2, r0, r1
+        ands    r2, r2, #3
+        bne     strcmp_slow
+        
+strcmp_fast:
+        @ process strings 12 bytes at a time
+        ldmia   r0!, {r2-r4}
+        ldmia   r1!, {r5-r7}
+        cmp     r2, r5
+        bne     1f
+        cmpeq   r3, r6
+        bne     2f
+        cmpeq   r4, r7
+        bne     3f
+
+        @ strings are equal - find a zero byte
+        @ only need to examine one of the strings because
+        @ they are equal up to this point!
+        ands    r8, r2, #0xff
+        andnes  r8, r2, #0xff00
+        andnes  r8, r2, #0xff0000
+        andnes  r8, r2, #0xff000000
+        
+        andnes  r8, r3, #0xff
+        andnes  r8, r3, #0xff00
+        andnes  r8, r3, #0xff0000
+        andnes  r8, r3, #0xff000000
+        
+        andnes  r8, r4, #0xff
+        andnes  r8, r4, #0xff00
+        andnes  r8, r4, #0xff0000
+        andnes  r8, r4, #0xff000000
+        
+        @ loop back to look at next 12 bytes
+        bne     strcmp_fast
+
+        @ the first string contains a zero character
+        @ the strings are the same, so both strings end
+        moveq   r0, #0
+        ldmeqia	sp!, {r4-r8, pc}^
+
+
+        @ Roll back the string pointers to before the mismatch
+        @ then handle the remaining part byte by byte
+1:      sub     r0, r0, #12
+        sub     r1, r1, #12
+
+strcmp_slow:         
+        ldrb    r2, [r0], #1
+        ldrb    r3, [r1], #1
+        eors    r4, r2, r3          @ are the bytes equal ?
+        bne     bytes_different
+        ldrb    r5, [r0], #1
+        ldrb    r6, [r1], #1
+        cmp     r2, #0              @ are they equal and zero ?
+        beq     bytes_zero
+        eors    r7, r5, r6          @ are the bytes equal ?
+        bne     bytes_different
+        ldrb    r2, [r0], #1
+        ldrb    r3, [r1], #1
+        cmp     r5, #0              @ are they equal and zero ?
+        beq     bytes_zero
+        eors    r4, r2, r3          @ are the bytes equal ?
+        bne     bytes_different
+        ldrb    r5, [r0], #1
+        ldrb    r6, [r1], #1
+        cmp     r2, #0              @ are they equal and zero ?
+        beq     bytes_zero
+        eors    r7, r5, r6          @ are the bytes equal ?
+        bne     bytes_different
+        cmp     r5, #0              @ are they equal and zero ?
+        beq     bytes_zero
+
+        bne     strcmp_slow
+
+
+
+@ Skipping first 4 bytes so just check they
+@ don't contain an end of string 0 character
+2:      ands    r8, r2, #0xff
+        andnes  r8, r2, #0xff00
+        andnes  r8, r2, #0xff0000
+        andnes  r8, r2, #0xff000000
+        beq     bytes_zero
+        
+        @ start looking at 5th byte
+        sub     r0, r0, #8
+        sub     r1, r1, #8
+        
+        ldrb    r2, [r0], #1
+        ldrb    r3, [r1], #1
+        eors    r4, r2, r3          @ are the bytes equal ?
+        bne     bytes_different
+        ldrb    r5, [r0], #1
+        ldrb    r6, [r1], #1
+        cmp     r2, #0              @ are they equal and zero ?
+        beq     bytes_zero
+        eors    r7, r5, r6          @ are the bytes equal ?
+        bne     bytes_different
+        ldrb    r2, [r0], #1
+        ldrb    r3, [r1], #1
+        cmp     r5, #0              @ are they equal and zero ?
+        beq     bytes_zero
+        eors    r4, r2, r3          @ are the bytes equal ?
+        bne     bytes_different
+        ldrb    r5, [r0], #1
+        ldrb    r6, [r1], #1
+        cmp     r2, #0              @ are they equal and zero ?
+        beq     bytes_zero
+        eors    r7, r5, r6          @ are the bytes equal ?
+        bne     bytes_different
+        cmp     r5, #0              @ are they equal and zero ?
+        beq     bytes_zero
+
+        bne     strcmp_slow
+        
+@ Skipping first 8 bytes so just check they
+@ don't contain an end of string 0 character
+3:      ands    r8, r2, #0xff
+        andnes  r8, r2, #0xff00
+        andnes  r8, r2, #0xff0000
+        andnes  r8, r2, #0xff000000
+        
+        andnes  r8, r3, #0xff
+        andnes  r8, r3, #0xff00
+        andnes  r8, r3, #0xff0000
+        andnes  r8, r3, #0xff000000
+        beq     bytes_zero
+        
+        sub     r0, r0, #4
+        sub     r1, r1, #4
+        ldrb    r2, [r0], #1
+        ldrb    r3, [r1], #1
+        eors    r4, r2, r3          @ are the bytes equal ?
+        bne     bytes_different
+        ldrb    r5, [r0], #1
+        ldrb    r6, [r1], #1
+        cmp     r2, #0              @ are they equal and zero ?
+        beq     bytes_zero
+        eors    r7, r5, r6          @ are the bytes equal ?
+        bne     bytes_different
+        ldrb    r2, [r0], #1
+        ldrb    r3, [r1], #1
+        cmp     r5, #0              @ are they equal and zero ?
+        beq     bytes_zero
+        eors    r4, r2, r3          @ are the bytes equal ?
+        bne     bytes_different
+        ldrb    r5, [r0], #1
+        ldrb    r6, [r1], #1
+        cmp     r2, #0              @ are they equal and zero ?
+        beq     bytes_zero
+        eors    r7, r5, r6          @ are the bytes equal ?
+        bne     bytes_different
+        cmp     r5, #0              @ are they equal and zero ?
+        beq     bytes_zero
+
+        bne     strcmp_slow
+
+
+bytes_zero:
+        moveq   r0, #0              @ if equal and zero, return zero
+        ldmeqia	sp!, {r4-r8, pc}^
+
+
+bytes_different:        
+        sub     r0, r5, r6
+        ldmia	sp!, {r4-r8, pc}^
+        
+
+
+        /* void *malloc(size_t size); */
+        .globl malloc
+malloc:
+        ldr     r1, AdrMalloc
+        ldr     r0, [r1]
+        add     r0, r0, #0x10000
+        str     r0, [r1]
+        mov     pc, lr
+
+
+        .globl times
+times:
+@ TODO
+        mov     r0, #0
+        mov     pc, lr
 
 
 /* strncpy: String copy function */
@@ -236,6 +504,7 @@ strncmp:
 2:      ldmia	sp!, {r4, r5, r6, pc}^
 
 
+AdrMalloc:      .word  0x7000000
 AdrTestStatus:  .word  ADR_AMBER_TEST_STATUS
 AdrUARTDR:      .word  ADR_AMBER_UART0_DR
 AdrUARTFR:      .word  ADR_AMBER_UART0_FR

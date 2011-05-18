@@ -47,8 +47,11 @@ TGT  = printf
  
  OBJ = $(addsuffix .o,   $(basename $(SRC)))
   CC = $(AMBER_CROSSTOOL)-gcc
+
+# optimize for size
+OPTIMIZE = -Os
  
-CFLAGS  = -c -march=armv2a -mno-thumb-interwork -O -ffreestanding -I../include
+CFLAGS  = -c -march=armv2a -mno-thumb-interwork $(OPTIMIZE) -ffreestanding -I../include
 ASFLAGS = -I../include
 
 $(TGT): $(OBJ)

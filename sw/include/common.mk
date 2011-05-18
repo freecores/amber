@@ -79,7 +79,7 @@ ifdef MIN_SIZE
     OPTIMIZE = -Os
 else
     # optimize for speed
-    OPTIMIZE = -O2
+    OPTIMIZE = -O3
 endif
 
  MAP = $(addsuffix .map, $(basename $(TGT))) 
@@ -109,10 +109,10 @@ $(TGT): $(OBJ)
 $(OBJ): $(DEP)
 
 mini-libc:
-	$(MAKE) -s -C ../mini-libc
+	$(MAKE) -s -C ../mini-libc MIN_SIZE=1
 
 $(ELF):
-	$(MAKE) -C $(TOOLSPATH)
+	$(MAKE) -s -C $(TOOLSPATH)
         
 $(DIS): $(TGT)
 	$(DS) $(DSFLAGS) $^ > $@

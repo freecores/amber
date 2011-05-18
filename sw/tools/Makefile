@@ -41,7 +41,7 @@
 
 CC = gcc
 
-all : amber-elfsplitter amber-func-jumps amber-bin2mem amber-mem-ascii
+all : amber-elfsplitter amber-func-jumps amber-bin2mem amber-mem-ascii amber-ascii-mem
 
 amber-elfsplitter : amber-elfsplitter.c
 	$(CC) amber-elfsplitter.c -o amber-elfsplitter
