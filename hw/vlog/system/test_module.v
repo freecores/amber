@@ -78,6 +78,7 @@ reg [2:0]       sim_ctrl_reg        = 'd0; // 0 = fpga, other values for simulat
 reg             mem_ctrl_reg        = 'd0; // 0 = 128MB, 1 = 32MB main memory
 reg [31:0]      test_status_reg     = 'd0;
 reg             test_status_set     = 'd0; // used to terminate tests
+reg [31:0]      cycles_reg          = 'd0;
      
 wire            wb_start_write;
 wire            wb_start_read;
@@ -136,6 +137,8 @@ always @( posedge i_clk )
             
             AMBER_TEST_SIM_CTRL:         wb_rdata <= {29'd0, sim_ctrl_reg};
             AMBER_TEST_MEM_CTRL:         wb_rdata <= {31'd0, mem_ctrl_reg};
+            
+            AMBER_TEST_CYCLES:           wb_rdata <=  cycles_reg;
             default:                     wb_rdata <= 32'haabbccdd;
             
         endcase
@@ -231,6 +234,13 @@ always @( posedge i_clk )
     if ( wb_start_write && i_wb_adr[15:0] == AMBER_TEST_STATUS )
         test_status_set <= 1'd1;     
 
+
+// ======================================
+// Cycles counter
+// ======================================
+always @( posedge i_clk )
+    cycles_reg <= cycles_reg + 1'd1;
+    
 
 // ======================================
 // Memory Configuration Register Write
