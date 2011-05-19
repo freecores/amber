@@ -48,7 +48,7 @@ int     printf      (const char *format, ...);
 int     sprintf     (char* dst, const char *format, ...);
 int     print       (char** dst, const char *format, unsigned long *varg);
 int     prints      (char** dst, const char *string, int width, int pad);
-int     printi      (char** dst, unsigned long i, int b, int sg, int width, int pad, int letbase);
+int     printi      (char** dst, int i, int b, int sg, int width, int pad, int letbase);
 
 
 /* =====  Memory Function Prototypes =================== */

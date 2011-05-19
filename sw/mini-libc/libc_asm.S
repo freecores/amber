@@ -112,6 +112,20 @@ __aeabi_idiv:
 _div:
         stmdb   sp!, {r4, lr}
 
+        @ set r4 to 1 if one of the two inputs is negative
+        and     r2, r0, #0x80000000
+        and     r3, r1, #0x80000000
+        eor     r4, r2, r3
+
+        @ Invert negative numbers
+        tst     r0, #0x80000000
+        mvnne   r0, r0
+        addne   r0, r0, #1 
+
+        tst     r1, #0x80000000
+        mvnne   r1, r1
+        addne   r1, r1, #1 
+
         @ divide r1 by r2, also use registers r0 and r4
         mov     r2, r1
         mov     r1, r0
@@ -174,6 +188,11 @@ _div:
         bcc       2b              @ If carry not clear, r3 has shifted
                                   @ back to where it started, and we
                                   @ can end
+                                  
+        @ if one of the inputs is negetive then return a negative result                          
+        tst     r4, #0x80000000
+        mvnne   r0, r0
+        addne   r0, r0, #1 
 3:      ldmia	sp!, {r4, pc}^
 
 
@@ -186,12 +205,12 @@ _div:
         .globl strcpy
 strcpy:
         stmdb   sp!, {r4-r7, lr}
+        @ Use r6 to process the destination pointer.
+        @ At the end of the function, r0 is returned, so need to preserve it
         mov     r6, r0
-        @ get relative alignment of strings
-        and     r2, r6, #3
-        and     r3, r1, #3
         @ only if both strings are zero-aligned use the fast 'aligned' algorithm
-        orrs    r2, r3
+        orr     r2, r6, r1
+        ands    r2, r2, #3
         bne     strcpy_slow
 
 strcpy_fast:
@@ -449,12 +468,6 @@ malloc:
         mov     pc, lr
 
 
-        .globl times
-times:
-@ TODO
-        mov     r0, #0
-        mov     pc, lr
-
 
 /* strncpy: String copy function */
         @ r0 points to destination
@@ -465,13 +478,11 @@ strncpy:
         stmdb	sp!, {r4, lr}
         cmp     r2, #0
         beq     2f
-        mov     r4, #0
+        add     r4, r0, r2    @ set r4 to the address of the last byte copied
 1:      ldrb    r3, [r1], #1
         strb    r3, [r0], #1
-        add     r4,  r4,  #1
         cmp     r2,  r4
-        beq     2f
-        b       1b
+        bne     1b
 2:      ldmia	sp!, {r4, pc}^
 
  
