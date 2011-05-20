@@ -204,13 +204,13 @@ _div:
         @ r1 points to source string which terminates with a 0    
         .globl strcpy
 strcpy:
-        stmdb   sp!, {r4-r7, lr}
+        stmdb   sp!, {r4-r6, lr}
         @ Use r6 to process the destination pointer.
         @ At the end of the function, r0 is returned, so need to preserve it
         mov     r6, r0
         @ only if both strings are zero-aligned use the fast 'aligned' algorithm
         orr     r2, r6, r1
-        ands    r2, r2, #3
+        tst     r2, #3
         bne     strcpy_slow
 
 strcpy_fast:
@@ -220,31 +220,31 @@ strcpy_fast:
         @ check for a zero byte
         @ only need to examine one of the strings because
         @ they are equal up to this point!
-        ands    r7, r2, #0xff
-        andnes  r7, r2, #0xff00
-        andnes  r7, r2, #0xff0000
-        andnes  r7, r2, #0xff000000
+        tst     r2, #0xff
+        tstne   r2, #0xff00
+        tstne   r2, #0xff0000
+        tstne   r2, #0xff000000
         strne   r2, [r6], #4
         subeq   r1, r1, #4
                 
-        andnes  r7, r3, #0xff
-        andnes  r7, r3, #0xff00
-        andnes  r7, r3, #0xff0000
-        andnes  r7, r3, #0xff000000
+        tstne   r3, #0xff
+        tstne   r3, #0xff00
+        tstne   r3, #0xff0000
+        tstne   r3, #0xff000000
         strne   r3, [r6], #4
         subeq   r1, r1, #4
         
-        andnes  r7, r4, #0xff
-        andnes  r7, r4, #0xff00
-        andnes  r7, r4, #0xff0000
-        andnes  r7, r4, #0xff000000
+        tstne   r4, #0xff
+        tstne   r4, #0xff00
+        tstne   r4, #0xff0000
+        tstne   r4, #0xff000000
         strne   r4, [r6], #4
         subeq   r1, r1, #4
 
-        andnes  r7, r5, #0xff
-        andnes  r7, r5, #0xff00
-        andnes  r7, r5, #0xff0000
-        andnes  r7, r5, #0xff000000
+        tstne   r5, #0xff
+        tstne   r5, #0xff00
+        tstne   r5, #0xff0000
+        tstne   r5, #0xff000000
         strne   r5, [r6], #4
         subeq   r1, r1, #4
         
@@ -253,27 +253,53 @@ strcpy_fast:
 
         @ the source string contains a zero character
 
+
+strcpy_aligned_slow:
+        @ unroll the loop 4 times
+        ldr     r3, [r1], #4
+        strb    r3, [r6], #1
+        ands    r4, r3,   #0xff
+        ldmeqia	sp!, {r4-r6, pc}^
+        
+        lsr     r3, r3, #8
+        strb    r3, [r6], #1
+        ands    r4, r3,   #0xff
+        ldmeqia	sp!, {r4-r6, pc}^
+        
+        lsr     r3, r3, #8
+        strb    r3, [r6], #1
+        ands    r4, r3,   #0xff
+        ldmeqia	sp!, {r4-r6, pc}^
+        
+        lsr     r3, r3, #8
+        strb    r3, [r6], #1
+        ands    r4, r3,   #0xff
+        ldmeqia	sp!, {r4-r6, pc}^
+        
+        b       strcpy_aligned_slow  
+
+
 strcpy_slow:
         @ unroll the loop 4 times
         ldrb    r3, [r1], #1
         strb    r3, [r6], #1
         cmp     r3, #0
-        ldmeqia	sp!, {r4-r7, pc}^
+        ldmeqia	sp!, {r4-r6, pc}^
         
         ldrb    r3, [r1], #1
         strb    r3, [r6], #1
         cmp     r3, #0
-        ldmeqia	sp!, {r4-r7, pc}^
+        ldmeqia	sp!, {r4-r6, pc}^
         
         ldrb    r3, [r1], #1
         strb    r3, [r6], #1
         cmp     r3, #0
-        ldmeqia	sp!, {r4-r7, pc}^
+        ldmeqia	sp!, {r4-r6, pc}^
         
         ldrb    r3, [r1], #1
         strb    r3, [r6], #1
         cmp     r3, #0
-        ldmeqia	sp!, {r4-r7, pc}^
+        ldmeqia	sp!, {r4-r6, pc}^
         
         b       strcpy_slow
 
@@ -289,7 +315,7 @@ strcmp:
         
         @ only if both strings are zero-aligned use the fast 'aligned' algorithm
         orr     r2, r0, r1
-        ands    r2, r2, #3
+        tst     r2, #3
         bne     strcmp_slow
         
 strcmp_fast:
@@ -306,20 +332,20 @@ strcmp_fast:
         @ strings are equal - find a zero byte
         @ only need to examine one of the strings because
         @ they are equal up to this point!
-        ands    r8, r2, #0xff
-        andnes  r8, r2, #0xff00
-        andnes  r8, r2, #0xff0000
-        andnes  r8, r2, #0xff000000
+        tst     r2, #0xff
+        tstne   r2, #0xff00
+        tstne   r2, #0xff0000
+        tstne   r2, #0xff000000
         
-        andnes  r8, r3, #0xff
-        andnes  r8, r3, #0xff00
-        andnes  r8, r3, #0xff0000
-        andnes  r8, r3, #0xff000000
+        tstne   r3, #0xff
+        tstne   r3, #0xff00
+        tstne   r3, #0xff0000
+        tstne   r3, #0xff000000
         
-        andnes  r8, r4, #0xff
-        andnes  r8, r4, #0xff00
-        andnes  r8, r4, #0xff0000
-        andnes  r8, r4, #0xff000000
+        tstne   r4, #0xff
+        tstne   r4, #0xff00
+        tstne   r4, #0xff0000
+        tstne   r4, #0xff000000
         
         @ loop back to look at next 12 bytes
         bne     strcmp_fast
@@ -367,10 +393,10 @@ strcmp_slow:
 
 @ Skipping first 4 bytes so just check they
 @ don't contain an end of string 0 character
-2:      ands    r8, r2, #0xff
-        andnes  r8, r2, #0xff00
-        andnes  r8, r2, #0xff0000
-        andnes  r8, r2, #0xff000000
+2:      tst    r2, #0xff
+        tstne  r2, #0xff00
+        tstne  r2, #0xff0000
+        tstne  r2, #0xff000000
         beq     bytes_zero
         
         @ start looking at 5th byte
@@ -406,15 +432,15 @@ strcmp_slow:
         
 @ Skipping first 8 bytes so just check they
 @ don't contain an end of string 0 character
-3:      ands    r8, r2, #0xff
-        andnes  r8, r2, #0xff00
-        andnes  r8, r2, #0xff0000
-        andnes  r8, r2, #0xff000000
+3:      tst     r2, #0xff
+        tstne   r2, #0xff00
+        tstne   r2, #0xff0000
+        tstne   r2, #0xff000000
         
-        andnes  r8, r3, #0xff
-        andnes  r8, r3, #0xff00
-        andnes  r8, r3, #0xff0000
-        andnes  r8, r3, #0xff000000
+        tstne   r3, #0xff
+        tstne   r3, #0xff00
+        tstne   r3, #0xff0000
+        tstne   r3, #0xff000000
         beq     bytes_zero
         
         sub     r0, r0, #4
