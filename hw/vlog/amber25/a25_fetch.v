@@ -46,6 +46,7 @@ module a25_fetch
 (
 input                       i_clk,
 input                       i_mem_stall,
+input                       i_exec_stall,
 input                       i_conflict,         // Decode stage stall pipeline because of an instruction conflict
 output                      o_fetch_stall,      // when this is asserted all registers 
                                                 // in decode and exec stages are frozen
@@ -61,9 +62,8 @@ input                       i_cache_flush,      // cache flush
 input       [31:0]          i_cacheable_area,   // each bit corresponds to 2MB address space
 
 output                      o_wb_req,
-output                      o_wb_qword,         // High for a quad-word fetch request
 output      [31:0]          o_wb_address,
-input       [31:0]          i_wb_read_data,
+input       [127:0]         i_wb_read_data,
 input                       i_wb_ready
 
 );
@@ -72,6 +72,7 @@ input                       i_wb_ready
 
 wire                        core_stall;
 wire                        cache_stall;
+wire    [127:0]             cache_read_data128;
 wire    [31:0]              cache_read_data;
 wire                        sel_cache;
 wire                        uncached_instruction_read;
@@ -79,6 +80,7 @@ wire                        address_cachable;
 wire                        icache_wb_req;
 wire                        wait_wb;
 reg                         wb_req_r = 'd0;
+wire    [31:0]              wb_rdata32;
 
 // ======================================
 // Memory Decode
@@ -92,8 +94,19 @@ assign sel_cache         = address_cachable && i_iaddress_valid && i_cache_enabl
 assign uncached_instruction_read = !sel_cache && i_iaddress_valid && !(cache_stall);
 
 // Return read data either from the wishbone bus or the cache
+
+assign cache_read_data     = i_iaddress[3:2] == 2'd0    ? cache_read_data128[ 31: 0] :
+                             i_iaddress[3:2] == 2'd1    ? cache_read_data128[ 63:32] :
+                             i_iaddress[3:2] == 2'd2    ? cache_read_data128[ 95:64] :
+                                                          cache_read_data128[127:96] ;
+
+assign wb_rdata32 = i_iaddress[3:2] == 2'd0 ? i_wb_read_data[ 31: 0] :
+                    i_iaddress[3:2] == 2'd1 ? i_wb_read_data[ 63:32] :
+                    i_iaddress[3:2] == 2'd2 ? i_wb_read_data[ 95:64] :
+                                              i_wb_read_data[127:96] ;
+
 assign o_fetch_instruction = sel_cache                  ? cache_read_data : 
-                             uncached_instruction_read  ? i_wb_read_data  :
+                             uncached_instruction_read  ? wb_rdata32      :
                                                           32'hffeeddcc    ;
 
 // Stall the instruction decode and execute stages of the core
@@ -103,14 +116,13 @@ assign o_fetch_stall    = !i_system_rdy || wait_wb || cache_stall;
 
 assign o_wb_address     = i_iaddress;
 assign o_wb_req         = icache_wb_req || uncached_instruction_read;
-assign o_wb_qword       = icache_wb_req;
 
 assign wait_wb          = (o_wb_req || wb_req_r) && !i_wb_ready;
 
 always @(posedge i_clk)
     wb_req_r <= o_wb_req && !i_wb_ready;
 
-assign core_stall = o_fetch_stall || i_mem_stall || i_conflict;
+assign core_stall = o_fetch_stall || i_mem_stall || i_exec_stall || i_conflict;
 
 // ======================================
 // L1 Instruction Cache
@@ -125,7 +137,7 @@ a25_icache u_cache (
     .i_address_nxt              ( i_iaddress_nxt        ),
     .i_cache_enable             ( i_cache_enable        ),
     .i_cache_flush              ( i_cache_flush         ),
-    .o_read_data                ( cache_read_data       ),
+    .o_read_data                ( cache_read_data128    ),
     
     .o_wb_req                   ( icache_wb_req         ),
     .i_wb_read_data             ( i_wb_read_data        ),

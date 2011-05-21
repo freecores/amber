@@ -90,11 +90,11 @@ input      [31:0]                   i_address_nxt,      // un-registered version
 input                               i_cache_enable,     // from co-processor 15 configuration register
 input                               i_cache_flush,      // from co-processor 15 register
 
-output      [31:0]                  o_read_data,                                                       
+output     [127:0]                  o_read_data,                                                       
 
 // WB Read Request                                                          
 output                              o_wb_req,          // Read Request
-input      [31:0]                   i_wb_read_data,                 
+input      [127:0]                  i_wb_read_data,                 
 input                               i_wb_ready
 );
 
@@ -140,7 +140,6 @@ wire [CACHE_ADDR_WIDTH-1:0] tag_address;
 wire [TAG_WIDTH-1:0]        tag_wdata;
 wire                        tag_wenable;
 
-wire [CACHE_LINE_WIDTH-1:0] data_wdata;
 wire [CACHE_ADDR_WIDTH-1:0] data_address;
 wire [31:0]                 write_data_word;
 
@@ -161,12 +160,12 @@ wire [CACHE_ADDR_WIDTH-1:0] address;
 wire [31:0]                 address_c;
 reg  [31:0]                 address_r = 'd0;
 
-reg  [CACHE_LINE_WIDTH-1:0] wb_rdata_burst_r = 'd0;
-wire [CACHE_LINE_WIDTH-1:0] wb_rdata_burst;
-
 reg  [31:0]                 wb_address = 'd0;
-wire                        rbuf_hit = 'd0;
 wire                        wb_hit;
+wire                        read_buf_hit;
+reg  [127:0]                read_buf_data_r;
+reg  [31:0]                 read_buf_addr_r;
+reg                         read_buf_valid_r;
 genvar                      i;
 
 // ======================================
@@ -175,19 +174,19 @@ genvar                      i;
 // If currently stalled then the address for the next
 // cycle will be the same as it is in the current cycle
 //
-assign address_c = i_core_stall ? i_address    : //[CACHE_ADDR32_MSB:CACHE_ADDR32_LSB] :
-                                i_address_nxt; //[CACHE_ADDR32_MSB:CACHE_ADDR32_LSB] ;
+assign address_c = i_core_stall ? i_address    : 
+                                  i_address_nxt; 
 
 assign address   = address_c[CACHE_ADDR32_MSB:CACHE_ADDR32_LSB];
+
 
 // ======================================
 // Outputs
 // ======================================
-assign o_read_data      = wb_hit                                       ? i_wb_read_data     :
-                          i_address[WORD_SEL_MSB:WORD_SEL_LSB] == 2'd0 ? hit_rdata [31:0]   :
-                          i_address[WORD_SEL_MSB:WORD_SEL_LSB] == 2'd1 ? hit_rdata [63:32]  :
-                          i_address[WORD_SEL_MSB:WORD_SEL_LSB] == 2'd2 ? hit_rdata [95:64]  :
-                                                                         hit_rdata [127:96] ;
+assign o_read_data      = wb_hit       ? i_wb_read_data  : 
+                          read_buf_hit ? read_buf_data_r :
+                                         hit_rdata ;
+
 
 // Don't allow the cache to stall the wb i/f for an exclusive access
 // The cache needs a couple of cycles to flush a potential copy of the exclusive
@@ -198,6 +197,24 @@ assign o_stall          = read_stall  || cache_busy_stall;
 
 assign o_wb_req         = read_miss && c_state == CS_IDLE;
 
+
+// ======================================
+// Read Buffer
+// ======================================
+always@(posedge i_clk)
+    if ( i_cache_flush )
+        read_buf_valid_r <= 1'd0;
+    else if (i_wb_ready && c_state == CS_FILL3)
+        begin
+        read_buf_data_r  <= i_wb_read_data;
+        read_buf_addr_r  <= miss_address;
+        read_buf_valid_r <= 1'd1;
+        end
+    else if (o_wb_req)
+        read_buf_valid_r <= 1'd0;
+    
+    
+assign read_buf_hit     = read_buf_valid_r && i_address[31:4] == read_buf_addr_r[31:4];
      
 // ======================================
 // Cache State Machine
@@ -234,33 +251,15 @@ always @ ( posedge i_clk )
                 source_sel  <= 1'd1 << C_CORE;
                 
                 if ( read_miss ) 
-                    c_state <= CS_FILL0; 
+                    c_state <= CS_FILL3; 
                end
                    
-             CS_FILL0 :
-                begin
-                // wb read request asserted, wait for ack
-                if ( i_wb_ready )
-                    c_state <= CS_FILL1;
-                end
-                   
-             CS_FILL1 :
-                begin
-                // wb read request asserted, wait for ack
-                if ( i_wb_ready )
-                    c_state <= CS_FILL2;
-                end
-                
-                
-             CS_FILL2 :
-                // first read of burst of 4
-                // wb read request asserted, wait for ack
-                if ( i_wb_ready )
-                    c_state <= CS_FILL3;
-
                 
              CS_FILL3 :
                 begin
+                // Pick a way to write the cache update into
+                // Either pick one of the invalid caches, or if all are valid, then pick
+                // one randomly
                 select_way  <= next_way; 
                 random_num  <= {random_num[2], random_num[1], random_num[0], 
                                  random_num[3]^random_num[2]};
@@ -270,11 +269,6 @@ always @ ( posedge i_clk )
                 if ( i_wb_ready ) 
                     begin
                     c_state     <= CS_FILL_COMPLETE;
-                
-                    // Pick a way to write the cache update into
-                    // Either pick one of the invalid caches, or if all are valid, then pick
-                    // one randomly
-                    
                     end
                 end
                 
@@ -302,15 +296,6 @@ always @ ( posedge i_clk )
 
 
 // ======================================
-// Capture WB Block Read - burst of 4 words
-// ======================================
-assign wb_rdata_burst = {i_wb_read_data, wb_rdata_burst_r[127:32]};
-always @ ( posedge i_clk )
-    if ( i_wb_ready )
-        wb_rdata_burst_r <= wb_rdata_burst;
-
-
-// ======================================
 // Miss Address
 // ======================================
 always @ ( posedge i_clk )
@@ -330,7 +315,7 @@ always @(posedge i_clk)
     else if ( i_wb_ready && fill_state )    
         wb_address <= {wb_address[31:4], wb_address[3:2] + 1'd1, 2'd0};
         
-assign fill_state       = c_state == CS_FILL0 || c_state == CS_FILL1 || c_state == CS_FILL2 || c_state == CS_FILL3 ;
+assign fill_state       = c_state == CS_FILL3;
 assign wb_hit           = i_address == wb_address && i_wb_ready && fill_state;
 
 assign tag_address      = read_miss_fill     ? miss_address      [CACHE_ADDR32_MSB:CACHE_ADDR32_LSB] :
@@ -344,13 +329,6 @@ assign data_address     = read_miss_fill     ? miss_address[CACHE_ADDR32_MSB:CAC
                                                           
 assign tag_wdata        = read_miss_fill     ? {1'd1, miss_address[31:TAG_ADDR32_LSB]} :
                                                {TAG_WIDTH{1'd0}}                       ;
-
-
-// Data comes in off the WB bus in wrap4 with the missed data word first
-assign data_wdata       = miss_address[3:2] == 2'd0 ? { wb_rdata_burst[127:0]                        }:
-                          miss_address[3:2] == 2'd1 ? { wb_rdata_burst[95:0], wb_rdata_burst[127:96] }:
-                          miss_address[3:2] == 2'd2 ? { wb_rdata_burst[63:0], wb_rdata_burst[127:64] }:
-                                                      { wb_rdata_burst[31:0], wb_rdata_burst[127:32] };
 
 
 assign read_miss_fill   = c_state == CS_FILL3 && i_wb_ready;
@@ -371,9 +349,9 @@ assign idle_hit         = |data_hit_way;
 
 assign read_miss        = enable && !idle_hit && !invalid_read;
 
-assign read_stall       = enable && !idle_hit && !rbuf_hit && !wb_hit;
+assign read_stall       = enable && !idle_hit && !wb_hit && !read_buf_hit;
 
-assign cache_busy_stall = (c_state == CS_TURN_AROUND  && enable) || c_state == CS_INIT;
+assign cache_busy_stall = (c_state == CS_TURN_AROUND  && enable && !read_buf_hit) || c_state == CS_INIT;
 
 
 // ======================================
@@ -427,7 +405,7 @@ generate
             .ADDRESS_WIDTH ( CACHE_ADDR_WIDTH) )
         u_data (
             .i_clk                      ( i_clk                         ),
-            .i_write_data               ( data_wdata                    ),
+            .i_write_data               ( i_wb_read_data                ),
             .i_write_enable             ( data_wenable_way[i]           ),
             .i_address                  ( data_address                  ),
             .i_byte_enable              ( {CACHE_LINE_WIDTH/8{1'd1}}    ),

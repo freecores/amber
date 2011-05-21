@@ -86,13 +86,30 @@ main:
         str     r1, [r0]
 
 
+/* Check register values */
+        ldr     r0, AdrEthMacModer
+        ldr     r1, EthMacModerValue
+        ldr     r2, [r0]
+        cmp     r1, r2
+        movne   r10, #200
+        bne     testfail
+        
+        ldr     r0, AdrEthMacMemBase
+        ldr     r1, TxBufferW0
+        orr     r1, r1, #0x8000
+        ldr     r2, [r0]
+        cmp     r1, r2
+        movne   r10, #220
+        bne     testfail
+        
+
 /* Wait until receive complete - Wait for Empty bit to go low */
 2:      ldr     r1, [r0, #0x200]
         ands    r1, r1, #0x8000
         bne     2b
 
 /* Wait a bit */
-        mov     r0, #20
+        mov     r0, #80
 3:      subs    r0, r0, #1
         bne     3b
         
@@ -161,10 +178,10 @@ TxBufferW0:             .word  0x00a02800
 /* [31:16] = length in bytes, Bit[15] = empty, Bit [13] = wrap bit */
 RxBufferW0:             .word  0x0000a800
 
-/* Buffer Pointer */
-TxBufferW1:             .word  0x28001000
-RxBufferW1:             .word  0x28001200
 
+/* Buffer Pointer in Main Memory */
+TxBufferW1:             .word  0x00011000
+RxBufferW1:             .word  0x00011200
 
 
 /*

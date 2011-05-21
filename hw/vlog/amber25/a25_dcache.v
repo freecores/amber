@@ -96,12 +96,13 @@ input                               i_cache_flush,      // from co-processor 15 
 
 output      [31:0]                  o_read_data,                                                       
 input                               i_fetch_stall,
+input                               i_exec_stall,
 output                              o_stall,
 
 // WB Read Request                                                          
-output                              o_wb_req,          // Read Request
-input      [31:0]                   i_wb_read_data,    // wb bus                              
-input                               i_wb_ready         // wb_stb && !wb_ack
+output                              o_wb_cached_req,        // Read Request
+input      [127:0]                  i_wb_cached_rdata,      // wb bus                              
+input                               i_wb_cached_ready       // wb_stb && !wb_ack
 );
 
 `include "a25_localparams.v"
@@ -169,7 +170,7 @@ wire [CACHE_LINE_WIDTH-1:0] hit_rdata;
 wire                        read_stall;
 wire                        write_stall;
 wire                        cache_busy_stall;
-wire                        access_stall;
+wire                        core_stall;
 wire                        write_state;
 
 wire                        request_pulse;
@@ -189,7 +190,7 @@ wire                        ex_read_cache_busy;
 reg  [31:0]                 wb_address = 'd0;
 wire                        rbuf_hit = 'd0;
 wire                        wb_hit;
-
+wire [127:0]                read_data128;
 genvar                      i;
 
 // ======================================
@@ -198,19 +199,21 @@ genvar                      i;
 // If currently stalled then the address for the next
 // cycle will be the same as it is in the current cycle
 //
-assign access_stall = i_fetch_stall || o_stall;
+assign core_stall = i_fetch_stall || i_exec_stall || o_stall;
 
-assign address = access_stall ? i_address    [CACHE_ADDR32_MSB:CACHE_ADDR32_LSB] :
-                                i_address_nxt[CACHE_ADDR32_MSB:CACHE_ADDR32_LSB] ;
+assign address = core_stall ? i_address    [CACHE_ADDR32_MSB:CACHE_ADDR32_LSB] :
+                              i_address_nxt[CACHE_ADDR32_MSB:CACHE_ADDR32_LSB] ;
 
 // ======================================
 // Outputs
 // ======================================
-assign o_read_data      = wb_hit                                       ? i_wb_read_data     :
-                          i_address[WORD_SEL_MSB:WORD_SEL_LSB] == 2'd0 ? hit_rdata [31:0]   :
-                          i_address[WORD_SEL_MSB:WORD_SEL_LSB] == 2'd1 ? hit_rdata [63:32]  :
-                          i_address[WORD_SEL_MSB:WORD_SEL_LSB] == 2'd2 ? hit_rdata [95:64]  :
-                                                                         hit_rdata [127:96] ;
+
+assign read_data128 = wb_hit ? i_wb_cached_rdata : hit_rdata;
+
+assign o_read_data  = i_address[WORD_SEL_MSB:WORD_SEL_LSB] == 2'd0 ? read_data128 [31:0]   :
+                      i_address[WORD_SEL_MSB:WORD_SEL_LSB] == 2'd1 ? read_data128 [63:32]  :
+                      i_address[WORD_SEL_MSB:WORD_SEL_LSB] == 2'd2 ? read_data128 [95:64]  :
+                                                                     read_data128 [127:96] ;
 
 // Don't allow the cache to stall the wb i/f for an exclusive access
 // The cache needs a couple of cycles to flush a potential copy of the exclusive
@@ -219,7 +222,7 @@ assign o_read_data      = wb_hit                                       ? i_wb_re
 // This works fine as long as the wb is stalling the core
 assign o_stall         = request_hold && ( read_stall || write_stall || cache_busy_stall || ex_read_cache_busy );
 
-assign o_wb_req        = ( (read_miss || write_miss || write_hit) && c_state == CS_IDLE ) || consecutive_write;
+assign o_wb_cached_req = ( (read_miss || write_miss || write_hit) && c_state == CS_IDLE ) || consecutive_write;
 
      
 // ======================================
@@ -263,43 +266,23 @@ always @ ( posedge i_clk )
                     source_sel  <= 1'd1 << C_INVA;
                     end
                 else if ( read_miss ) 
-                    c_state <= CS_FILL0; 
+                    c_state <= CS_FILL3; 
                 else if ( write_hit )
                     begin
-                    if ( i_wb_ready )
+                    if ( i_wb_cached_ready )
                         c_state <= CS_WRITE_HIT1;        
                     else    
                         c_state <= CS_WRITE_HIT_WAIT_WB;        
                     end    
-                else if ( write_miss && !i_wb_ready )
+                else if ( write_miss && !i_wb_cached_ready )
                         c_state <= CS_WRITE_MISS_WAIT_WB;        
                 end
                    
-                   
-             CS_FILL0 :
-                // wb read request asserted, wait for ack
-                if ( i_wb_ready )
-                    c_state <= CS_FILL1;
-                
-                
-             CS_FILL1 :
-                // first read of burst of 4
-                // wb read request asserted, wait for ack
-                if ( i_wb_ready )
-                    c_state <= CS_FILL2;
-
-
-             CS_FILL2 :
-                // second read of burst of 4
-                // wb read request asserted, wait for ack
-                if ( i_wb_ready )
-                    c_state <= CS_FILL3;
-                
-                
+                                   
              CS_FILL3 :
                 // third read of burst of 4
                 // wb read request asserted, wait for ack
-                if ( i_wb_ready ) 
+                if ( i_wb_cached_ready ) 
                     begin
                     c_state     <= CS_FILL_COMPLETE;
                     source_sel  <= 1'd1 << C_FILL;
@@ -353,13 +336,13 @@ always @ ( posedge i_clk )
 
              CS_WRITE_HIT_WAIT_WB:
                 // wait for an ack on the wb bus to complete the write
-                if ( i_wb_ready ) 
+                if ( i_wb_cached_ready ) 
                     c_state     <= CS_IDLE;
 
 
              CS_WRITE_MISS_WAIT_WB:
                 // wait for an ack on the wb bus to complete the write
-                if ( i_wb_ready ) 
+                if ( i_wb_cached_ready ) 
                     c_state     <= CS_IDLE;
                     
         endcase                       
@@ -369,8 +352,8 @@ always @ ( posedge i_clk )
 // Capture WB Block Read - burst of 4 words
 // ======================================
 always @ ( posedge i_clk )
-    if ( i_wb_ready )
-        wb_rdata_burst <= {i_wb_read_data, wb_rdata_burst[127:32]};
+    if ( i_wb_cached_ready )
+        wb_rdata_burst <= i_wb_cached_rdata;
 
         
 
@@ -378,7 +361,7 @@ always @ ( posedge i_clk )
 // Miss Address
 // ======================================
 always @ ( posedge i_clk )
-    if ( o_wb_req || write_hit )
+    if ( o_wb_cached_req || write_hit )
         miss_address <= i_address;
 
 always @ ( posedge i_clk )
@@ -400,13 +383,13 @@ assign consecutive_write = miss_address[31:4] == i_address[31:4] &&
 
 
 always @(posedge i_clk)
-    if ( o_wb_req )
+    if ( o_wb_cached_req )
         wb_address <= i_address;
-    else if ( i_wb_ready && fill_state )    
+    else if ( i_wb_cached_ready && fill_state )    
         wb_address <= {wb_address[31:4], wb_address[3:2] + 1'd1, 2'd0};
         
 assign fill_state       = c_state == CS_FILL0 || c_state == CS_FILL1 || c_state == CS_FILL2 || c_state == CS_FILL3 ;
-assign wb_hit           = i_address == wb_address && i_wb_ready && fill_state;
+assign wb_hit           = i_address == wb_address && i_wb_cached_ready && fill_state;
 
 
 // ======================================
@@ -472,10 +455,7 @@ assign data_wdata       = write_hit && c_state == CS_IDLE ? write_hit_wdata :
                           consecutive_write               ? consecutive_write_wdata :
                                                             read_miss_wdata ;
 
-assign read_miss_wdata  = miss_address[3:2] == 2'd0 ? wb_rdata_burst                              :
-                          miss_address[3:2] == 2'd1 ? { wb_rdata_burst[95:0], wb_rdata_burst[127:96] }:
-                          miss_address[3:2] == 2'd2 ? { wb_rdata_burst[63:0], wb_rdata_burst[127:64] }:
-                                                      { wb_rdata_burst[31:0], wb_rdata_burst[127:32] };
+assign read_miss_wdata  = wb_rdata_burst;
 
 
 assign write_hit_wdata  = i_address[3:2] == 2'd0 ? {hit_rdata[127:32], write_data_word                   } :
@@ -554,12 +534,13 @@ assign ex_read_cache_busy = exclusive_access && !i_write_enable && c_state != CS
 assign write_state      = c_state == CS_IDLE || c_state == CS_WRITE_HIT1 ||  
                           c_state == CS_WRITE_HIT_WAIT_WB ||  c_state == CS_WRITE_MISS_WAIT_WB;
                           
-assign write_stall      = (write_miss && !(i_wb_ready && write_state)) || (write_hit && !i_wb_ready);
+assign write_stall      = (write_miss && !(i_wb_cached_ready && write_state)) || (write_hit && !i_wb_cached_ready);
 
 assign read_stall       = request_hold && !idle_hit && !rbuf_hit && !wb_hit && !i_write_enable;
 
 assign cache_busy_stall = c_state == CS_FILL_COMPLETE || c_state == CS_TURN_AROUND || c_state == CS_INIT ||
-                          (fill_state && !rbuf_hit && !wb_hit);
+                          (fill_state && !rbuf_hit && !wb_hit) ||
+                          (c_state == CS_WRITE_HIT1 && !consecutive_write);
 
 
 // ======================================

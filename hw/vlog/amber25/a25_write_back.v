@@ -46,11 +46,11 @@ input                       i_mem_stall,                // Mem stage asserting s
 
 input       [31:0]          i_mem_read_data,            // data reads
 input                       i_mem_read_data_valid,      // read data is valid
-input       [9:0]           i_mem_load_rd,              // Rd for data reads
+input       [10:0]          i_mem_load_rd,              // Rd for data reads
 
 output      [31:0]          o_wb_read_data,             // data reads
 output                      o_wb_read_data_valid,       // read data is valid
-output      [9:0]           o_wb_load_rd,               // Rd for data reads
+output      [10:0]          o_wb_load_rd,               // Rd for data reads
 
 input       [31:0]          i_daddress,
 input                       i_daddress_valid
@@ -58,7 +58,7 @@ input                       i_daddress_valid
 
 reg  [31:0]         mem_read_data_r = 'd0;          // Register read data from Data Cache
 reg                 mem_read_data_valid_r = 'd0;    // Register read data from Data Cache
-reg  [9:0]          mem_load_rd_r = 'd0;            // Register the Rd value for loads
+reg  [10:0]         mem_load_rd_r = 'd0;            // Register the Rd value for loads
 reg  [31:0]         daddress_r = 'd0;               // Register read data from Data Cache
 
 assign o_wb_read_data       = mem_read_data_r;

@@ -40,14 +40,17 @@
 //////////////////////////////////////////////////////////////////
 
 
-module interrupt_controller (
+module interrupt_controller  #(
+parameter WB_DWIDTH  = 32,
+parameter WB_SWIDTH  = 4
+)(
 input                       i_clk,
 
 input       [31:0]          i_wb_adr,
-input       [3:0]           i_wb_sel,
+input       [WB_SWIDTH-1:0] i_wb_sel,
 input                       i_wb_we,
-output      [31:0]          o_wb_dat,
-input       [31:0]          i_wb_dat,
+output      [WB_DWIDTH-1:0] o_wb_dat,
+input       [WB_DWIDTH-1:0] i_wb_dat,
 input                       i_wb_cyc,
 input                       i_wb_stb,
 output                      o_wb_ack,
@@ -89,10 +92,11 @@ wire            irq_1;
 wire            firq_1;
 
 // Wishbone interface
-reg  [31:0]     wb_rdata = 'd0;
+reg  [31:0]     wb_rdata32 = 'd0;
 wire            wb_start_write;
 wire            wb_start_read;
 reg             wb_start_read_d1 = 'd0;
+wire [31:0]     wb_wdata32;
 
 
 // ======================================================
@@ -107,10 +111,26 @@ assign wb_start_read  = i_wb_stb && !i_wb_we && !o_wb_ack;
 always @( posedge i_clk )
     wb_start_read_d1 <= wb_start_read;
 
-assign o_wb_dat = wb_rdata;
 
 assign o_wb_err = 1'd0;
 assign o_wb_ack = i_wb_stb && ( wb_start_write || wb_start_read_d1 );
+
+generate
+if (WB_DWIDTH == 128) 
+    begin : wb128
+    assign wb_wdata32   = i_wb_adr[3:2] == 2'd3 ? i_wb_dat[127:96] :
+                          i_wb_adr[3:2] == 2'd2 ? i_wb_dat[ 95:64] :
+                          i_wb_adr[3:2] == 2'd1 ? i_wb_dat[ 63:32] :
+                                                  i_wb_dat[ 31: 0] ;
+                                                                                                                                            
+    assign o_wb_dat    = {4{wb_rdata32}};
+    end
+else
+    begin : wb32
+    assign wb_wdata32  = i_wb_dat;
+    assign o_wb_dat    = wb_rdata32;
+    end
+endgenerate
 
 
 // ======================================
@@ -174,27 +194,27 @@ always @( posedge i_clk )
     if ( wb_start_read )
         case ( i_wb_adr[15:0] )
         
-            AMBER_IC_IRQ0_ENABLESET:    wb_rdata <= irq0_enable_reg; 
-            AMBER_IC_FIRQ0_ENABLESET:   wb_rdata <= firq0_enable_reg; 
-            AMBER_IC_IRQ0_RAWSTAT:      wb_rdata <= raw_interrupts;
-            AMBER_IC_IRQ0_STATUS:       wb_rdata <= irq0_interrupts;
-            AMBER_IC_FIRQ0_RAWSTAT:     wb_rdata <= raw_interrupts;
-            AMBER_IC_FIRQ0_STATUS:      wb_rdata <= firq0_interrupts;
+            AMBER_IC_IRQ0_ENABLESET:    wb_rdata32 <= irq0_enable_reg; 
+            AMBER_IC_FIRQ0_ENABLESET:   wb_rdata32 <= firq0_enable_reg; 
+            AMBER_IC_IRQ0_RAWSTAT:      wb_rdata32 <= raw_interrupts;
+            AMBER_IC_IRQ0_STATUS:       wb_rdata32 <= irq0_interrupts;
+            AMBER_IC_FIRQ0_RAWSTAT:     wb_rdata32 <= raw_interrupts;
+            AMBER_IC_FIRQ0_STATUS:      wb_rdata32 <= firq0_interrupts;
 
-            AMBER_IC_INT_SOFTSET_0:     wb_rdata <= {31'd0, softint_0_reg};
-            AMBER_IC_INT_SOFTCLEAR_0:   wb_rdata <= {31'd0, softint_0_reg};         
+            AMBER_IC_INT_SOFTSET_0:     wb_rdata32 <= {31'd0, softint_0_reg};
+            AMBER_IC_INT_SOFTCLEAR_0:   wb_rdata32 <= {31'd0, softint_0_reg};         
 
-            AMBER_IC_IRQ1_ENABLESET:    wb_rdata <= irq1_enable_reg; 
-            AMBER_IC_FIRQ1_ENABLESET:   wb_rdata <= firq1_enable_reg; 
-            AMBER_IC_IRQ1_RAWSTAT:      wb_rdata <= raw_interrupts;
-            AMBER_IC_IRQ1_STATUS:       wb_rdata <= irq1_interrupts;
-            AMBER_IC_FIRQ1_RAWSTAT:     wb_rdata <= raw_interrupts;
-            AMBER_IC_FIRQ1_STATUS:      wb_rdata <= firq1_interrupts;
+            AMBER_IC_IRQ1_ENABLESET:    wb_rdata32 <= irq1_enable_reg; 
+            AMBER_IC_FIRQ1_ENABLESET:   wb_rdata32 <= firq1_enable_reg; 
+            AMBER_IC_IRQ1_RAWSTAT:      wb_rdata32 <= raw_interrupts;
+            AMBER_IC_IRQ1_STATUS:       wb_rdata32 <= irq1_interrupts;
+            AMBER_IC_FIRQ1_RAWSTAT:     wb_rdata32 <= raw_interrupts;
+            AMBER_IC_FIRQ1_STATUS:      wb_rdata32 <= firq1_interrupts;
 
-            AMBER_IC_INT_SOFTSET_1:     wb_rdata <= {31'd0, softint_1_reg};
-            AMBER_IC_INT_SOFTCLEAR_1:   wb_rdata <= {31'd0, softint_1_reg};         
+            AMBER_IC_INT_SOFTSET_1:     wb_rdata32 <= {31'd0, softint_1_reg};
+            AMBER_IC_INT_SOFTCLEAR_1:   wb_rdata32 <= {31'd0, softint_1_reg};         
                                             
-            default:                    wb_rdata <= 32'h22334455;
+            default:                    wb_rdata32 <= 32'h22334455;
             
         endcase
 

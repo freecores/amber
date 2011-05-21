@@ -55,401 +55,203 @@
 //////////////////////////////////////////////////////////////////
 
 
+// TODO add support for exclusive accesses
+
 module a25_wishbone
 (
 input                       i_clk,
 
-    // Instruction Cache Accesses
-input                       i_icache_req,
-input                       i_icache_qword,
-input       [31:0]          i_icache_address,
-output      [31:0]          o_icache_read_data,
-output                      o_icache_ready,
 
-    // Data Cache Accesses
-input                       i_exclusive,      // high for read part of swap access
-input                       i_dcache_cached_req,
-input                       i_dcache_uncached_req,
-input                       i_dcache_qword,
-input                       i_dcache_write,
-input       [31:0]          i_dcache_write_data,
-input       [3:0]           i_dcache_byte_enable,    // valid for writes only
-input       [31:0]          i_dcache_address,
-output      [31:0]          o_dcache_read_data,
-output                      o_dcache_cached_ready,
-output                      o_dcache_uncached_ready,
+// Port 0 - dcache uncached
+input                       i_port0_req,
+input                       i_port0_write,
+input       [127:0]         i_port0_wdata,
+input       [15:0]          i_port0_be,
+input       [31:0]          i_port0_addr,
+output      [127:0]         o_port0_rdata,
+output                      o_port0_ready,
 
-// Wishbone Bus
+// Port 1 - dcache cached
+input                       i_port1_req,
+input                       i_port1_write,
+input       [127:0]         i_port1_wdata,
+input       [15:0]          i_port1_be,
+input       [31:0]          i_port1_addr,
+output      [127:0]         o_port1_rdata,
+output                      o_port1_ready,
+
+// Port 2 - instruction cache accesses, read only
+input                       i_port2_req,
+input                       i_port2_write,
+input       [127:0]         i_port2_wdata,
+input       [15:0]          i_port2_be,
+input       [31:0]          i_port2_addr,
+output      [127:0]         o_port2_rdata,
+output                      o_port2_ready,
+
+
+// 128-bit Wishbone Bus
 output reg  [31:0]          o_wb_adr = 'd0,
-output reg  [3:0]           o_wb_sel = 'd0,
+output reg  [15:0]          o_wb_sel = 'd0,
 output reg                  o_wb_we  = 'd0,
-input       [31:0]          i_wb_dat,
-output reg  [31:0]          o_wb_dat = 'd0,
+output reg  [127:0]         o_wb_dat = 'd0,
 output reg                  o_wb_cyc = 'd0,
 output reg                  o_wb_stb = 'd0,
+input       [127:0]         i_wb_dat,
 input                       i_wb_ack,
 input                       i_wb_err
-
 );
 
 
-localparam [3:0] WB_IDLE            = 3'd0,
-                 WB_BURST1          = 3'd1,
-                 WB_BURST2          = 3'd2,
-                 WB_BURST3          = 3'd3,
-                 WB_WAIT_ACK        = 3'd4;
-
-reg     [2:0]               wishbone_st = WB_IDLE;
-
-wire                        icache_read_req_c;
-wire                        icache_read_qword_c;
-wire    [31:0]              icache_read_addr_c;
-wire                        dcache_read_qword_c;
-
-wire                        dcache_req_c;
-wire                        write_req_c;
-wire                        dcache_cached_rreq_c;
-wire                        dcache_cached_wreq_c;
-wire                        dcache_uncached_rreq_c;
-wire                        dcache_uncached_wreq_c;
-
-wire                        dcache_cached_rreq_in;
-wire                        dcache_cached_wreq_in;
-wire                        dcache_uncached_rreq_in;
-wire                        dcache_uncached_wreq_in;
-
-reg                         dcache_cached_rreq_r   = 'd0;
-reg                         dcache_cached_wreq_r   = 'd0;
-reg                         dcache_uncached_rreq_r = 'd0;
-reg                         dcache_uncached_wreq_r = 'd0;
-
-wire                        dcache_cached_wready;
-wire                        dcache_uncached_wready;
-wire                        dcache_cached_rready;
-wire                        dcache_uncached_rready;
-
-wire                        start_access;
-wire    [3:0]               byte_enable;
-reg                         exclusive_access = 'd0;
-wire                        read_ack;
-wire                        wait_write_ack;
-reg                         icache_read_req_r  = 'd0;
-reg                         icache_read_qword_r  = 'd0;
-reg     [31:0]              icache_read_addr_r  = 'd0;
-reg                         dcache_read_qword_r  = 'd0;
-wire                        icache_read_req_in;
-wire                        icache_read_ready;
-reg                         servicing_dcache_cached_read_r = 'd0;
-reg                         servicing_dcache_uncached_read_r = 'd0;
-reg                         servicing_dcache_cached_write_r = 'd0;
-reg                         servicing_dcache_uncached_write_r = 'd0;
-reg                         servicing_icache_r = 'd0;
-wire                        buffer_write;
-reg                         buffer_write_r = 'd0;
-reg     [31:0]              buffer_write_data_r;
-reg     [31:0]              buffer_write_address_r;
-reg     [3:0]               buffer_write_be_r;
-wire                        write_ack;
+// ----------------------------------------------------
+// Parameters
+// ----------------------------------------------------
+localparam WBUF = 3;
 
 
-assign read_ack                 = !o_wb_we && i_wb_ack;
-
-assign dcache_cached_rready     = dcache_cached_rreq_r   && servicing_dcache_cached_read_r   && read_ack;
-assign dcache_uncached_rready   = dcache_uncached_rreq_r && servicing_dcache_uncached_read_r && read_ack;
-
-assign dcache_cached_wready     = (dcache_cached_wreq_c && wishbone_st == WB_IDLE && !dcache_cached_rreq_c)  || 
-                                  (servicing_dcache_cached_write_r && i_wb_ack  && wishbone_st == WB_WAIT_ACK && !dcache_cached_rreq_c);
-assign dcache_uncached_wready   = (dcache_uncached_wreq_c && wishbone_st == WB_IDLE && !dcache_uncached_rreq_c) ||
-                                  (servicing_dcache_uncached_write_r && i_wb_ack  && wishbone_st == WB_WAIT_ACK && !dcache_uncached_rreq_c);
-
-assign o_dcache_cached_ready    = dcache_cached_rready   || dcache_cached_wready;
-assign o_dcache_uncached_ready  = dcache_uncached_rready || dcache_uncached_wready;
-assign o_dcache_read_data       = i_wb_dat;
-                                 
-assign icache_read_ready        = servicing_icache_r && read_ack;
-assign o_icache_ready           = icache_read_ready; 
-assign o_icache_read_data       = i_wb_dat;
-
-assign dcache_cached_rreq_in    = i_dcache_cached_req   && !i_dcache_write;
-assign dcache_cached_wreq_in    = i_dcache_cached_req   &&  i_dcache_write;
-assign dcache_uncached_rreq_in  = i_dcache_uncached_req && !i_dcache_write;
-assign dcache_uncached_wreq_in  = i_dcache_uncached_req &&  i_dcache_write;
-assign icache_read_req_in       = i_icache_req && !o_icache_ready;
-
-assign dcache_cached_rreq_c     = ( dcache_cached_rreq_in   || dcache_cached_rreq_r   ) && !(servicing_dcache_cached_read_r   && read_ack);
-assign dcache_uncached_rreq_c   = ( dcache_uncached_rreq_in || dcache_uncached_rreq_r ) && !(servicing_dcache_uncached_read_r && read_ack);
-
-assign dcache_read_qword_c      = ( i_dcache_qword       || dcache_read_qword_r ) && !(servicing_dcache_cached_read_r && read_ack);
-
-assign icache_read_req_c        = ( icache_read_req_in   || icache_read_req_r   ) && !(servicing_icache_r && read_ack);
-assign icache_read_qword_c      = ( i_icache_qword       || icache_read_qword_r ) && !(servicing_icache_r && read_ack);
-assign icache_read_addr_c       = i_icache_req ?  i_icache_address : icache_read_addr_r;
-
-assign dcache_req_c             = dcache_cached_rreq_c || dcache_cached_wreq_c || dcache_uncached_rreq_c || dcache_uncached_wreq_c;
-assign write_req_c              = dcache_cached_wreq_c || dcache_uncached_wreq_c;
-
-assign start_access             = !wait_write_ack && (dcache_req_c || icache_read_req_c);
-
-// For writes the byte enable is always 4'hf
-assign byte_enable              = write_req_c ? i_dcache_byte_enable : 4'hf;
-                                    
-assign dcache_cached_wreq_c     = dcache_cached_wreq_in   || dcache_cached_wreq_r;
-assign dcache_uncached_wreq_c   = dcache_uncached_wreq_in || dcache_uncached_wreq_r;
+// ----------------------------------------------------
+// Signals
+// ----------------------------------------------------
+wire [0:0]                  wbuf_valid          [WBUF-1:0];
+wire [0:0]                  wbuf_accepted       [WBUF-1:0];
+wire [0:0]                  wbuf_write          [WBUF-1:0];
+wire [127:0]                wbuf_wdata          [WBUF-1:0];
+wire [15:0]                 wbuf_be             [WBUF-1:0];
+wire [31:0]                 wbuf_addr           [WBUF-1:0];
+wire [0:0]                  wbuf_rdata_valid    [WBUF-1:0];
+wire                        new_access;
+reg  [WBUF-1:0]             serving_port = 'd0;
 
 
-// ======================================
-// Register Accesses
-// ======================================
+// ----------------------------------------------------
+// Instantiate the write buffers
+// ----------------------------------------------------
+a25_wishbone_buf u_a25_wishbone_buf_p0 (
+    .i_clk          ( i_clk                 ),
 
-assign buffer_write   = dcache_cached_wreq_in  || dcache_uncached_wreq_in;
-assign write_buffered = dcache_uncached_wreq_r || dcache_uncached_wreq_r;
+    .i_req          ( i_port0_req           ),
+    .i_write        ( i_port0_write         ),
+    .i_wdata        ( i_port0_wdata         ),
+    .i_be           ( i_port0_be            ),
+    .i_addr         ( i_port0_addr          ),
+    .o_rdata        ( o_port0_rdata         ),
+    .o_ready        ( o_port0_ready         ),
 
-
-
-always @( posedge i_clk )
-    begin
-    icache_read_req_r   <= icache_read_req_in  || icache_read_req_c;
-    icache_read_qword_r <= i_icache_qword      || icache_read_qword_c;
-    if ( i_icache_req ) icache_read_addr_r  <= i_icache_address;
-        
-    dcache_read_qword_r    <= i_dcache_qword      || dcache_read_qword_c;
-
-    // Buffer Write requests
-    case (wishbone_st)
-        WB_WAIT_ACK :
-            begin
-            if (servicing_dcache_uncached_write_r && i_wb_ack && !buffer_write)
-                dcache_uncached_wreq_r <= 1'd0;
-            else    
-                dcache_uncached_wreq_r <= dcache_uncached_wreq_c;
-                
-            if (servicing_dcache_cached_write_r && i_wb_ack && !buffer_write)
-                dcache_cached_wreq_r <= 1'd0;
-            else    
-                dcache_cached_wreq_r <= dcache_cached_wreq_c;
-            end
-            
-        WB_IDLE:
-            begin
-            if (dcache_uncached_wreq_c && o_wb_stb && !i_wb_ack)
-                dcache_uncached_wreq_r <= 1'd1;
-            else    
-                dcache_uncached_wreq_r <= 1'd0;
-                
-            if (dcache_cached_wreq_c && o_wb_stb && !i_wb_ack)
-                dcache_cached_wreq_r <= 1'd1;
-            else    
-                dcache_cached_wreq_r <= 1'd0;
-            end
-            
-        default:
-            begin
-            dcache_uncached_wreq_r <= dcache_uncached_wreq_c;
-            dcache_cached_wreq_r   <= dcache_cached_wreq_c;
-            end
-    endcase
-            
-        
-    // A buffer to hold a second write while on is in progress
-    if ( buffer_write )
-        begin
-        buffer_write_data_r      <= i_dcache_write_data;
-        buffer_write_address_r   <= i_dcache_address;
-        buffer_write_be_r        <= i_dcache_byte_enable;
-        end
+    .o_valid        ( wbuf_valid       [0]  ),
+    .i_accepted     ( wbuf_accepted    [0]  ),
+    .o_write        ( wbuf_write       [0]  ),
+    .o_wdata        ( wbuf_wdata       [0]  ),
+    .o_be           ( wbuf_be          [0]  ),
+    .o_addr         ( wbuf_addr        [0]  ),
+    .i_rdata        ( i_wb_dat              ),
+    .i_rdata_valid  ( wbuf_rdata_valid [0]  )
+    );
 
 
-    // The flag can be set during any state but only cleared during WB_IDLE or WB_WAIT_ACK
-    if ( dcache_cached_rreq_r )
-        begin
-        if ( wishbone_st == WB_IDLE || wishbone_st == WB_WAIT_ACK )
-            dcache_cached_rreq_r <= dcache_cached_rreq_c && !o_dcache_cached_ready;
-        end    
-    else    
-        dcache_cached_rreq_r <= dcache_cached_rreq_c && (!o_dcache_cached_ready || dcache_cached_wreq_r);
-        
-    if ( dcache_uncached_rreq_r )
-        begin
-        if ( wishbone_st == WB_IDLE || wishbone_st == WB_WAIT_ACK )
-            dcache_uncached_rreq_r <= dcache_uncached_rreq_c && !o_dcache_uncached_ready;
-        end    
-    else    
-        dcache_uncached_rreq_r <= dcache_uncached_rreq_c && (!o_dcache_uncached_ready || dcache_uncached_wreq_r);
-    end
+a25_wishbone_buf u_a25_wishbone_buf_p1 (
+    .i_clk          ( i_clk                 ),
+
+    .i_req          ( i_port1_req           ),
+    .i_write        ( i_port1_write         ),
+    .i_wdata        ( i_port1_wdata         ),
+    .i_be           ( i_port1_be            ),
+    .i_addr         ( i_port1_addr          ),
+    .o_rdata        ( o_port1_rdata         ),
+    .o_ready        ( o_port1_ready         ),
+
+    .o_valid        ( wbuf_valid        [1] ),
+    .i_accepted     ( wbuf_accepted     [1] ),
+    .o_write        ( wbuf_write        [1] ),
+    .o_wdata        ( wbuf_wdata        [1] ),
+    .o_be           ( wbuf_be           [1] ),
+    .o_addr         ( wbuf_addr         [1] ),
+    .i_rdata        ( i_wb_dat              ),
+    .i_rdata_valid  ( wbuf_rdata_valid  [1] )
+    );
     
-assign wait_write_ack = o_wb_stb && o_wb_we && !i_wb_ack;
-assign write_ack      = o_wb_stb && o_wb_we && i_wb_ack;
+
+a25_wishbone_buf u_a25_wishbone_buf_p2 (
+    .i_clk          ( i_clk                 ),
+
+    .i_req          ( i_port2_req           ),
+    .i_write        ( i_port2_write         ),
+    .i_wdata        ( i_port2_wdata         ),
+    .i_be           ( i_port2_be            ),
+    .i_addr         ( i_port2_addr          ),
+    .o_rdata        ( o_port2_rdata         ),
+    .o_ready        ( o_port2_ready         ),
+
+    .o_valid        ( wbuf_valid        [2] ),
+    .i_accepted     ( wbuf_accepted     [2] ),
+    .o_write        ( wbuf_write        [2] ),
+    .o_wdata        ( wbuf_wdata        [2] ),
+    .o_be           ( wbuf_be           [2] ),
+    .o_addr         ( wbuf_addr         [2] ),
+    .i_rdata        ( i_wb_dat              ),
+    .i_rdata_valid  ( wbuf_rdata_valid  [2] )
+    );    
 
 
-always @( posedge i_clk )
-    case ( wishbone_st )
-        WB_IDLE :
-            begin            
-            if ( start_access )
-                begin
-                o_wb_stb            <= 1'd1; 
-                o_wb_cyc            <= 1'd1; 
-                o_wb_sel            <= byte_enable;
-                o_wb_dat            <= write_buffered ? buffer_write_data_r : i_dcache_write_data;   
-                end
-            else if ( !wait_write_ack )
-                begin
-                o_wb_stb            <= 1'd0;
-                
-                // Hold cyc high after an exclusive access
-                // to hold ownership of the wishbone bus
-                o_wb_cyc            <= exclusive_access;
-                end
+assign new_access       = !o_wb_stb || i_wb_ack;
+assign wbuf_accepted[0] = new_access &&  wbuf_valid[0];
+assign wbuf_accepted[1] = new_access && !wbuf_valid[0] &&  wbuf_valid[1];
+assign wbuf_accepted[2] = new_access && !wbuf_valid[0] && !wbuf_valid[1] && wbuf_valid[2];
 
-            if ( wait_write_ack )
-                begin
-                // still waiting for last (write) access to complete
-                wishbone_st                         <= WB_WAIT_ACK;
-                servicing_dcache_cached_read_r      <= dcache_cached_rreq_c;
-                servicing_dcache_uncached_read_r    <= dcache_uncached_rreq_c;
-                servicing_dcache_cached_write_r     <= dcache_cached_wreq_c;
-                servicing_dcache_uncached_write_r   <= dcache_uncached_wreq_c;
-                end 
-            // dcache accesses have priority over icache     
-            else if ( dcache_cached_rreq_c || dcache_uncached_rreq_c )
-                begin
-                if ( dcache_cached_rreq_c )
-                    servicing_dcache_cached_read_r <= 1'd1;
-                else if ( dcache_uncached_rreq_c )
-                    servicing_dcache_uncached_read_r <= 1'd1;
-                
-                if ( dcache_read_qword_c )
-                    wishbone_st         <= WB_BURST1;
-                else
-                    wishbone_st         <= WB_WAIT_ACK;
-                exclusive_access    <= i_exclusive;
-                end                    
-           // The core does not currently issue exclusive write requests
-           // but there's no reason why this might not be added some
-           // time in the future so allow for it here
-            else if ( write_req_c )
-                begin
-                exclusive_access            <= i_exclusive;
-                end
-            // do a burst of 4 read to fill a cache line                   
-            else if ( icache_read_req_c && icache_read_qword_c )
-                begin
-                wishbone_st                 <= WB_BURST1;
-                exclusive_access            <= 1'd0;
-                servicing_icache_r          <= 1'd1;
-                end                    
-            // single word read request from fetch stage                   
-            else if ( icache_read_req_c )
-                begin
-                wishbone_st                 <= WB_WAIT_ACK;
-                exclusive_access            <= 1'd0;
-                servicing_icache_r          <= 1'd1;
-                end                    
 
-                            
-            if ( start_access )
-                begin
-                if ( dcache_req_c )
-                    begin
-                    o_wb_we              <= write_req_c;
-                    // only update these on new wb access to make debug easier
-                    o_wb_adr[31:2]       <= i_dcache_address[31:2];
-                    o_wb_adr[1:0]        <= byte_enable == 4'b0001 ? 2'd0 :
-                                            byte_enable == 4'b0010 ? 2'd1 :
-                                            byte_enable == 4'b0100 ? 2'd2 :
-                                            byte_enable == 4'b1000 ? 2'd3 :
-                                           
-                                            byte_enable == 4'b0011 ? 2'd0 :
-                                            byte_enable == 4'b1100 ? 2'd2 :
-                                           
-                                                                     2'd0 ;
-                    end                                                 
-                else 
-                    begin
-                    o_wb_we              <= 1'd0;
-                    o_wb_adr[31:0]       <= {icache_read_addr_c[31:2], 2'd0};
-                    end                                                
-                end
+always @(posedge i_clk)
+    begin
+    if (new_access)
+        begin
+        if (wbuf_valid[0])
+            begin
+            o_wb_adr        <= wbuf_addr [0];
+            o_wb_sel        <= wbuf_be   [0];
+            o_wb_we         <= wbuf_write[0];
+            o_wb_dat        <= wbuf_wdata[0];
+            o_wb_cyc        <= 1'd1;
+            o_wb_stb        <= 1'd1;
+            serving_port    <= 3'b001;
             end
-                    
-
-        // Read burst, wait for first ack
-        WB_BURST1:  
-            if ( i_wb_ack )
-                begin
-                // burst of 4 that wraps
-                o_wb_adr[3:2]   <= o_wb_adr[3:2] + 1'd1;
-                wishbone_st     <= WB_BURST2;
-                end
+        else if (wbuf_valid[1])
+            begin
+            o_wb_adr        <= wbuf_addr [1];
+            o_wb_sel        <= wbuf_be   [1];
+            o_wb_we         <= wbuf_write[1];
+            o_wb_dat        <= wbuf_wdata[1];
+            o_wb_cyc        <= 1'd1;
+            o_wb_stb        <= 1'd1;
+            serving_port    <= 3'b010;
+            end
+        else if (wbuf_valid[2])
+            begin
+            o_wb_adr        <= wbuf_addr [2];
+            o_wb_sel        <= wbuf_be   [2];
+            o_wb_we         <= wbuf_write[2];
+            o_wb_dat        <= wbuf_wdata[2];
+            o_wb_cyc        <= 1'd1;
+            o_wb_stb        <= 1'd1;
+            serving_port    <= 3'b100;
+            end
+        else
+            begin
+            o_wb_cyc        <= 1'd0;
+            o_wb_stb        <= 1'd0;
             
+            // Don't need to change these values because they are ignored
+            // when stb is low, but it makes for a cleaner waveform, at the expense of a few gates
+            o_wb_we         <= 1'd0;
+            o_wb_adr        <= 'd0;
+            o_wb_dat        <= 'd0;
             
-        // Read burst, wait for second ack
-        WB_BURST2:  
-            if ( i_wb_ack )
-                begin
-                // burst of 4 that wraps
-                o_wb_adr[3:2]   <= o_wb_adr[3:2] + 1'd1;
-                wishbone_st     <= WB_BURST3;
-                end
-            
-            
-        // Read burst, wait for third ack
-        WB_BURST3:  
-            if ( i_wb_ack )
-                begin
-                // burst of 4 that wraps
-                o_wb_adr[3:2]   <= o_wb_adr[3:2] + 1'd1;
-                wishbone_st     <= WB_WAIT_ACK;
-                end
+            serving_port    <= 3'b000;
+            end    
+        end
+    end
 
 
-        // Wait for the wishbone ack to be asserted
-        WB_WAIT_ACK:   
-            if ( i_wb_ack )
-                begin
-                servicing_dcache_cached_read_r      <= 1'd0;
-                servicing_dcache_uncached_read_r    <= 1'd0;
-                servicing_dcache_cached_write_r     <= 1'd0;
-                servicing_dcache_uncached_write_r   <= 1'd0;
-                servicing_icache_r                  <= 1'd0;
-                    
-                // Another write that was acked and needs to be sent before returning to IDLE ?
-                if ( write_buffered )
-                    begin
-                    wishbone_st                         <= WB_IDLE;
-                    o_wb_stb                            <= 1'd1; 
-                    o_wb_cyc                            <= exclusive_access; 
-                    o_wb_sel                            <= buffer_write_be_r;
-                    o_wb_we                             <= 1'd1;
-                    o_wb_adr[31:0]                      <= buffer_write_address_r;
-                    o_wb_dat                            <= buffer_write_data_r;   
-                    end
-                else    
-                    begin
-                    wishbone_st                         <= WB_IDLE;
-                    o_wb_stb                            <= 1'd0; 
-                    o_wb_cyc                            <= exclusive_access; 
-                    o_wb_we                             <= 1'd0;
-                    end
-                end                         
-            
-    endcase
+assign {wbuf_rdata_valid[2], wbuf_rdata_valid[1], wbuf_rdata_valid[0]} = {3{i_wb_ack & ~ o_wb_we}} & serving_port;
 
-// ========================================================
-// Debug Wishbone bus - not synthesizable
-// ========================================================
-//synopsys translate_off
-wire    [(14*8)-1:0]   xWB_STATE;
-
-
-assign xWB_STATE  = wishbone_st == WB_IDLE       ? "WB_IDLE"       :
-                    wishbone_st == WB_BURST1     ? "WB_BURST1"     :
-                    wishbone_st == WB_BURST2     ? "WB_BURST2"     :
-                    wishbone_st == WB_BURST3     ? "WB_BURST3"     :
-                    wishbone_st == WB_WAIT_ACK   ? "WB_WAIT_ACK"   :
-                                                   "UNKNOWN"       ;
-
-//synopsys translate_on
     
 endmodule
+
 

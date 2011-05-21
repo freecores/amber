@@ -47,6 +47,7 @@
 module tb();
 
 `include "debug_functions.v"
+`include "system_functions.v"
 
 reg                     sysrst;
 `ifdef XILINX_VIRTEX6_FPGA  
@@ -74,6 +75,8 @@ integer                 boot_mem_line_count;
 integer                 fgets_return;
 reg     [120*8-1:0]     line;
 reg     [120*8-1:0]     aligned_line;
+reg     [8*16-1:0]      test_name;
+integer                 timeout = 0;
 
 wire [12:0]             ddr3_addr;
 wire [2:0]              ddr3_ba;  
@@ -266,17 +269,6 @@ always @ ( posedge `U_SYSTEM.sys_clk )
     clk_count <= clk_count + 1'd1;
 
         
-
-// ======================================
-// Test Name
-// ======================================
-initial
-    begin
-    $display("Test %s, log file %s",`AMBER_TEST_NAME, `AMBER_LOG_FILE);
-    log_file = $fopen(`AMBER_LOG_FILE, "a");
-    end
-
-
     
 // ======================================
 // Initialize Boot Memory
@@ -330,6 +322,15 @@ initial
                 
             $display("Read in %1d lines", boot_mem_line_count);      
             end
+            
+        // Grab the test name from memory    
+        timeout   =              tb.u_system.u_boot_mem.u_mem.mem [11'h7fb];           
+        test_name = { endian_x32(tb.u_system.u_boot_mem.u_mem.mem [11'h7fc]),  
+                      endian_x32(tb.u_system.u_boot_mem.u_mem.mem [11'h7fd]),  
+                      endian_x32(tb.u_system.u_boot_mem.u_mem.mem [11'h7fe]),  
+                      endian_x32(tb.u_system.u_boot_mem.u_mem.mem [11'h7ff])}; 
+        $display("log file %s, timeout %0d, test name %0s ", `AMBER_LOG_FILE, timeout, test_name);          
+        log_file = $fopen(`AMBER_LOG_FILE, "a");                               
         end
     
 `endif
@@ -442,12 +443,14 @@ dumpvcd u_dumpvcd();
     `include "a23_functions.v"
 `endif
 
-reg testfail;
-wire        test_status_set;
-wire [31:0] test_status_reg;
+reg             testfail;
+wire            test_status_set;
+wire [31:0]     test_status_reg;
 
 initial
-    testfail = 1'd0;
+    begin
+    testfail  = 1'd0;
+    end
     
 assign test_status_set = `U_TEST_MODULE.test_status_set;
 assign test_status_reg = `U_TEST_MODULE.test_status_reg;
@@ -460,9 +463,9 @@ always @*
                 begin
                 display_registers;
                 $display("++++++++++++++++++++");
-                $write("Passed %s %0d ticks\n", `AMBER_TEST_NAME, `U_TB.clk_count);
+                $write("Passed %s %0d ticks\n", test_name, `U_TB.clk_count);
                 $display("++++++++++++++++++++");
-                $fwrite(`U_TB.log_file,"Passed %s %0d ticks\n", `AMBER_TEST_NAME, `U_TB.clk_count);
+                $fwrite(`U_TB.log_file,"Passed %s %0d ticks\n", test_name, `U_TB.clk_count);
                 $finish;
                 end
             else
@@ -471,23 +474,23 @@ always @*
                 if ( testfail )
                     begin
                     $display("++++++++++++++++++++");
-                    $write("Failed %s\n", `AMBER_TEST_NAME);
+                    $write("Failed %s\n", test_name);
                     $display("++++++++++++++++++++");
-                    $fwrite(`U_TB.log_file,"Failed %s\n", `AMBER_TEST_NAME);
+                    $fwrite(`U_TB.log_file,"Failed %s\n", test_name);
                     $finish;
                     end
                 else
                     begin
                     $display("++++++++++++++++++++");
                     if (test_status_reg >= 32'h8000)
-                        $write("Failed %s - with error 0x%08x\n", `AMBER_TEST_NAME, test_status_reg);
+                        $write("Failed %s - with error 0x%08x\n", test_name, test_status_reg);
                     else
-                        $write("Failed %s - with error %1d\n", `AMBER_TEST_NAME, test_status_reg);
+                        $write("Failed %s - with error on line %1d\n", test_name, test_status_reg);
                     $display("++++++++++++++++++++");
                     if (test_status_reg >= 32'h8000)
-                        $fwrite(`U_TB.log_file,"Failed %s - with error 0x%08h\n", `AMBER_TEST_NAME, test_status_reg);
+                        $fwrite(`U_TB.log_file,"Failed %s - with error 0x%08h\n", test_name, test_status_reg);
                     else
-                        $fwrite(`U_TB.log_file,"Failed %s - with error %1d\n", `AMBER_TEST_NAME, test_status_reg);
+                        $fwrite(`U_TB.log_file,"Failed %s - with error on line %1d\n", test_name, test_status_reg);
                     $finish;
                     end
                 end
@@ -499,8 +502,8 @@ always @*
 // Timeout
 // ======================================
 always @ ( posedge `U_SYSTEM.sys_clk )
-    if ( `AMBER_TIMEOUT != 0 )
-        if (`U_TB.clk_count >= `AMBER_TIMEOUT)
+    if ( timeout != 0 )
+        if (`U_TB.clk_count >= timeout)
             begin
             `TB_ERROR_MESSAGE
             $display("Timeout Error");

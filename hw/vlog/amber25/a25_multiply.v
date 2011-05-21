@@ -55,7 +55,7 @@
 
 module a25_multiply (
 input                       i_clk,
-input                       i_access_stall,
+input                       i_core_stall,
 
 input       [31:0]          i_a_in,         // Rds
 input       [31:0]          i_b_in,         // Rm
@@ -188,7 +188,7 @@ always @*
 
 
 always @ ( posedge i_clk )
-    if ( !i_access_stall )
+    if ( !i_core_stall )
         begin
         count           <= i_execute ? count_nxt          : count;           
         product         <= i_execute ? product_nxt        : product;        

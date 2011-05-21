@@ -40,14 +40,17 @@
 //////////////////////////////////////////////////////////////////
 
 
-module timer_module (
+module timer_module  #(
+parameter WB_DWIDTH  = 32,
+parameter WB_SWIDTH  = 4
+)(
 input                       i_clk,
 
 input       [31:0]          i_wb_adr,
-input       [3:0]           i_wb_sel,
+input       [WB_SWIDTH-1:0] i_wb_sel,
 input                       i_wb_we,
-output      [31:0]          o_wb_dat,
-input       [31:0]          i_wb_dat,
+output      [WB_DWIDTH-1:0] o_wb_dat,
+input       [WB_DWIDTH-1:0] i_wb_dat,
 input                       i_wb_cyc,
 input                       i_wb_stb,
 output                      o_wb_ack,
@@ -75,10 +78,11 @@ reg             timer1_int_reg = 'd0;    // interrupt flag
 reg             timer2_int_reg = 'd0;    // interrupt flag
 
 // Wishbone interface
-reg  [31:0]     wb_rdata = 'd0;
+reg  [31:0]     wb_rdata32 = 'd0;
 wire            wb_start_write;
 wire            wb_start_read;
 reg             wb_start_read_d1 = 'd0;
+wire [31:0]     wb_wdata32;
 
 
 // ======================================================
@@ -93,11 +97,26 @@ assign wb_start_read  = i_wb_stb && !i_wb_we && !o_wb_ack;
 always @( posedge i_clk )
     wb_start_read_d1 <= wb_start_read;
 
-assign o_wb_dat = wb_rdata;
 
 assign o_wb_err = 1'd0;
 assign o_wb_ack = i_wb_stb && ( wb_start_write || wb_start_read_d1 );
 
+generate
+if (WB_DWIDTH == 128) 
+    begin : wb128
+    assign wb_wdata32   = i_wb_adr[3:2] == 2'd3 ? i_wb_dat[127:96] :
+                          i_wb_adr[3:2] == 2'd2 ? i_wb_dat[ 95:64] :
+                          i_wb_adr[3:2] == 2'd1 ? i_wb_dat[ 63:32] :
+                                                  i_wb_dat[ 31: 0] ;
+                                                                                                                                            
+    assign o_wb_dat    = {4{wb_rdata32}};
+    end
+else
+    begin : wb32
+    assign wb_wdata32  = i_wb_dat;
+    assign o_wb_dat    = wb_rdata32;
+    end
+endgenerate
 
 // ========================================================
 // Timer Interrupt Outputs
@@ -253,32 +272,32 @@ always @( posedge i_clk )
 always @( posedge i_clk )
     if ( wb_start_read )
         case ( i_wb_adr[15:0] )
-            AMBER_TM_TIMER0_LOAD: wb_rdata <= {16'd0, timer0_load_reg};
-            AMBER_TM_TIMER1_LOAD: wb_rdata <= {16'd0, timer1_load_reg};
-            AMBER_TM_TIMER2_LOAD: wb_rdata <= {16'd0, timer2_load_reg};
-            AMBER_TM_TIMER0_CTRL: wb_rdata <= {24'd0, 
+            AMBER_TM_TIMER0_LOAD: wb_rdata32 <= {16'd0, timer0_load_reg};
+            AMBER_TM_TIMER1_LOAD: wb_rdata32 <= {16'd0, timer1_load_reg};
+            AMBER_TM_TIMER2_LOAD: wb_rdata32 <= {16'd0, timer2_load_reg};
+            AMBER_TM_TIMER0_CTRL: wb_rdata32 <= {24'd0, 
                                                timer0_ctrl_reg[7:6], 
                                                2'd0, 
                                                timer0_ctrl_reg[3:2],
                                                2'd0 
                                               };
-            AMBER_TM_TIMER1_CTRL: wb_rdata <= {24'd0, 
+            AMBER_TM_TIMER1_CTRL: wb_rdata32 <= {24'd0, 
                                                timer1_ctrl_reg[7:6], 
                                                2'd0, 
                                                timer1_ctrl_reg[3:2],
                                                2'd0 
                                               };
-            AMBER_TM_TIMER2_CTRL: wb_rdata <= {24'd0, 
+            AMBER_TM_TIMER2_CTRL: wb_rdata32 <= {24'd0, 
                                                timer2_ctrl_reg[7:6], 
                                                2'd0, 
                                                timer2_ctrl_reg[3:2],
                                                2'd0 
                                               };
-            AMBER_TM_TIMER0_VALUE: wb_rdata <= {16'd0, timer0_value_reg[23:8]};
-            AMBER_TM_TIMER1_VALUE: wb_rdata <= {16'd0, timer1_value_reg[23:8]};
-            AMBER_TM_TIMER2_VALUE: wb_rdata <= {16'd0, timer2_value_reg[23:8]};
+            AMBER_TM_TIMER0_VALUE: wb_rdata32 <= {16'd0, timer0_value_reg[23:8]};
+            AMBER_TM_TIMER1_VALUE: wb_rdata32 <= {16'd0, timer1_value_reg[23:8]};
+            AMBER_TM_TIMER2_VALUE: wb_rdata32 <= {16'd0, timer2_value_reg[23:8]};
         
-            default:               wb_rdata <= 32'h66778899;
+            default:               wb_rdata32 <= 32'h66778899;
             
         endcase
 

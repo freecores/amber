@@ -67,11 +67,11 @@ loop:
         add     r5, r5, #9
         subs    r3, r3, #1
         bne     loop
-        
 
-continue: 
+        @ setup loop2
+        ldr     r9, WriteLocation
+        mov     r3, #9
         mov     r8, #4
-        
 loop2: 
 
         mov     r6, #0
@@ -607,6 +607,8 @@ loop2:
         add     r6, r6,#8
         add     r6, r6,#8
 
+        str     r3, [r9]
+        
         add     r6, r6,#9
         add     r6, r6,#9
         add     r6, r6,#9
@@ -803,7 +805,7 @@ testpass:
 /* Write 17 to this address to generate a Test Passed message */
 AdrTestStatus:              .word ADR_AMBER_TEST_STATUS
 Result:                     .word 3300
-
+WriteLocation:              .word 0xffc
 
 
 /* ========================================================================= */

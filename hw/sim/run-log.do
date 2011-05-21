@@ -1,3 +1,11 @@
+log -r /tb/u_system/u_amber/u_fetch/*
+log -r /tb/u_system/u_amber/u_mem/*
+log -r /tb/u_system/u_amber/u_execute/*
+log /tb/u_system/u_amber/u_execute/u_register_bank/*
+log /tb/u_system/u_amber/u_decode/*
+log /tb/u_system/u_amber/u_wishbone/*
+
+
 log /tb/clk_count
 log /tb/u_system/u_uart0/i_uart_rxd
 log /tb/u_system/u_uart0/rx_fifo
@@ -45,7 +53,6 @@ log /tb/u_system/u_amber/u_fetch/sel_cache
 log /tb/u_system/u_amber/u_fetch/u_cache/tag_wdata
 log /tb/u_system/u_amber/u_fetch/u_cache/tag_address
 log /tb/u_system/u_amber/u_fetch/u_cache/tag_wenable
-log /tb/u_system/u_amber/u_fetch/u_cache/data_wdata
 log /tb/u_system/u_amber/u_decode/xMODE
 log /tb/u_system/u_amber/u_decode/xCONTROL_STATE
 log /tb/u_system/u_amber/u_decode/instruction_execute
@@ -61,13 +68,6 @@ log /tb/u_system/u_amber/u_decode/write_pc
 log /tb/u_system/u_amber/u_execute/execute
 log /tb/u_system/u_amber/u_decode/u_decompile/xINSTRUCTION_EXECUTE
 log /tb/u_system/u_amber/u_execute/i_pc_sel
-log /tb/u_system/u_amber/u_execute/u_register_bank/r0
-log /tb/u_system/u_amber/u_execute/u_register_bank/r1
-log /tb/u_system/u_amber/u_execute/u_register_bank/r2
-log /tb/u_system/u_amber/u_execute/u_register_bank/r3
-log /tb/u_system/u_amber/u_execute/u_register_bank/r12_out
-log /tb/u_system/u_amber/u_execute/u_register_bank/r13_out
-log /tb/u_system/u_amber/u_execute/u_register_bank/r14_out
 log /tb/u_system/u_amber/u_execute/pc_wen
 log /tb/u_system/u_amber/u_execute/pc_nxt
 log /tb/u_system/u_amber/u_execute/rn

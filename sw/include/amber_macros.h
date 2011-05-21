@@ -1,13 +1,11 @@
-/*****************************************************************
+/*----------------------------------------------------------------
 //                                                              //
-//  Amber 2 Core Cache Test                                     //
+//  amber_macros   .h                                           //
 //                                                              //
 //  This file is part of the Amber project                      //
 //  http://www.opencores.org/project,amber                      //
 //                                                              //
 //  Description                                                 //
-//  Tests simple interaction between cached data and uncached   //
-//  instruction accesses.                                       //
 //                                                              //
 //  Author(s):                                                  //
 //      - Conor Santifort, csantifort.amber@gmail.com           //
@@ -37,65 +35,16 @@
 // Public License along with this source; if not, download it   //
 // from http://www.opencores.org/lgpl.shtml                     //
 //                                                              //
-*****************************************************************/
+----------------------------------------------------------------*/
 
-#include "amber_registers.h"
-
-	.section .text
-	.globl	main        
-main:
-        @ ---------------------
-        @ Enable the cache
-        @ ---------------------
-        mov     r0,  #0xffffffff
-	mcr	15, 0, r0, cr3, cr0, 0   @ cacheable area
-        mov     r0,  #1
-	mcr	15, 0, r0, cr2, cr0, 0   @ cache enable
-        nop
-        nop
-
-        mov     r1, #27
-        ldr     r2, AdrData
-        nop
-        nop
-        nop
-        str     r1, [r2]
-        
-        nop
-        nop
-        nop
-        
-        ldr     r3, [r2]
-        cmp     r1, r3
-        
-        movne   r10, #10
+	.macro	expect, reg1, value, err_no
+        cmp     \reg1, #\value
+        movne   r10, #\err_no
         bne     testfail
-                
-        b       testpass
-@ ------------------------------------------        
-@ ------------------------------------------        
+        .endm
 
-testfail:
-        ldr     r11, AdrTestStatus
-        str     r10, [r11]
-        b       testfail
-        
-testpass:             
-        ldr     r11, AdrTestStatus
-        mov     r10, #17
-        str     r10, [r11]
-        b       testpass
-
-
-
-/* Write 17 to this address to generate a Test Passed message */
-AdrTestStatus:              .word ADR_AMBER_TEST_STATUS
-Result:                     .word 3300
-AdrData:                    .word Data
-Data:                       .word 0
-
-
-
-/* ========================================================================= */
-/* ========================================================================= */
-        
+	.macro	compare, reg1, reg2, err_no
+        cmp     \reg1, \reg2
+        movne   r10, #\err_no
+        bne     testfail
+        .endm

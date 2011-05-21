@@ -43,6 +43,7 @@
 *****************************************************************/
 
 #include "amber_registers.h"
+#include "amber_macros.h"
 
 	.section .text
 	.globl	main        
@@ -130,9 +131,7 @@ loop:
         @ sure it decrements correctly on each
         @ iteration of the loop
         sub     r13, r13, #16
-        cmp     r7, r13
-        movne   r10, #100
-        bne     testfail
+        compare r7, r13, __LINE__
         
         subs    r2, r2, #1
         beq     testpass

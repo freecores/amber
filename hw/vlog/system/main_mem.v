@@ -43,16 +43,18 @@
 //////////////////////////////////////////////////////////////////
 
 
-module main_mem
-(
+module main_mem#(
+parameter WB_DWIDTH  = 32,
+parameter WB_SWIDTH  = 4
+)(
 input                          i_clk,
 input                          i_mem_ctrl,  // 0=128MB, 1=32MB
 // Wishbone Bus
 input       [31:0]             i_wb_adr,
-input       [3:0]              i_wb_sel,
+input       [WB_SWIDTH-1:0]    i_wb_sel,
 input                          i_wb_we,
-output reg  [31:0]             o_wb_dat         = 'd0,
-input       [31:0]             i_wb_dat,
+output      [WB_DWIDTH-1:0]    o_wb_dat,
+input       [WB_DWIDTH-1:0]    i_wb_dat,
 input                          i_wb_cyc,
 input                          i_wb_stb,
 output                         o_wb_ack,
@@ -85,54 +87,100 @@ assign busy        = start_read_d1 || start_read_d2;
 assign o_wb_err    = 'd0;
 
 
-// ------------------------------------------------------
-// Write
-// ------------------------------------------------------
-always @( posedge i_clk )
-    begin
-    wr_en          <= start_write;
-    wr_mask        <= i_wb_adr[3:2] == 2'd0 ? { 12'hfff, ~i_wb_sel          } : 
-                      i_wb_adr[3:2] == 2'd1 ? { 8'hff,   ~i_wb_sel, 4'hf    } : 
-                      i_wb_adr[3:2] == 2'd2 ? { 4'hf,    ~i_wb_sel, 8'hff   } : 
-                                              {          ~i_wb_sel, 12'hfff } ; 
-    wr_data        <= {4{i_wb_dat}};
-
-                      // Wrap the address at 32 MB, or full width
-    addr_d1        <= i_mem_ctrl ? {5'd0, i_wb_adr[24:2]} : i_wb_adr[29:2];
-    
-    if ( wr_en )
-        ram [addr_d1[27:2]]  <= masked_wdata;
-    end
-
-
 generate
-for (i=0;i<16;i=i+1) begin : masked
-    assign masked_wdata[8*i+7:8*i] = wr_mask[i] ? rd_data[8*i+7:8*i] : wr_data[8*i+7:8*i];
-end
-endgenerate
+if (WB_DWIDTH == 128) 
+    begin : wb128
+    reg     [127:0]      wb_rdata128 = 'd0;
 
-    
-
-// ------------------------------------------------------
-// Read
-// ------------------------------------------------------
-assign rd_data = ram [addr_d1[27:2]];
-
-
-always @( posedge i_clk )
-    begin
-    start_read_d1   <= start_read;
-    start_read_d2   <= start_read_d1;
-    if ( start_read_d1 )
+    // ------------------------------------------------------
+    // Write for 32-bit wishbone
+    // ------------------------------------------------------
+    always @( posedge i_clk )
         begin
-        o_wb_dat  <= addr_d1[1:0] == 2'd0 ? rd_data[ 31: 0] :
-                     addr_d1[1:0] == 2'd1 ? rd_data[ 63:32] :
-                     addr_d1[1:0] == 2'd2 ? rd_data[ 95:64] :
-                                            rd_data[127:96] ;
+        wr_en          <= start_write;
+        wr_mask        <= ~ i_wb_sel; 
+        wr_data        <= i_wb_dat;
+
+                          // Wrap the address at 32 MB, or full width
+        addr_d1        <= i_mem_ctrl ? {5'd0, i_wb_adr[24:2]} : i_wb_adr[29:2];
+        
+        if ( wr_en )
+            ram [addr_d1[27:2]]  <= masked_wdata;
         end
+
+
+    for (i=0;i<16;i=i+1) begin : masked
+        assign masked_wdata[8*i+7:8*i] = wr_mask[i] ? rd_data[8*i+7:8*i] : wr_data[8*i+7:8*i];
+        end
+
+        
+    // ------------------------------------------------------
+    // Read for 32-bit wishbone
+    // ------------------------------------------------------
+    assign rd_data = ram [addr_d1[27:2]];
+
+    always @( posedge i_clk )
+        begin
+        start_read_d1   <= start_read;
+        start_read_d2   <= start_read_d1;
+        if ( start_read_d1 )
+            begin
+            wb_rdata128 <= rd_data;
+            end
+        end
+    assign o_wb_dat = wb_rdata128 ;                  
+    assign o_wb_ack = i_wb_stb && ( start_write || start_read_d2 );
+
     end
-                    
-assign o_wb_ack = i_wb_stb && ( start_write || start_read_d2 );
+else
+    begin : wb32
+    reg     [31:0]      wb_rdata32 = 'd0;
+
+    // ------------------------------------------------------
+    // Write for 32-bit wishbone
+    // ------------------------------------------------------
+    always @( posedge i_clk )
+        begin
+        wr_en          <= start_write;
+        wr_mask        <= i_wb_adr[3:2] == 2'd0 ? { 12'hfff, ~i_wb_sel          } : 
+                          i_wb_adr[3:2] == 2'd1 ? { 8'hff,   ~i_wb_sel, 4'hf    } : 
+                          i_wb_adr[3:2] == 2'd2 ? { 4'hf,    ~i_wb_sel, 8'hff   } : 
+                                                  {          ~i_wb_sel, 12'hfff } ; 
+        wr_data        <= {4{i_wb_dat}};
+
+                          // Wrap the address at 32 MB, or full width
+        addr_d1        <= i_mem_ctrl ? {5'd0, i_wb_adr[24:2]} : i_wb_adr[29:2];
+        
+        if ( wr_en )
+            ram [addr_d1[27:2]]  <= masked_wdata;
+        end
+
+
+    for (i=0;i<16;i=i+1) begin : masked
+        assign masked_wdata[8*i+7:8*i] = wr_mask[i] ? rd_data[8*i+7:8*i] : wr_data[8*i+7:8*i];
+        end
+        
+    // ------------------------------------------------------
+    // Read for 32-bit wishbone
+    // ------------------------------------------------------
+    assign rd_data = ram [addr_d1[27:2]];
+
+    always @( posedge i_clk )
+        begin
+        start_read_d1   <= start_read;
+        start_read_d2   <= start_read_d1;
+        if ( start_read_d1 )
+            begin
+            wb_rdata32 <= addr_d1[1:0] == 2'd0 ? rd_data[ 31: 0] :
+                          addr_d1[1:0] == 2'd1 ? rd_data[ 63:32] :
+                          addr_d1[1:0] == 2'd2 ? rd_data[ 95:64] :
+                                                 rd_data[127:96] ;
+            end
+        end
+    assign o_wb_dat = wb_rdata32 ;                  
+    assign o_wb_ack = i_wb_stb && ( start_write || start_read_d2 );
+    end
+endgenerate
 
 
 endmodule

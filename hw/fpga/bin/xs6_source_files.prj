@@ -50,6 +50,7 @@ verilog work ../../vlog/system/wb_xv6_ddr3_bridge.v
 verilog work ../../vlog/system/wishbone_arbiter.v
 verilog work ../../vlog/system/afifo.v
 verilog work ../../vlog/system/ddr3_afifo.v
+verilog work ../../vlog/system/ethmac_wb.v
 
 # EthMac
 verilog work ../../vlog/ethmac/eth_clockgen.v
@@ -93,6 +94,7 @@ verilog work ../../vlog/amber23/a23_wishbone.v
 # Amber 25
 verilog work ../../vlog/amber25/a25_alu.v
 verilog work ../../vlog/amber25/a25_barrel_shift.v
+verilog work ../../vlog/amber25/a25_shifter.v
 verilog work ../../vlog/amber25/a25_coprocessor.v
 verilog work ../../vlog/amber25/a25_core.v
 verilog work ../../vlog/amber25/a25_dcache.v
@@ -104,6 +106,7 @@ verilog work ../../vlog/amber25/a25_mem.v
 verilog work ../../vlog/amber25/a25_multiply.v
 verilog work ../../vlog/amber25/a25_register_bank.v
 verilog work ../../vlog/amber25/a25_wishbone.v
+verilog work ../../vlog/amber25/a25_wishbone_buf.v
 verilog work ../../vlog/amber25/a25_write_back.v
 
 # Xilinx Spartan-6 FPGA Hardware wrappers

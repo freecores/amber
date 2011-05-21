@@ -157,13 +157,21 @@ wire            md_padoe_o;
 localparam WB_MASTERS = 2;
 localparam WB_SLAVES  = 9;
 
+`ifdef AMBER_A25_CORE
+localparam WB_DWIDTH  = 128;
+localparam WB_SWIDTH  = 16;
+`else
+localparam WB_DWIDTH  = 32;
+localparam WB_SWIDTH  = 4;
+`endif
+
 
 // Wishbone Master Buses
 wire      [31:0]            m_wb_adr      [WB_MASTERS-1:0];
-wire      [3:0]             m_wb_sel      [WB_MASTERS-1:0];
+wire      [WB_SWIDTH-1:0]   m_wb_sel      [WB_MASTERS-1:0];
 wire      [WB_MASTERS-1:0]  m_wb_we                       ;
-wire      [31:0]            m_wb_dat_w    [WB_MASTERS-1:0];
-wire      [31:0]            m_wb_dat_r    [WB_MASTERS-1:0];
+wire      [WB_DWIDTH-1:0]   m_wb_dat_w    [WB_MASTERS-1:0];
+wire      [WB_DWIDTH-1:0]   m_wb_dat_r    [WB_MASTERS-1:0];
 wire      [WB_MASTERS-1:0]  m_wb_cyc                      ;
 wire      [WB_MASTERS-1:0]  m_wb_stb                      ;
 wire      [WB_MASTERS-1:0]  m_wb_ack                      ;
@@ -172,14 +180,34 @@ wire      [WB_MASTERS-1:0]  m_wb_err                      ;
 
 // Wishbone Slave Buses
 wire      [31:0]            s_wb_adr      [WB_SLAVES-1:0];
-wire      [3:0]             s_wb_sel      [WB_SLAVES-1:0];
+wire      [WB_SWIDTH-1:0]   s_wb_sel      [WB_SLAVES-1:0];
 wire      [WB_SLAVES-1:0]   s_wb_we                      ;
-wire      [31:0]            s_wb_dat_w    [WB_SLAVES-1:0];
-wire      [31:0]            s_wb_dat_r    [WB_SLAVES-1:0];
+wire      [WB_DWIDTH-1:0]   s_wb_dat_w    [WB_SLAVES-1:0];
+wire      [WB_DWIDTH-1:0]   s_wb_dat_r    [WB_SLAVES-1:0];
 wire      [WB_SLAVES-1:0]   s_wb_cyc                     ;
 wire      [WB_SLAVES-1:0]   s_wb_stb                     ;
 wire      [WB_SLAVES-1:0]   s_wb_ack                     ;
 wire      [WB_SLAVES-1:0]   s_wb_err                     ;
+
+wire      [31:0]            emm_wb_adr;  
+wire      [3:0]             emm_wb_sel;  
+wire                        emm_wb_we;   
+wire      [31:0]            emm_wb_rdat; 
+wire      [31:0]            emm_wb_wdat; 
+wire                        emm_wb_cyc;  
+wire                        emm_wb_stb;  
+wire                        emm_wb_ack;  
+wire                        emm_wb_err;  
+
+wire      [31:0]            ems_wb_adr;  
+wire      [3:0]             ems_wb_sel;  
+wire                        ems_wb_we;   
+wire      [31:0]            ems_wb_rdat; 
+wire      [31:0]            ems_wb_wdat; 
+wire                        ems_wb_cyc;  
+wire                        ems_wb_stb;  
+wire                        ems_wb_ack;  
+wire                        ems_wb_err;  
 
 
 // ======================================
@@ -239,32 +267,32 @@ a23_core u_amber (
 // -------------------------------------------------------------
 // Instantiate B100 Ethernet MAC
 // -------------------------------------------------------------
-
+  
 eth_top u_eth_top (
     .wb_clk_i                   ( sys_clk                ),
     .wb_rst_i                   ( sys_rst                ),
 
     // WISHBONE slave
-    .wb_adr_i                   ( s_wb_adr   [0][11:2]   ),     
-    .wb_sel_i                   ( s_wb_sel   [0]         ),     
-    .wb_we_i                    ( s_wb_we    [0]         ),     
-    .wb_cyc_i                   ( s_wb_cyc   [0]         ),     
-    .wb_stb_i                   ( s_wb_stb   [0]         ),     
-    .wb_ack_o                   ( s_wb_ack   [0]         ),     
-    .wb_dat_i                   ( s_wb_dat_w [0]         ),     
-    .wb_dat_o                   ( s_wb_dat_r [0]         ),     
-    .wb_err_o                   ( s_wb_err   [0]         ),     
+    .wb_adr_i                   ( ems_wb_adr [11:2]      ),     
+    .wb_sel_i                   ( ems_wb_sel             ),     
+    .wb_we_i                    ( ems_wb_we              ),     
+    .wb_cyc_i                   ( ems_wb_cyc             ),     
+    .wb_stb_i                   ( ems_wb_stb             ),     
+    .wb_ack_o                   ( ems_wb_ack             ),     
+    .wb_dat_i                   ( ems_wb_wdat            ),     
+    .wb_dat_o                   ( ems_wb_rdat            ),     
+    .wb_err_o                   ( ems_wb_err             ),     
 
     // WISHBONE master
-    .m_wb_adr_o                 ( m_wb_adr   [0]         ), 
-    .m_wb_sel_o                 ( m_wb_sel   [0]         ), 
-    .m_wb_we_o                  ( m_wb_we    [0]         ), 
-    .m_wb_dat_i                 ( m_wb_dat_r [0]         ), 
-    .m_wb_dat_o                 ( m_wb_dat_w [0]         ), 
-    .m_wb_cyc_o                 ( m_wb_cyc   [0]         ), 
-    .m_wb_stb_o                 ( m_wb_stb   [0]         ), 
-    .m_wb_ack_i                 ( m_wb_ack   [0]         ), 
-    .m_wb_err_i                 ( m_wb_err   [0]         ), 
+    .m_wb_adr_o                 ( emm_wb_adr             ), 
+    .m_wb_sel_o                 ( emm_wb_sel             ), 
+    .m_wb_we_o                  ( emm_wb_we              ), 
+    .m_wb_dat_i                 ( emm_wb_rdat            ), 
+    .m_wb_dat_o                 ( emm_wb_wdat            ), 
+    .m_wb_cyc_o                 ( emm_wb_cyc             ), 
+    .m_wb_stb_o                 ( emm_wb_stb             ), 
+    .m_wb_ack_i                 ( emm_wb_ack             ), 
+    .m_wb_err_i                 ( emm_wb_err             ), 
 
     // MAC to PHY I/F
     .mtx_clk_pad_i              ( mtx_clk_pad_i          ),
@@ -285,7 +313,6 @@ eth_top u_eth_top (
     // Interrupt
     .int_o                      ( ethmac_int             )
 );
-
 
 
 // -------------------------------------------------------------
@@ -312,7 +339,11 @@ assign system_rdy = phy_init_done && !sys_rst;
 // -------------------------------------------------------------
 // Instantiate Boot Memory - 8KBytes of Embedded SRAM
 // -------------------------------------------------------------
-boot_mem u_boot_mem (
+boot_mem #(
+    .WB_DWIDTH              ( WB_DWIDTH       ),
+    .WB_SWIDTH              ( WB_SWIDTH       )
+    )
+u_boot_mem (
     .i_wb_clk               ( sys_clk         ),
 
     .i_wb_adr               ( s_wb_adr  [1]   ),
@@ -327,11 +358,14 @@ boot_mem u_boot_mem (
 );
 
 
-
 // -------------------------------------------------------------
 // Instantiate UART0
 // -------------------------------------------------------------
-uart u_uart0 (
+uart  #(
+    .WB_DWIDTH              ( WB_DWIDTH       ),
+    .WB_SWIDTH              ( WB_SWIDTH       )
+    )
+u_uart0 (
     .i_clk                  ( sys_clk        ),
 
     .o_uart_int             ( uart0_int      ),
@@ -356,7 +390,11 @@ uart u_uart0 (
 // -------------------------------------------------------------
 // Instantiate UART1
 // -------------------------------------------------------------
-uart u_uart1 (
+uart  #(
+    .WB_DWIDTH              ( WB_DWIDTH       ),
+    .WB_SWIDTH              ( WB_SWIDTH       )
+    ) 
+u_uart1 (
     .i_clk                  ( sys_clk        ),
 
     .o_uart_int             ( uart1_int      ),
@@ -384,7 +422,11 @@ uart u_uart1 (
 // Instantiate Test Module
 //   - includes register used to terminate tests
 // -------------------------------------------------------------
-test_module u_test_module (
+test_module #(
+    .WB_DWIDTH              ( WB_DWIDTH      ),
+    .WB_SWIDTH              ( WB_SWIDTH      )
+    ) 
+u_test_module (
     .i_clk                  ( sys_clk        ),
     
     .o_irq                  ( test_reg_irq   ),
@@ -405,7 +447,11 @@ test_module u_test_module (
 // -------------------------------------------------------------
 // Instantiate Timer Module
 // -------------------------------------------------------------
-timer_module u_timer_module (
+timer_module  #(
+    .WB_DWIDTH              ( WB_DWIDTH      ),
+    .WB_SWIDTH              ( WB_SWIDTH      )
+    ) 
+u_timer_module (
     .i_clk                  ( sys_clk        ),
     
     // Interrupt outputs
@@ -427,7 +473,11 @@ timer_module u_timer_module (
 // -------------------------------------------------------------
 // Instantiate Interrupt Controller Module
 // -------------------------------------------------------------
-interrupt_controller u_interrupt_controller (
+interrupt_controller  #(
+    .WB_DWIDTH              ( WB_DWIDTH      ),
+    .WB_SWIDTH              ( WB_SWIDTH      )
+    )
+u_interrupt_controller (
     .i_clk                  ( sys_clk        ),
     
     // Interrupt outputs
@@ -464,7 +514,11 @@ interrupt_controller u_interrupt_controller (
     
     assign phy_init_done = 1'd1;
     
-    main_mem u_main_mem (
+    main_mem #(
+                .WB_DWIDTH             ( WB_DWIDTH             ),
+                .WB_SWIDTH             ( WB_SWIDTH             )
+                ) 
+    u_main_mem (
                .i_clk                  ( sys_clk               ),
                .i_mem_ctrl             ( test_mem_ctrl         ),
                .i_wb_adr               ( s_wb_adr  [2]         ),        
@@ -676,7 +730,11 @@ interrupt_controller u_interrupt_controller (
 // -------------------------------------------------------------
 // Instantiate Wishbone Arbiter
 // -------------------------------------------------------------
-wishbone_arbiter u_wishbone_arbiter (
+wishbone_arbiter #(
+    .WB_DWIDTH              ( WB_DWIDTH         ),
+    .WB_SWIDTH              ( WB_SWIDTH         )
+    )
+u_wishbone_arbiter (
     .i_wb_clk               ( sys_clk           ),
 
     // WISHBONE master 0 - Ethmac
@@ -800,6 +858,59 @@ wishbone_arbiter u_wishbone_arbiter (
     );
 
 
+ethmac_wb #(
+    .WB_DWIDTH              ( WB_DWIDTH         ),
+    .WB_SWIDTH              ( WB_SWIDTH         )
+    )
+u_ethmac_wb (
+    // Wishbone arbiter side
+    .o_m_wb_adr             ( m_wb_adr   [0]    ),
+    .o_m_wb_sel             ( m_wb_sel   [0]    ),
+    .o_m_wb_we              ( m_wb_we    [0]    ),
+    .i_m_wb_rdat            ( m_wb_dat_r [0]    ),
+    .o_m_wb_wdat            ( m_wb_dat_w [0]    ),
+    .o_m_wb_cyc             ( m_wb_cyc   [0]    ),
+    .o_m_wb_stb             ( m_wb_stb   [0]    ),
+    .i_m_wb_ack             ( m_wb_ack   [0]    ),
+    .i_m_wb_err             ( m_wb_err   [0]    ),
+
+    // Wishbone arbiter side
+    .i_s_wb_adr             ( s_wb_adr   [0]    ),
+    .i_s_wb_sel             ( s_wb_sel   [0]    ),
+    .i_s_wb_we              ( s_wb_we    [0]    ),
+    .i_s_wb_cyc             ( s_wb_cyc   [0]    ),
+    .i_s_wb_stb             ( s_wb_stb   [0]    ),
+    .o_s_wb_ack             ( s_wb_ack   [0]    ),
+    .i_s_wb_wdat            ( s_wb_dat_w [0]    ),
+    .o_s_wb_rdat            ( s_wb_dat_r [0]    ),
+    .o_s_wb_err             ( s_wb_err   [0]    ),
+
+    // Ethmac side
+    .i_m_wb_adr             ( emm_wb_adr        ),
+    .i_m_wb_sel             ( emm_wb_sel        ),
+    .i_m_wb_we              ( emm_wb_we         ),
+    .o_m_wb_rdat            ( emm_wb_rdat       ),
+    .i_m_wb_wdat            ( emm_wb_wdat       ),
+    .i_m_wb_cyc             ( emm_wb_cyc        ),
+    .i_m_wb_stb             ( emm_wb_stb        ),
+    .o_m_wb_ack             ( emm_wb_ack        ),
+    .o_m_wb_err             ( emm_wb_err        ),
+
+    // Ethmac side
+    .o_s_wb_adr             ( ems_wb_adr        ),
+    .o_s_wb_sel             ( ems_wb_sel        ),
+    .o_s_wb_we              ( ems_wb_we         ),
+    .i_s_wb_rdat            ( ems_wb_rdat       ),
+    .o_s_wb_wdat            ( ems_wb_wdat       ),
+    .o_s_wb_cyc             ( ems_wb_cyc        ),
+    .o_s_wb_stb             ( ems_wb_stb        ),
+    .i_s_wb_ack             ( ems_wb_ack        ),
+    .i_s_wb_err             ( ems_wb_err        )
+);
+
+
+
 
 endmodule
+
 

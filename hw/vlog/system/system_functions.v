@@ -1,13 +1,12 @@
-/*****************************************************************
+//////////////////////////////////////////////////////////////////
 //                                                              //
-//  Amber 2 Core Cache Test                                     //
+//  Functions for Amber 2 System                                //
 //                                                              //
 //  This file is part of the Amber project                      //
 //  http://www.opencores.org/project,amber                      //
 //                                                              //
 //  Description                                                 //
-//  Tests simple interaction between cached data and uncached   //
-//  instruction accesses.                                       //
+//  Functions used in more than one module                      //
 //                                                              //
 //  Author(s):                                                  //
 //      - Conor Santifort, csantifort.amber@gmail.com           //
@@ -37,65 +36,26 @@
 // Public License along with this source; if not, download it   //
 // from http://www.opencores.org/lgpl.shtml                     //
 //                                                              //
-*****************************************************************/
-
-#include "amber_registers.h"
-
-	.section .text
-	.globl	main        
-main:
-        @ ---------------------
-        @ Enable the cache
-        @ ---------------------
-        mov     r0,  #0xffffffff
-	mcr	15, 0, r0, cr3, cr0, 0   @ cacheable area
-        mov     r0,  #1
-	mcr	15, 0, r0, cr2, cr0, 0   @ cache enable
-        nop
-        nop
-
-        mov     r1, #27
-        ldr     r2, AdrData
-        nop
-        nop
-        nop
-        str     r1, [r2]
-        
-        nop
-        nop
-        nop
-        
-        ldr     r3, [r2]
-        cmp     r1, r3
-        
-        movne   r10, #10
-        bne     testfail
-                
-        b       testpass
-@ ------------------------------------------        
-@ ------------------------------------------        
-
-testfail:
-        ldr     r11, AdrTestStatus
-        str     r10, [r11]
-        b       testfail
-        
-testpass:             
-        ldr     r11, AdrTestStatus
-        mov     r10, #17
-        str     r10, [r11]
-        b       testpass
+//////////////////////////////////////////////////////////////////
 
 
+// ========================================================
+// 32-bit Endian switch
+// ========================================================
+function [31:0] endian_x32;
+input [31:0] data;
+    begin
+    endian_x32 = {data[7:0], data[15:8], data[23:16], data[31:24]};
+    end
+endfunction
 
-/* Write 17 to this address to generate a Test Passed message */
-AdrTestStatus:              .word ADR_AMBER_TEST_STATUS
-Result:                     .word 3300
-AdrData:                    .word Data
-Data:                       .word 0
 
-
-
-/* ========================================================================= */
-/* ========================================================================= */
-        
+// ========================================================
+// 4-bit Endian switch
+// ========================================================
+function [3:0] endian_x4;
+input [3:0] data;
+    begin
+    endian_x4 = {data[0], data[1], data[2], data[3]};
+    end
+endfunction

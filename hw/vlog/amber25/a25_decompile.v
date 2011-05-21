@@ -45,7 +45,7 @@
 module a25_decompile
 (
 input                       i_clk,
-input                       i_access_stall,
+input                       i_core_stall,
 input       [31:0]          i_instruction,
 input                       i_instruction_valid,
 input                       i_instruction_undefined,
@@ -97,7 +97,7 @@ reg                    execute_undefined = 'd0;
 // Delay instruction to Execute stage
 // ========================================================
 always @( posedge i_clk )
-    if ( !i_access_stall && i_instruction_valid )
+    if ( !i_core_stall && i_instruction_valid )
         begin
         execute_instruction <= i_instruction;
         execute_address     <= i_instruction_address;
@@ -109,7 +109,7 @@ always @( posedge i_clk )
 
 
 always @ ( posedge i_clk )
-    if ( !i_access_stall )
+    if ( !i_core_stall )
         execute_valid <= i_instruction_valid;
     
 // ========================================================
@@ -255,7 +255,44 @@ always @ ( posedge i_clk )
 always @( posedge i_clk )
     clk_count <= clk_count + 1'd1;
         
+// =================================================================================
+// Memory Reads and Writes
+// =================================================================================
+
+reg [31:0] tmp_address;
+
+
 always @( posedge i_clk )
+    begin
+    // Data Write    
+    if ( get_1bit_signal(0) && !get_1bit_signal(3) )
+        begin
+        
+        $fwrite(decompile_file, "%09d              write   addr ", clk_count);
+        tmp_address = get_32bit_signal(2);
+        fwrite_hex_drop_zeros(decompile_file, {tmp_address [31:2], 2'd0} );
+                  
+        $fwrite(decompile_file, ", data %08h, be %h", 
+                get_32bit_signal(3),    // u_cache.i_write_data
+                get_4bit_signal (0));   // u_cache.i_byte_enable
+                                       
+        $fwrite(decompile_file, "\n");
+        end
+    
+    // Data Read    
+    if ( get_1bit_signal(4) && !get_1bit_signal(1) )     
+        begin
+        $fwrite(decompile_file, "%09d              read    addr ", clk_count);
+        tmp_address = get_32bit_signal(5);
+        fwrite_hex_drop_zeros(decompile_file, {tmp_address[31:2], 2'd0} );    
+                     
+        $fwrite(decompile_file, ", data %08h to ", get_32bit_signal(4));
+        warmreg(get_4bit_signal(1)); 
+                                      
+        $fwrite(decompile_file, "\n");
+        end
+
+    // instruction
     if ( execute_now )
         begin
         
@@ -382,10 +419,12 @@ always @( posedge i_clk )
             $fwrite( decompile_file,"%08x\n",  pcf(get_reg_val(5'd21)-4'd4) );
             end
         end
-
+    end
+    
+    
 
 always @( posedge i_clk )
-    if ( !i_access_stall )
+    if ( !i_core_stall )
         begin
         interrupt_d1 <= i_interrupt;
         
@@ -422,7 +461,7 @@ always @( posedge i_clk )
         if ( 
              i_pc_sel != 3'd0 && 
              i_pc_wen &&
-             !i_access_stall && 
+             !i_core_stall && 
              i_instruction_execute && 
              i_interrupt == 3'd0 &&
              !execute_undefined &&
@@ -437,44 +476,6 @@ always @( posedge i_clk )
             $fwrite(decompile_file,", r0 %08h, ",  get_reg_val ( 5'd0 ));
             $fwrite(decompile_file,"r1 %08h\n",    get_reg_val ( 5'd1 ));
             end
-
-// =================================================================================
-// Memory Reads and Writes
-// =================================================================================
-
-reg [31:0] tmp_address;
-
-    // Data access
-always @( posedge i_clk )
-    begin
-    // Data Write    
-    if ( get_1bit_signal(0) && !get_1bit_signal(3) )
-        begin
-        
-        $fwrite(decompile_file, "%09d              write   addr ", clk_count);
-        tmp_address = get_32bit_signal(2);
-        fwrite_hex_drop_zeros(decompile_file, {tmp_address [31:2], 2'd0} );
-                  
-        $fwrite(decompile_file, ", data %08h, be %h", 
-                get_32bit_signal(3),    // u_cache.i_write_data
-                get_4bit_signal (0));   // u_cache.i_byte_enable
-                                       
-        $fwrite(decompile_file, "\n");
-        end
-    
-    // Data Read    
-    if ( get_1bit_signal(4) && !get_1bit_signal(1) )     
-        begin
-        $fwrite(decompile_file, "%09d              read    addr ", clk_count);
-        tmp_address = get_32bit_signal(5);
-        fwrite_hex_drop_zeros(decompile_file, {tmp_address[31:2], 2'd0} );    
-                     
-        $fwrite(decompile_file, ", data %08h to ", get_32bit_signal(4));
-        warmreg(get_4bit_signal(1)); 
-                                      
-        $fwrite(decompile_file, "\n");
-        end
-    end
 
 
 // =================================================================================
@@ -843,7 +844,7 @@ begin
         3'd0: get_1bit_signal = `U_EXECUTE.o_write_enable;
         3'd1: get_1bit_signal = `U_AMBER.mem_stall;
         3'd2: get_1bit_signal = `U_EXECUTE.o_daddress_valid;
-        3'd3: get_1bit_signal = `U_AMBER.access_stall;
+        3'd3: get_1bit_signal = `U_AMBER.core_stall;
         3'd4: get_1bit_signal = `U_WB.mem_read_data_valid_r;
     endcase
 end

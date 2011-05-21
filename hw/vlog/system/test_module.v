@@ -41,17 +41,20 @@
 //////////////////////////////////////////////////////////////////
 
 
-module test_module (
+module test_module   #(
+parameter WB_DWIDTH  = 32,
+parameter WB_SWIDTH  = 4
+)(
 input                       i_clk,
 
 output                      o_irq,
 output                      o_firq,
 output                      o_mem_ctrl,  // 0=128MB, 1=32MB
 input       [31:0]          i_wb_adr,
-input       [3:0]           i_wb_sel,
+input       [WB_SWIDTH-1:0] i_wb_sel,
 input                       i_wb_we,
-output      [31:0]          o_wb_dat,
-input       [31:0]          i_wb_dat,
+output      [WB_DWIDTH-1:0] o_wb_dat,
+input       [WB_DWIDTH-1:0] i_wb_dat,
 input                       i_wb_cyc,
 input                       i_wb_stb,
 output                      o_wb_ack,
@@ -83,7 +86,8 @@ reg [31:0]      cycles_reg          = 'd0;
 wire            wb_start_write;
 wire            wb_start_read;
 reg             wb_start_read_d1    = 'd0;
-reg  [31:0]     wb_rdata            = 'd0;
+reg  [31:0]     wb_rdata32          = 'd0;
+wire [31:0]     wb_wdata32;
 
 // Can't start a write while a read is completing. The ack for the read cycle
 // needs to be sent first
@@ -95,8 +99,25 @@ always @( posedge i_clk )
 
 assign o_wb_ack   = i_wb_stb && ( wb_start_write || wb_start_read_d1 );
 assign o_wb_err   = 1'd0;
-assign o_wb_dat   = wb_rdata;
 assign o_mem_ctrl = mem_ctrl_reg;
+
+
+generate
+if (WB_DWIDTH == 128) 
+    begin : wb128
+    assign wb_wdata32   = i_wb_adr[3:2] == 2'd3 ? i_wb_dat[127:96] :
+                          i_wb_adr[3:2] == 2'd2 ? i_wb_dat[ 95:64] :
+                          i_wb_adr[3:2] == 2'd1 ? i_wb_dat[ 63:32] :
+                                                  i_wb_dat[ 31: 0] ;
+                                                                                                                                            
+    assign o_wb_dat    = {4{wb_rdata32}};
+    end
+else
+    begin : wb32
+    assign wb_wdata32  = i_wb_dat;
+    assign o_wb_dat    = wb_rdata32;
+    end
+endgenerate
 
 // ========================================================
 // Register Reads
@@ -104,42 +125,42 @@ assign o_mem_ctrl = mem_ctrl_reg;
 always @( posedge i_clk )
     if ( wb_start_read )
         case ( i_wb_adr[15:0] )
-            AMBER_TEST_STATUS:           wb_rdata <= test_status_reg;
-            AMBER_TEST_FIRQ_TIMER:       wb_rdata <= {24'd0, firq_timer};
-            AMBER_TEST_IRQ_TIMER:        wb_rdata <= {24'd0, irq_timer};
-            AMBER_TEST_RANDOM_NUM:       wb_rdata <= {24'd0, random_num};
+            AMBER_TEST_STATUS:           wb_rdata32 <= test_status_reg;
+            AMBER_TEST_FIRQ_TIMER:       wb_rdata32 <= {24'd0, firq_timer};
+            AMBER_TEST_IRQ_TIMER:        wb_rdata32 <= {24'd0, irq_timer};
+            AMBER_TEST_RANDOM_NUM:       wb_rdata32 <= {24'd0, random_num};
             
             /* Allow access to the random register over
                a 16-word address range to load a series
                of random numbers using lmd instruction. */
-            AMBER_TEST_RANDOM_NUM00: wb_rdata <= {24'd0, random_num};
-            AMBER_TEST_RANDOM_NUM01: wb_rdata <= {24'd0, random_num};
-            AMBER_TEST_RANDOM_NUM02: wb_rdata <= {24'd0, random_num};
-            AMBER_TEST_RANDOM_NUM03: wb_rdata <= {24'd0, random_num};
-            AMBER_TEST_RANDOM_NUM04: wb_rdata <= {24'd0, random_num};
-            AMBER_TEST_RANDOM_NUM05: wb_rdata <= {24'd0, random_num};
-            AMBER_TEST_RANDOM_NUM06: wb_rdata <= {24'd0, random_num};
-            AMBER_TEST_RANDOM_NUM07: wb_rdata <= {24'd0, random_num};
-            AMBER_TEST_RANDOM_NUM08: wb_rdata <= {24'd0, random_num};
-            AMBER_TEST_RANDOM_NUM09: wb_rdata <= {24'd0, random_num};
-            AMBER_TEST_RANDOM_NUM10: wb_rdata <= {24'd0, random_num};
-            AMBER_TEST_RANDOM_NUM11: wb_rdata <= {24'd0, random_num};
-            AMBER_TEST_RANDOM_NUM12: wb_rdata <= {24'd0, random_num};
-            AMBER_TEST_RANDOM_NUM13: wb_rdata <= {24'd0, random_num};
-            AMBER_TEST_RANDOM_NUM14: wb_rdata <= {24'd0, random_num};
-            AMBER_TEST_RANDOM_NUM15: wb_rdata <= {24'd0, random_num};
+            AMBER_TEST_RANDOM_NUM00: wb_rdata32 <= {24'd0, random_num};
+            AMBER_TEST_RANDOM_NUM01: wb_rdata32 <= {24'd0, random_num};
+            AMBER_TEST_RANDOM_NUM02: wb_rdata32 <= {24'd0, random_num};
+            AMBER_TEST_RANDOM_NUM03: wb_rdata32 <= {24'd0, random_num};
+            AMBER_TEST_RANDOM_NUM04: wb_rdata32 <= {24'd0, random_num};
+            AMBER_TEST_RANDOM_NUM05: wb_rdata32 <= {24'd0, random_num};
+            AMBER_TEST_RANDOM_NUM06: wb_rdata32 <= {24'd0, random_num};
+            AMBER_TEST_RANDOM_NUM07: wb_rdata32 <= {24'd0, random_num};
+            AMBER_TEST_RANDOM_NUM08: wb_rdata32 <= {24'd0, random_num};
+            AMBER_TEST_RANDOM_NUM09: wb_rdata32 <= {24'd0, random_num};
+            AMBER_TEST_RANDOM_NUM10: wb_rdata32 <= {24'd0, random_num};
+            AMBER_TEST_RANDOM_NUM11: wb_rdata32 <= {24'd0, random_num};
+            AMBER_TEST_RANDOM_NUM12: wb_rdata32 <= {24'd0, random_num};
+            AMBER_TEST_RANDOM_NUM13: wb_rdata32 <= {24'd0, random_num};
+            AMBER_TEST_RANDOM_NUM14: wb_rdata32 <= {24'd0, random_num};
+            AMBER_TEST_RANDOM_NUM15: wb_rdata32 <= {24'd0, random_num};
             
             //synopsys translate_off
-            AMBER_TEST_UART_CONTROL:     wb_rdata <= {30'd0, tb_uart_control_reg};
-            AMBER_TEST_UART_STATUS:      wb_rdata <= {30'd0, tb_uart_status_reg};
-            AMBER_TEST_UART_TXD:         wb_rdata <= {24'd0, tb_uart_txd_reg};
+            AMBER_TEST_UART_CONTROL:     wb_rdata32 <= {30'd0, tb_uart_control_reg};
+            AMBER_TEST_UART_STATUS:      wb_rdata32 <= {30'd0, tb_uart_status_reg};
+            AMBER_TEST_UART_TXD:         wb_rdata32 <= {24'd0, tb_uart_txd_reg};
             //synopsys translate_on
             
-            AMBER_TEST_SIM_CTRL:         wb_rdata <= {29'd0, sim_ctrl_reg};
-            AMBER_TEST_MEM_CTRL:         wb_rdata <= {31'd0, mem_ctrl_reg};
+            AMBER_TEST_SIM_CTRL:         wb_rdata32 <= {29'd0, sim_ctrl_reg};
+            AMBER_TEST_MEM_CTRL:         wb_rdata32 <= {31'd0, mem_ctrl_reg};
             
-            AMBER_TEST_CYCLES:           wb_rdata <=  cycles_reg;
-            default:                     wb_rdata <= 32'haabbccdd;
+            AMBER_TEST_CYCLES:           wb_rdata32 <=  cycles_reg;
+            default:                     wb_rdata32 <= 32'haabbccdd;
             
         endcase
 
@@ -178,7 +199,7 @@ assign o_firq = firq_timer == 8'd1;
     // Write 0 to clear it
 always @( posedge i_clk )
     if ( wb_start_write && i_wb_adr[15:0] == AMBER_TEST_FIRQ_TIMER )
-        firq_timer <= i_wb_dat[7:0];
+        firq_timer <= wb_wdata32[7:0];
     else if ( firq_timer > 8'd1 )
         firq_timer <= firq_timer - 1'd1;
 
@@ -190,7 +211,7 @@ always @( posedge i_clk )
     // Write 0 to clear it
 always @( posedge i_clk )
     if ( wb_start_write && i_wb_adr[15:0] == AMBER_TEST_IRQ_TIMER )
-        irq_timer <= i_wb_dat[7:0];
+        irq_timer <= wb_wdata32[7:0];
     else if ( irq_timer > 8'd1 )
         irq_timer <= irq_timer - 1'd1;
 
@@ -203,7 +224,7 @@ always @( posedge i_clk )
 always @( posedge i_clk )
     begin
     if ( wb_start_write && i_wb_adr[15:8] == AMBER_TEST_RANDOM_NUM[15:8] )
-        random_num <= i_wb_dat[7:0];
+        random_num <= wb_wdata32[7:0];
         
     // generate a new random number on every read access
     else if ( wb_start_read && i_wb_adr[15:8] == AMBER_TEST_RANDOM_NUM[15:8] )
@@ -224,7 +245,7 @@ always @( posedge i_clk )
 // ======================================
 always @( posedge i_clk )
     if ( wb_start_write && i_wb_adr[15:0] == AMBER_TEST_STATUS )
-        test_status_reg <= i_wb_dat;  
+        test_status_reg <= wb_wdata32;  
      
 
 // ======================================
@@ -234,20 +255,18 @@ always @( posedge i_clk )
     if ( wb_start_write && i_wb_adr[15:0] == AMBER_TEST_STATUS )
         test_status_set <= 1'd1;     
 
-
 // ======================================
 // Cycles counter
 // ======================================
 always @( posedge i_clk )
     cycles_reg <= cycles_reg + 1'd1;
     
-
 // ======================================
 // Memory Configuration Register Write
 // ======================================
 always @( posedge i_clk )
     if ( wb_start_write && i_wb_adr[15:0] == AMBER_TEST_MEM_CTRL )
-        mem_ctrl_reg <= i_wb_dat[0];     
+        mem_ctrl_reg <= wb_wdata32[0];     
 
 
 // ======================================
@@ -260,11 +279,11 @@ always @( posedge i_clk )
 always @( posedge i_clk )
     begin
     if ( wb_start_write && i_wb_adr[15:0] == AMBER_TEST_UART_CONTROL )
-        tb_uart_control_reg <= i_wb_dat[1:0];  
+        tb_uart_control_reg <= wb_wdata32[1:0];  
         
     if ( wb_start_write && i_wb_adr[15:0] == AMBER_TEST_UART_TXD )
         begin
-        tb_uart_txd_reg   <= i_wb_dat[7:0];
+        tb_uart_txd_reg   <= wb_wdata32[7:0];
         tb_uart_push      <= !tb_uart_push;
         end
     end

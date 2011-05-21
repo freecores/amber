@@ -45,12 +45,17 @@
 // Cache Ways
 // Changing this parameter is the recommended
 // way to change the Amber cache size; 2, 3, 4 and 8 ways are supported.
+//
 //   2 ways -> 8KB  cache
 //   3 ways -> 12KB cache
 //   4 ways -> 16KB cache
 //   8 ways -> 32KB cache
-`define A25_ICACHE_WAYS 4
-`define A25_DCACHE_WAYS 4
+//
+//   e.g. if both caches have 8 ways, the total is 32KB icache + 32KB dcache = 64KB
+
+`define A25_ICACHE_WAYS 2
+`define A25_DCACHE_WAYS 2
+
 
 // --------------------------------------------------------------------
 // Debug switches 

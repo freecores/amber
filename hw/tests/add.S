@@ -39,6 +39,7 @@
 *****************************************************************/
 
 #include "amber_registers.h"
+#include "amber_macros.h"
 
 	.section .text
 	.globl	main        
@@ -48,49 +49,37 @@ main:
         mov     r1, #3
         mov     r2, #1
         add     r3, r1, r2
-        cmp     r3, #4
-        movne   r10, #10
-        bne     testfail        
+        expect  r3, 4, __LINE__
         
 /* 0 + 0 */
         mov     r4, #0
         mov     r5, #0
         add     r6, r5, r4
-        cmp     r6, #0
-        movne   r10, #20
-        bne     testfail
+        expect  r6, 0, __LINE__
         
 /* 0 + -1 */
         mov     r7, #0
         mov     r8, #-1
         add     r9, r7, r8
-        cmp     r9, #-1
-        movne   r10, #30
-        bne     testfail        
+        expect  r9, -1, __LINE__
         
 /* -1 + 0 */
         mov     r1, #-1
         mov     r2, #0
         add     r3, r1, r2
-        cmp     r3, #-1
-        movne   r10, #40
-        bne     testfail
+        expect  r3, -1, __LINE__
         
 /* -1 + -1 */
         mov     r4, #-1
         mov     r5, #-1
         add     r6, r4, r5
-        cmp     r6, #-2
-        movne   r10, #50
-        bne     testfail
+        expect  r6, -2, __LINE__
 
 /* -1 + -255 */
         mov     r7, #-1
         mov     r8, #-255
         add     r9, r7, r8
-        cmp     r9, #-256
-        movne   r10, #60
-        bne     testfail
+        expect  r9, -256, __LINE__
 
 /* 1 + 0x7fffffff */
         ldr     r1, MaxPos
@@ -100,9 +89,8 @@ main:
         /* so if the V flag is Clear then fail */
         bvc     testfail
         ldr     r0, MaxNeg
-        cmp     r0, r3
-        movne   r10, #70
-        bne     testfail
+        compare r0, r3, __LINE__
+
         b       testpass
 
 testfail:

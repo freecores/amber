@@ -45,7 +45,7 @@ module a25_decode
 (
 input                       i_clk,
 input       [31:0]          i_fetch_instruction,
-input                       i_access_stall,                 // stall all stages of the cpu at the same time
+input                       i_core_stall,                   // stall all stages of the Amber core at the same time
 input                       i_irq,                          // interrupt request
 input                       i_firq,                         // Fast interrupt request
 input                       i_dabt,                         // data abort interrupt request
@@ -61,8 +61,6 @@ input                       i_multiply_done,                // multiply unit is 
 // --------------------------------------------------
 // Control signals to execute stage
 // --------------------------------------------------
-// output reg  [4:0]           o_read_data_alignment = 1'd0,  // 2 LSBs of read address used for calculating shift in ldrb ops
-
 output reg  [31:0]          o_imm32 = 'd0,
 output reg  [4:0]           o_imm_shift_amount = 'd0,
 output reg                  o_shift_imm_zero = 'd0,
@@ -166,13 +164,13 @@ localparam [4:0] RST_WAIT1      = 5'd0,
 // Internal signals
 // ========================================================
 wire    [31:0]         instruction;
+wire    [3:0]          type;                    // regop, mem access etc.
 wire                   instruction_iabt;        // abort flag, follows the instruction
 wire                   instruction_adex;        // address exception flag, follows the instruction
 wire    [31:0]         instruction_address;     // instruction virtual address, follows 
                                                 // the instruction
 wire    [7:0]          instruction_iabt_status; // abort status, follows the instruction
 wire    [1:0]          instruction_sel;
-reg     [3:0]          type;
 wire    [3:0]          opcode;
 wire    [7:0]          imm8;
 wire    [31:0]         offset12;
@@ -255,17 +253,21 @@ reg                    adex_reg = 'd0;
 reg     [31:0]         fetch_address_r = 'd0;
 reg     [7:0]          abt_status_reg = 'd0;
 reg     [31:0]         fetch_instruction_r = 'd0;
+reg     [3:0]          fetch_instruction_type_r = 'd0;
 reg     [31:0]         saved_current_instruction = 'd0;
+reg     [3:0]          saved_current_instruction_type = 'd0;
 reg                    saved_current_instruction_iabt = 'd0;          // access abort flag
 reg                    saved_current_instruction_adex = 'd0;          // address exception
 reg     [31:0]         saved_current_instruction_address = 'd0;       // virtual address of abort instruction
 reg     [7:0]          saved_current_instruction_iabt_status = 'd0;   // status of abort instruction
 reg     [31:0]         pre_fetch_instruction = 'd0;
+reg     [3:0]          pre_fetch_instruction_type = 'd0;
 reg                    pre_fetch_instruction_iabt = 'd0;              // access abort flag
 reg                    pre_fetch_instruction_adex = 'd0;              // address exception
 reg     [31:0]         pre_fetch_instruction_address = 'd0;           // virtual address of abort instruction
 reg     [7:0]          pre_fetch_instruction_iabt_status = 'd0;       // status of abort instruction
 reg     [31:0]         hold_instruction = 'd0;
+reg     [3:0]          hold_instruction_type = 'd0;
 reg                    hold_instruction_iabt = 'd0;                   // access abort flag
 reg                    hold_instruction_adex = 'd0;                   // address exception
 reg     [31:0]         hold_instruction_address = 'd0;                // virtual address of abort instruction
@@ -310,6 +312,7 @@ wire                   ldm_status_bits;
 wire                   ldm_flags; 
 wire    [6:0]          load_rd_d1_nxt;
 reg     [6:0]          load_rd_d1 = 'd0;  // MSB is the valid bit
+
 wire                   rn_valid;
 wire                   rm_valid;
 wire                   rs_valid;
@@ -329,7 +332,7 @@ wire                   stm_conflict2a;
 wire                   stm_conflict2b;
 wire                   conflict1;          // Register conflict1 with ldr operation
 wire                   conflict2;          // Register conflict1 with ldr operation
-wire                   conflict;          // Register conflict1 with ldr operation
+wire                   conflict;           // Register conflict1 with ldr operation
 reg                    conflict_r = 'd0;
 reg                    rn_conflict1_r = 'd0;
 reg                    rm_conflict1_r = 'd0;
@@ -392,6 +395,11 @@ assign instruction      =         instruction_sel == 2'd0 ? fetch_instruction_r 
                                   instruction_sel == 2'd1 ? saved_current_instruction :
                                   instruction_sel == 2'd3 ? hold_instruction          :
                                                             pre_fetch_instruction     ;
+                                                            
+assign type             =         instruction_sel == 2'd0 ? fetch_instruction_type_r       :
+                                  instruction_sel == 2'd1 ? saved_current_instruction_type :
+                                  instruction_sel == 2'd3 ? hold_instruction_type          :
+                                                            pre_fetch_instruction_type     ;                                                       
 
 // abort flag
 assign instruction_iabt =         instruction_sel == 2'd0 ? iabt_reg                       :
@@ -414,21 +422,6 @@ assign instruction_adex =         instruction_sel == 2'd0 ? adex_reg            
                                   instruction_sel == 2'd1 ? saved_current_instruction_adex :
                                   instruction_sel == 2'd3 ? hold_instruction_adex          :
                                                             pre_fetch_instruction_adex     ;
-
-// Instruction Decode - Order is important!
-always @*
-    casez ({instruction[27:20], instruction[7:4]})
-        12'b00010?001001 : type = SWAP;
-        12'b000000??1001 : type = MULT;
-        12'b00?????????? : type = REGOP;
-        12'b01?????????? : type = TRANS;   
-        12'b100????????? : type = MTRANS;  
-        12'b101????????? : type = BRANCH; 
-        12'b110????????? : type = CODTRANS;
-        12'b1110???????0 : type = COREGOP;         
-        12'b1110???????1 : type = CORTRANS;       
-        default:           type = SWI;
-    endcase
 
     
 // ========================================================
@@ -551,7 +544,7 @@ assign conflict       = conflict1 || conflict2;
 
 
 always @( posedge i_clk )
-    if ( !i_access_stall )
+    if ( !i_core_stall )
         begin
         conflict_r              <= conflict;
         instruction_execute_r   <= instruction_execute;
@@ -786,9 +779,11 @@ always @*
                 else                     
                     reg_bank_wen_nxt = decode (instruction[15:12]);
                 end
-                
+                            
             if ( !immediate_shift_op )
+                begin
                 barrel_shift_function_nxt  = instruction[6:5];
+                end
                           
             if ( !immediate_shift_op )
                 barrel_shift_data_sel_nxt = 2'd2; // Shift value from Rm register
@@ -937,9 +932,9 @@ always @*
 
         if ( type == BRANCH )
             begin
-            pc_sel_nxt       = 3'd1; // alu_out
-            iaddress_sel_nxt = 4'd1; // alu_out
-            alu_out_sel_nxt  = 4'd1; // Add
+            pc_sel_nxt            = 3'd1; // alu_out
+            iaddress_sel_nxt      = 4'd1; // alu_out
+            alu_out_sel_nxt       = 4'd1; // Add
             
             if ( instruction[24] ) // Link
                 begin
@@ -1559,11 +1554,12 @@ assign instruction_valid = ((control_state == EXECUTE || control_state == PRE_FE
 // Register Update
 // ========================================================
 always @ ( posedge i_clk )
-    if ( !i_access_stall ) 
+    if ( !i_core_stall ) 
         begin        
         if (!conflict)
             begin                                                                                                  
             fetch_instruction_r         <= i_fetch_instruction;
+            fetch_instruction_type_r    <= instruction_type(i_fetch_instruction);
             fetch_address_r             <= i_execute_iaddress;
             iabt_reg                    <= i_iabt;
             adex_reg                    <= i_adex;
@@ -1630,7 +1626,7 @@ always @ ( posedge i_clk )
 
 
 always @ ( posedge i_clk )
-    if ( !i_access_stall )
+    if ( !i_core_stall )
         begin
         // sometimes this is a pre-fetch instruction
         // e.g. two ldr instructions in a row. The second ldr will be saved
@@ -1640,6 +1636,7 @@ always @ ( posedge i_clk )
         if      ( type == MTRANS )
             begin           
             saved_current_instruction              <= mtrans_instruction_nxt;
+            saved_current_instruction_type         <= type;
             saved_current_instruction_iabt         <= instruction_iabt;
             saved_current_instruction_adex         <= instruction_adex;
             saved_current_instruction_address      <= instruction_address;
@@ -1648,6 +1645,7 @@ always @ ( posedge i_clk )
         else if ( saved_current_instruction_wen ) 
             begin           
             saved_current_instruction              <= instruction;
+            saved_current_instruction_type         <= type;
             saved_current_instruction_iabt         <= instruction_iabt;
             saved_current_instruction_adex         <= instruction_adex;
             saved_current_instruction_address      <= instruction_address;
@@ -1657,13 +1655,17 @@ always @ ( posedge i_clk )
         if      ( pre_fetch_instruction_wen )     
             begin
             pre_fetch_instruction                  <= fetch_instruction_r;      
+            pre_fetch_instruction_type             <= fetch_instruction_type_r;      
             pre_fetch_instruction_iabt             <= iabt_reg; 
             pre_fetch_instruction_adex             <= adex_reg; 
             pre_fetch_instruction_address          <= fetch_address_r; 
             pre_fetch_instruction_iabt_status      <= abt_status_reg; 
             end
-                  
+        
+        
+        // TODO possible to use saved_current_instruction instead and save some regs?          
         hold_instruction              <= instruction;
+        hold_instruction_type         <= type;
         hold_instruction_iabt         <= instruction_iabt;
         hold_instruction_adex         <= instruction_adex;
         hold_instruction_address      <= instruction_address;
@@ -1673,7 +1675,7 @@ always @ ( posedge i_clk )
 
         
 always @ ( posedge i_clk )
-    if ( !i_access_stall )
+    if ( !i_core_stall )
         begin
         irq   <= i_irq;  
         firq  <= i_firq; 
@@ -1702,7 +1704,7 @@ assign dabt = dabt_reg || i_dabt;
 
 a25_decompile  u_decompile (
     .i_clk                      ( i_clk                            ),
-    .i_access_stall             ( i_access_stall                   ),
+    .i_core_stall               ( i_core_stall                     ),
     .i_instruction              ( instruction                      ),
     .i_instruction_valid        ( instruction_valid &&!conflict    ),
     .i_instruction_execute      ( instruction_execute              ),

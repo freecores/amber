@@ -39,6 +39,7 @@
 *****************************************************************/
 
 #include "amber_registers.h"
+#include "amber_macros.h"
 
 	.section .text
 	.globl	main        
@@ -55,15 +56,10 @@ main:
         @ check that overflow flag has been set
         mov     r5, pc
         and     r5, r5, #0xf0000000 @ clear non-flag bits
-        cmp     r5,     #0x90000000 @ negative and overflow flags set
-        movne   r10, #10
-        bne     testfail
+        expect  r5, 0x90000000, __LINE__
         
-        @ check the result
-        cmp     r8, r4
-        movne   r10, #20
-        bne     testfail
-        
+        @ fail if r4 not equal to r8
+        compare r8, r4, __LINE__
         
         b       testpass
         

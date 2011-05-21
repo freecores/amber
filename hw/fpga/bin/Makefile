@@ -93,7 +93,7 @@ ifdef VIRTEX6
 else
     # The spartan6 device used on SP605 Development board
     XILINX_FPGA     = xc6slx45tfgg484-3
-    XST_DEFINES     = XILINX_FPGA XILINX_SPARTAN6_FPGA $(AMBER_CORE) AMBER_CLK_DIVIDER=20
+    XST_DEFINES     = XILINX_FPGA XILINX_SPARTAN6_FPGA $(AMBER_CORE) AMBER_CLK_DIVIDER=18
     # Xilinx placement and timing constraints
     XST_CONST_FILE  = xs6_constraints.ucf
     # List of verilog source files for Xilinx Spartan-6 device
@@ -201,7 +201,7 @@ trce : $(WORK_FOLDER)/$(RTL_TOP).trc.twr
 $(WORK_FOLDER)/$(RTL_TOP).trc.twr : $(WORK_FOLDER)/$(RTL_TOP).ncd
 	\
 	cd $(WORK_FOLDER); \
-	trce -v 20 -l 20 -n 5 -xml $(RTL_TOP) $(RTL_TOP).ncd \
+	trce -v 5 -l 5 -n 5 -xml $(RTL_TOP) $(RTL_TOP).ncd \
           -o $(WORK_FOLDER)/$(RTL_TOP).trc.twr \
           $(RTL_TOP).pcf 
 	cp $(WORK_FOLDER)/$(RTL_TOP).trc.twr $(LOG_FOLDER)/$(RTL_TOP).trc.$(RUN_ID).twr
@@ -245,7 +245,6 @@ $(WORK_FOLDER)/$(RTL_TOP).map.ncd : $(WORK_FOLDER)/$(RTL_TOP).ngd
           -detail                 \
           -timing                 \
           -register_duplication   \
-          -global_opt off         \
           -lc auto                \
           -xe c -mt off -ir off   \
           -pr off  -power off     \

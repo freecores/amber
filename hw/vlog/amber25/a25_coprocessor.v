@@ -41,7 +41,7 @@
 module a25_coprocessor
 (
 input                       i_clk,
-input                       i_access_stall,   // stall all stages of the cpu at the same time
+input                       i_core_stall,     // stall all stages of the Amber core at the same time
 input       [2:0]           i_copro_opcode1,
 input       [2:0]           i_copro_opcode2,
 input       [3:0]           i_copro_crn,      // Register Number 
@@ -98,7 +98,7 @@ assign o_cacheable_area = cacheable_area;
 // Capture an access fault address and status
 // ---------------------------
 always @ ( posedge i_clk )
-    if ( !i_access_stall )
+    if ( !i_core_stall )
         begin
         if ( i_fault )
             begin
@@ -117,7 +117,7 @@ always @ ( posedge i_clk )
 // Register Writes
 // ---------------------------
 always @ ( posedge i_clk )
-    if ( !i_access_stall )         
+    if ( !i_core_stall )         
         begin
         if ( i_copro_operation == 2'd2 )
             case ( i_copro_crn )
@@ -129,14 +129,14 @@ always @ ( posedge i_clk )
         end
 
 // Flush the cache
-assign copro15_reg1_write = !i_access_stall && i_copro_operation == 2'd2 && i_copro_crn == 4'd1;
+assign copro15_reg1_write = !i_core_stall && i_copro_operation == 2'd2 && i_copro_crn == 4'd1;
 
 
 // ---------------------------
 // Register Reads   
 // ---------------------------
 always @ ( posedge i_clk )        
-    if ( !i_access_stall )
+    if ( !i_core_stall )
         case ( i_copro_crn )
             // ID Register - [31:24] Company id, [23:16] Manuf id, [15:8] Part type, [7:0] revision
             4'd0:    o_copro_read_data <= 32'h4156_0300;
@@ -161,14 +161,14 @@ reg [1:0]  copro_operation_d1;
 reg [3:0]  copro_crn_d1;
 
 always @( posedge i_clk )
-    if ( !i_access_stall )
+    if ( !i_core_stall )
         begin
         copro_operation_d1  <= i_copro_operation;
         copro_crn_d1        <= i_copro_crn;
         end
 
 always @( posedge i_clk )
-    if ( !i_access_stall )
+    if ( !i_core_stall )
         begin
         if ( i_copro_operation == 2'd2 )  // mcr
             case ( i_copro_crn )

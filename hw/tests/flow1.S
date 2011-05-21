@@ -67,7 +67,7 @@ main:
         ldm     r0,  {r1-r5}
         @ second stm will be to cached memory
         stm     r13, {r1-r5}
-        @ load it back from the cache to check thaat
+        @ load it back from the cache to check that
         @ it was written to the cache correctly
         ldm     r13, {r6-r10}
         cmp     r1, r6

@@ -53,10 +53,10 @@ input                       i_system_rdy,       // Amber is stalled when this is
 
 // Wishbone Master I/F
 output      [31:0]          o_wb_adr,
-output      [3:0]           o_wb_sel,
+output      [15:0]          o_wb_sel,
 output                      o_wb_we,
-input       [31:0]          i_wb_dat,
-output      [31:0]          o_wb_dat,
+input       [127:0]         i_wb_dat,
+output      [127:0]         o_wb_dat,
 output                      o_wb_cyc,
 output                      o_wb_stb,
 input                       i_wb_ack,
@@ -86,7 +86,8 @@ wire      [31:0]          cacheable_area;
 
 wire                      fetch_stall; 
 wire                      mem_stall; 
-wire                      access_stall; 
+wire                      exec_stall; 
+wire                      core_stall; 
 
 wire     [1:0]            status_bits_mode;               
 wire                      status_bits_irq_mask;           
@@ -105,7 +106,7 @@ wire     [3:0]            condition;
 wire     [3:0]            rm_sel;                  
 wire     [3:0]            rs_sel;                 
 wire     [7:0]            decode_load_rd;                 
-wire     [7:0]            exec_load_rd;                 
+wire     [8:0]            exec_load_rd;                 
 wire     [3:0]            rn_sel;                  
 wire     [1:0]            barrel_shift_amount_sel; 
 wire     [1:0]            barrel_shift_data_sel;   
@@ -154,27 +155,27 @@ wire                      adex;
 
 wire     [31:0]           mem_read_data;
 wire                      mem_read_data_valid;
-wire     [9:0]            mem_load_rd;  
+wire     [10:0]           mem_load_rd;  
 
 wire     [31:0]           wb_read_data;
 wire                      wb_read_data_valid;
-wire     [9:0]            wb_load_rd;  
+wire     [10:0]           wb_load_rd;  
                
 wire                      dcache_wb_cached_req;
 wire                      dcache_wb_uncached_req;
 wire                      dcache_wb_qword;
 wire                      dcache_wb_write;
-wire     [3:0]            dcache_wb_byte_enable;
+wire     [15:0]           dcache_wb_byte_enable;
 wire     [31:0]           dcache_wb_address;
-wire     [31:0]           dcache_wb_read_data;
-wire     [31:0]           dcache_wb_write_data;
+wire     [127:0]          dcache_wb_cached_rdata;
+wire     [127:0]          dcache_wb_uncached_rdata;
+wire     [127:0]          dcache_wb_write_data;
 wire                      dcache_wb_cached_ready;
 wire                      dcache_wb_uncached_ready;
 wire     [31:0]           icache_wb_address;
 wire                      icache_wb_req;
-wire                      icache_wb_qword;
 wire     [31:0]           icache_wb_adr; 
-wire     [31:0]           icache_wb_read_data; 
+wire     [127:0]          icache_wb_read_data; 
 wire                      icache_wb_ready;
 
 wire                      conflict;
@@ -188,7 +189,7 @@ assign decode_fault_status  = dabt_trigger ? dabt_fault_status  : iabt_fault_sta
 assign decode_fault_address = dabt_trigger ? dabt_fault_address : iabt_fault_address;
 assign decode_fault         = dabt_trigger | iabt_trigger;
 
-assign access_stall         = fetch_stall || mem_stall;
+assign core_stall           = fetch_stall || mem_stall || exec_stall;
 
 // ======================================
 //  Fetch Stage
@@ -196,6 +197,7 @@ assign access_stall         = fetch_stall || mem_stall;
 a25_fetch u_fetch (
     .i_clk                              ( i_clk                             ),
     .i_mem_stall                        ( mem_stall                         ),
+    .i_exec_stall                       ( exec_stall                        ),
     .i_conflict                         ( conflict                          ),
     .i_system_rdy                       ( i_system_rdy                      ),
     .o_fetch_stall                      ( fetch_stall                       ),
@@ -208,9 +210,7 @@ a25_fetch u_fetch (
     .i_cache_flush                      ( cache_flush                       ), 
     .i_cacheable_area                   ( cacheable_area                    ),
 
-
     .o_wb_req                           ( icache_wb_req                     ),
-    .o_wb_qword                         ( icache_wb_qword                   ),
     .o_wb_address                       ( icache_wb_address                 ),
     .i_wb_read_data                     ( icache_wb_read_data               ),
     .i_wb_ready                         ( icache_wb_ready                   )
@@ -222,8 +222,8 @@ a25_fetch u_fetch (
 // ======================================
 a25_decode u_decode (
     .i_clk                              ( i_clk                             ),
-    .i_access_stall                     ( access_stall                      ),                                          
-    
+    .i_core_stall                       ( core_stall                        ),                                          
+        
     // Instruction fetch or data read signals
     .i_fetch_instruction                ( fetch_instruction                 ),   
     .i_execute_iaddress                 ( execute_iaddress                  ),
@@ -303,8 +303,9 @@ a25_decode u_decode (
 // ======================================
 a25_execute u_execute (
     .i_clk                              ( i_clk                             ),
-    .i_access_stall                     ( access_stall                      ),   
+    .i_core_stall                       ( core_stall                        ),   
     .i_mem_stall                        ( mem_stall                         ),   
+    .o_exec_stall                       ( exec_stall                        ),
       
     .i_wb_read_data                     ( wb_read_data                      ),      
     .i_wb_read_data_valid               ( wb_read_data_valid                ),
@@ -381,6 +382,7 @@ a25_execute u_execute (
 a25_mem u_mem (
     .i_clk                              ( i_clk                             ),
     .i_fetch_stall                      ( fetch_stall                       ),
+    .i_exec_stall                       ( exec_stall                        ),
     .o_mem_stall                        ( mem_stall                         ),
     
     .i_daddress                         ( execute_daddress                  ),
@@ -407,9 +409,10 @@ a25_mem u_mem (
     .o_wb_write_data                    ( dcache_wb_write_data              ),
     .o_wb_byte_enable                   ( dcache_wb_byte_enable             ),
     .o_wb_address                       ( dcache_wb_address                 ),      
-    .i_wb_read_data                     ( dcache_wb_read_data               ),      
     .i_wb_cached_ready                  ( dcache_wb_cached_ready            ),
-    .i_wb_uncached_ready                ( dcache_wb_uncached_ready          )
+    .i_wb_cached_rdata                  ( dcache_wb_cached_rdata            ),
+    .i_wb_uncached_ready                ( dcache_wb_uncached_ready          ),
+    .i_wb_uncached_rdata                ( dcache_wb_cached_rdata            )
 );
 
 
@@ -431,9 +434,10 @@ a25_write_back u_write_back (
     .o_wb_read_data_valid               ( wb_read_data_valid                ),
     .o_wb_load_rd                       ( wb_load_rd                        )
 );
-
-
-
+ 
+ 
+ 
+ 
 // ======================================
 //  Wishbone Master I/F
 // ======================================
@@ -441,26 +445,34 @@ a25_wishbone u_wishbone (
     // CPU Side
     .i_clk                              ( i_clk                             ),
     
-    // Instruction Cache Accesses
-    .i_icache_req                       ( icache_wb_req                     ),
-    .i_icache_qword                     ( icache_wb_qword                   ),
-    .i_icache_address                   ( icache_wb_address                 ),
-    .o_icache_read_data                 ( icache_wb_read_data               ),
-    .o_icache_ready                     ( icache_wb_ready                   ),
+    // Port 0 - dcache uncached
+    .i_port0_req                        ( dcache_wb_uncached_req            ),
+    .i_port0_write                      ( dcache_wb_write                   ),
+    .i_port0_wdata                      ( dcache_wb_write_data              ),
+    .i_port0_be                         ( dcache_wb_byte_enable             ),
+    .i_port0_addr                       ( dcache_wb_address                 ),
+    .o_port0_rdata                      ( dcache_wb_uncached_rdata          ),
+    .o_port0_ready                      ( dcache_wb_uncached_ready          ),
 
-    // Data Cache Accesses 
-    .i_exclusive                        ( exclusive                         ), 
-    .i_dcache_cached_req                ( dcache_wb_cached_req              ),
-    .i_dcache_uncached_req              ( dcache_wb_uncached_req            ),
-    .i_dcache_qword                     ( dcache_wb_qword                   ),
-    .i_dcache_write                     ( dcache_wb_write                   ),
-    .i_dcache_write_data                ( dcache_wb_write_data              ),
-    .i_dcache_byte_enable               ( dcache_wb_byte_enable             ),
-    .i_dcache_address                   ( dcache_wb_address                 ),   
-    .o_dcache_read_data                 ( dcache_wb_read_data               ),   
-    .o_dcache_cached_ready              ( dcache_wb_cached_ready            ),
-    .o_dcache_uncached_ready            ( dcache_wb_uncached_ready          ),
+    // Port 1 - dcache cached
+    .i_port1_req                        ( dcache_wb_cached_req              ),
+    .i_port1_write                      ( dcache_wb_write                   ),
+    .i_port1_wdata                      ( dcache_wb_write_data              ),
+    .i_port1_be                         ( dcache_wb_byte_enable             ),
+    .i_port1_addr                       ( dcache_wb_address                 ),
+    .o_port1_rdata                      ( dcache_wb_cached_rdata            ),
+    .o_port1_ready                      ( dcache_wb_cached_ready            ),
 
+    // Port 2 - instruction cache accesses, read only
+    .i_port2_req                        ( icache_wb_req                     ),
+    .i_port2_write                      ( 1'd0                              ),
+    .i_port2_wdata                      ( 128'd0                            ),
+    .i_port2_be                         ( 16'd0                             ),
+    .i_port2_addr                       ( icache_wb_address                 ),
+    .o_port2_rdata                      ( icache_wb_read_data               ),
+    .o_port2_ready                      ( icache_wb_ready                   ),
+
+    // Wishbone
     .o_wb_adr                           ( o_wb_adr                          ),
     .o_wb_sel                           ( o_wb_sel                          ),
     .o_wb_we                            ( o_wb_we                           ),
@@ -473,13 +485,12 @@ a25_wishbone u_wishbone (
 );
 
 
-
 // ======================================
 //  Co-Processor #15
 // ======================================
 a25_coprocessor u_coprocessor (
     .i_clk                              ( i_clk                             ),
-    .i_access_stall                     ( access_stall                      ),
+    .i_core_stall                       ( core_stall                        ),
     
     .i_copro_opcode1                    ( copro_opcode1                     ),
     .i_copro_opcode2                    ( copro_opcode2                     ),

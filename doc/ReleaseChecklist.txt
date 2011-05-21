@@ -1,0 +1,7 @@
+1. Run all tests using both A23 and A25 using all cache size configurations.
+2. Synthesise both a23 and a25 cores. 
+   Both cores must pass timing; Spartan6 at 40MHz, Virtex6 at 80Mhz, with max caches
+   Check all synthesis warnings, clean up as many as possible.
+   
+
+

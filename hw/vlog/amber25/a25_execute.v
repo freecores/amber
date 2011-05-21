@@ -45,12 +45,13 @@
 module a25_execute (
 
 input                       i_clk,
-input                       i_access_stall,             // stall all stages of the cpu at the same time
+input                       i_core_stall,               // stall all stages of the Amber core at the same time
 input                       i_mem_stall,                // data memory access stalls
+output                      o_exec_stall,               // stall the core pipeline
 
 input       [31:0]          i_wb_read_data,             // data reads
 input                       i_wb_read_data_valid,       // read data is valid
-input       [9:0]           i_wb_load_rd,               // Rd for data reads
+input       [10:0]          i_wb_load_rd,               // Rd for data reads
 
 input       [31:0]          i_copro_read_data,          // From Co-Processor, to either Register 
                                                         // or Memory
@@ -73,7 +74,7 @@ output reg                  o_priviledged = 'd0,        // Priviledged access
 output reg                  o_exclusive = 'd0,          // swap access
 output reg                  o_write_enable = 'd0,
 output reg  [3:0]           o_byte_enable = 'd0,
-output reg  [7:0]           o_exec_load_rd = 'd0,       // The destination register for a load instruction
+output reg  [8:0]           o_exec_load_rd = 'd0,       // The destination register for a load instruction
 output      [31:0]          o_status_bits,              // Full PC will all status bits, but PC part zero'ed out
 output                      o_multiply_done,
 
@@ -156,6 +157,7 @@ wire [7:0]          shift_amount;
 wire [31:0]         barrel_shift_in;
 wire [31:0]         barrel_shift_out;
 wire                barrel_shift_carry;
+wire                barrel_shift_stall;
 
 wire [3:0]          status_bits_flags_nxt;
 reg  [3:0]          status_bits_flags = 'd0;
@@ -169,6 +171,7 @@ wire                status_bits_irq_mask_nxt;
 reg                 status_bits_irq_mask = 1'd1;
 wire                status_bits_firq_mask_nxt;
 reg                 status_bits_firq_mask = 1'd1;
+wire [8:0]          exec_load_rd_nxt;
 
 wire                execute;                    // high when condition execution is true
 wire [31:0]         reg_write_nxt;
@@ -224,8 +227,8 @@ assign o_status_bits = {   status_bits_flags,           // 31:28
 // ========================================================
 // Status Bits Select
 // ========================================================
-assign ldm_flags                 = i_wb_read_data_valid & ~i_mem_stall & i_wb_load_rd[7];
-assign ldm_status_bits           = i_wb_read_data_valid & ~i_mem_stall & i_wb_load_rd[6];
+assign ldm_flags                 = i_wb_read_data_valid & ~i_mem_stall & i_wb_load_rd[8];
+assign ldm_status_bits           = i_wb_read_data_valid & ~i_mem_stall & i_wb_load_rd[7];
 
 
 assign status_bits_flags_nxt     = ldm_flags                 ? read_data_filtered[31:28]           :
@@ -348,16 +351,16 @@ assign adex_nxt      = |o_iaddress_nxt[31:26] && i_decode_iaccess;
 // ========================================================
 // Filter Read Data
 // ========================================================
-// mem_load_rd[9:8] -> shift ROR bytes
-// mem_load_rd[7]   -> load flags with PC
-// mem_load_rd[6]   -> load status bits with PC
-// mem_load_rd[5]   -> Write into User Mode register
+// mem_load_rd[10:9]-> shift ROR bytes
+// mem_load_rd[8]   -> load flags with PC
+// mem_load_rd[7]   -> load status bits with PC
+// mem_load_rd[6:5] -> Write into this Mode registers
 // mem_load_rd[4]   -> zero_extend byte
 // mem_load_rd[3:0] -> Destination Register 
-assign read_data_filtered1 = i_wb_load_rd[9:8] === 2'd0 ? i_wb_read_data                                 :
-                             i_wb_load_rd[9:8] === 2'd1 ? {i_wb_read_data[7:0],  i_wb_read_data[31:8]}  :
-                             i_wb_load_rd[9:8] === 2'd2 ? {i_wb_read_data[15:0], i_wb_read_data[31:16]} :
-                                                          {i_wb_read_data[23:0], i_wb_read_data[31:24]} ;
+assign read_data_filtered1 = i_wb_load_rd[10:9] === 2'd0 ? i_wb_read_data                                 :
+                             i_wb_load_rd[10:9] === 2'd1 ? {i_wb_read_data[7:0],  i_wb_read_data[31:8]}  :
+                             i_wb_load_rd[10:9] === 2'd2 ? {i_wb_read_data[15:0], i_wb_read_data[31:16]} :
+                                                           {i_wb_read_data[23:0], i_wb_read_data[31:24]} ;
 
 assign read_data_filtered  = i_wb_load_rd[4] ? {24'd0, read_data_filtered1[7:0]} : read_data_filtered1 ; 
 
@@ -456,7 +459,7 @@ assign write_enable_nxt = execute && i_write_data_wen;
 // ========================================================
 // Address Valid
 // ========================================================
-assign daddress_valid_nxt = execute && i_decode_daccess && !i_access_stall;
+assign daddress_valid_nxt = execute && i_decode_daccess && !i_core_stall;
 
 // For some multi-cycle instructions, the stream of instrution
 // reads can be paused. However if the instruction does not execute
@@ -485,34 +488,43 @@ assign load_rd_c            = i_wb_read_data_valid ? i_wb_load_rd[3:0]  : load_r
 
 
 // ========================================================
+// Set mode for the destination registers of a mem read
+// ========================================================
+// The mode is either user mode, or the current mode
+assign  exec_load_rd_nxt   = { i_decode_load_rd[7:6], 
+                               i_decode_load_rd[5] ? USR : status_bits_mode,  // 1 bit -> 2 bits
+                               i_decode_load_rd[4:0] };
+
+                      
+// ========================================================
 // Register Update
 // ========================================================
+assign o_exec_stall                    = barrel_shift_stall;
 
-assign daddress_update                 = !i_access_stall;
-assign exec_load_rd_update             = !i_access_stall && execute;
-assign priviledged_update              = !i_access_stall;       
-assign exclusive_update                = !i_access_stall && execute;
-assign write_enable_update             = !i_access_stall;
-assign write_data_update               = !i_access_stall && execute && i_write_data_wen;
-assign byte_enable_update              = !i_access_stall && execute && i_write_data_wen;
+assign daddress_update                 = !i_core_stall;
+assign exec_load_rd_update             = !i_core_stall && execute;
+assign priviledged_update              = !i_core_stall;       
+assign exclusive_update                = !i_core_stall && execute;
+assign write_enable_update             = !i_core_stall;
+assign write_data_update               = !i_core_stall && execute && i_write_data_wen;
+assign byte_enable_update              = !i_core_stall && execute && i_write_data_wen;
 
-assign iaddress_update                 = pc_dmem_wen || (!i_access_stall && !i_conflict);
-assign copro_write_data_update         = !i_access_stall && execute && i_copro_write_data_wen;
+assign iaddress_update                 = pc_dmem_wen || (!i_core_stall && !i_conflict);
+assign copro_write_data_update         = !i_core_stall && execute && i_copro_write_data_wen;
 
-assign base_address_update             = !i_access_stall && execute && i_base_address_wen; 
-// assign dcache_read_data_update         = !i_mem_stall;
-assign status_bits_flags_update        = ldm_flags       || (!i_access_stall && execute && i_status_bits_flags_wen);
-assign status_bits_mode_update         = ldm_status_bits || (!i_access_stall && execute && i_status_bits_mode_wen);
-assign status_bits_mode_rds_oh_update  = !i_access_stall;
-assign status_bits_irq_mask_update     = ldm_status_bits || (!i_access_stall && execute && i_status_bits_irq_mask_wen);
-assign status_bits_firq_mask_update    = ldm_status_bits || (!i_access_stall && execute && i_status_bits_firq_mask_wen);
+assign base_address_update             = !i_core_stall && execute && i_base_address_wen; 
+assign status_bits_flags_update        = ldm_flags       || (!i_core_stall && execute && i_status_bits_flags_wen);
+assign status_bits_mode_update         = ldm_status_bits || (!i_core_stall && execute && i_status_bits_mode_wen);
+assign status_bits_mode_rds_oh_update  = !i_core_stall;
+assign status_bits_irq_mask_update     = ldm_status_bits || (!i_core_stall && execute && i_status_bits_irq_mask_wen);
+assign status_bits_firq_mask_update    = ldm_status_bits || (!i_core_stall && execute && i_status_bits_firq_mask_wen);
 
 
 always @( posedge i_clk )
     begin                                                                                                             
     o_daddress              <= daddress_update                ? o_daddress_nxt               : o_daddress;    
     o_daddress_valid        <= daddress_update                ? daddress_valid_nxt           : o_daddress_valid;
-    o_exec_load_rd          <= exec_load_rd_update            ? i_decode_load_rd             : o_exec_load_rd;
+    o_exec_load_rd          <= exec_load_rd_update            ? exec_load_rd_nxt             : o_exec_load_rd;
     o_priviledged           <= priviledged_update             ? priviledged_nxt              : o_priviledged;
     o_exclusive             <= exclusive_update               ? i_decode_exclusive           : o_exclusive;
     o_write_enable          <= write_enable_update            ? write_enable_nxt             : o_write_enable;
@@ -532,11 +544,12 @@ always @( posedge i_clk )
     status_bits_firq_mask   <= status_bits_firq_mask_update   ? status_bits_firq_mask_nxt    : status_bits_firq_mask;
     end
 
-
+         
 // ========================================================
 // Instantiate Barrel Shift
 // ========================================================
 a25_barrel_shift u_barrel_shift  (
+    .i_clk            ( i_clk                     ),
     .i_in             ( barrel_shift_in           ),
     .i_carry_in       ( status_bits_flags[1]      ),
     .i_shift_amount   ( shift_amount              ),
@@ -544,7 +557,8 @@ a25_barrel_shift u_barrel_shift  (
     .i_function       ( i_barrel_shift_function   ),
 
     .o_out            ( barrel_shift_out          ),
-    .o_carry_out      ( barrel_shift_carry        )
+    .o_carry_out      ( barrel_shift_carry        ),
+    .o_stall          ( barrel_shift_stall        )
 );
 
 
@@ -568,7 +582,7 @@ a25_alu u_alu (
 // ========================================================
 a25_multiply u_multiply (
     .i_clk          ( i_clk                 ),
-    .i_access_stall ( i_access_stall        ),
+    .i_core_stall   ( i_core_stall          ),
     .i_a_in         ( rs                    ),
     .i_b_in         ( rm                    ),
     .i_function     ( i_multiply_function   ),
@@ -584,7 +598,7 @@ a25_multiply u_multiply (
 // ========================================================
 a25_register_bank u_register_bank(
     .i_clk                   ( i_clk                     ),
-    .i_access_stall          ( i_access_stall            ),
+    .i_core_stall            ( i_core_stall              ),
     .i_mem_stall             ( i_mem_stall               ),
     .i_rm_sel                ( i_rm_sel                  ),
     .i_rs_sel                ( i_rs_sel                  ),
@@ -599,7 +613,7 @@ a25_register_bank u_register_bank(
     .i_wb_read_data          ( read_data_filtered        ),
     .i_wb_read_data_valid    ( i_wb_read_data_valid      ),
     .i_wb_read_data_rd       ( i_wb_load_rd[3:0]         ),
-    .i_wb_user_mode          ( i_wb_load_rd[5]           ),
+    .i_wb_mode               ( i_wb_load_rd[6:5]         ),
 
     .i_status_bits_flags     ( status_bits_flags         ),
     .i_status_bits_irq_mask  ( status_bits_irq_mask      ),
