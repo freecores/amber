@@ -71,7 +71,7 @@ show_usage() {
     echo " -l : Create wlf dump of complete design"
     echo " -nc: Do not re-compile the Verilog. Starts the simulation more quickly"
     echo " -s : Use Xilinx Spatran6 Libraries (slower sim)"
-    echo " -to: Ignore timeout limit for this test"
+    echo " -to <timeout value>: Use this timeout value instead of the value in the timeouts.txt file"
     echo " -v : Use Xilinx Virtex6 Libraries (slower sim)"
     echo " -5 : Use Amber25 core instead of Amber23 core"
     echo ""
@@ -255,7 +255,12 @@ if [ $TEST_TYPE == 1 ]; then
         
     popd > /dev/null
     BOOT_MEM_FILE="../tests/${AMBER_TEST_NAME}.mem"
-    BOOT_MEM_PARAMS_FILE="../tests/${AMBER_TEST_NAME}_memparams.v"
+    
+    if [ $SET_5 == 1 ]; then
+        BOOT_MEM_PARAMS_FILE="../tests/${AMBER_TEST_NAME}_memparams128.v"
+    else
+        BOOT_MEM_PARAMS_FILE="../tests/${AMBER_TEST_NAME}_memparams32.v"
+    fi
     
 elif [ $TEST_TYPE == 2 ]; then
     # sw Stand-alone C test
@@ -264,7 +269,11 @@ elif [ $TEST_TYPE == 2 ]; then
     MAKE_STATUS=$?
     popd > /dev/null
     BOOT_MEM_FILE="../../sw/${AMBER_TEST_NAME}/${AMBER_TEST_NAME}.mem"
-    BOOT_MEM_PARAMS_FILE="../../sw/${AMBER_TEST_NAME}/${AMBER_TEST_NAME}_memparams.v"
+    if [ $SET_5 == 1 ]; then
+        BOOT_MEM_PARAMS_FILE="../../sw/${AMBER_TEST_NAME}/${AMBER_TEST_NAME}_memparams128.v"
+    else
+        BOOT_MEM_PARAMS_FILE="../../sw/${AMBER_TEST_NAME}/${AMBER_TEST_NAME}_memparams32.v"
+    fi
 
 elif [ $TEST_TYPE == 3 ] || [ $TEST_TYPE == 4 ]; then
     # sw test using boot loader
@@ -285,7 +294,11 @@ elif [ $TEST_TYPE == 3 ] || [ $TEST_TYPE == 4 ]; then
     popd > /dev/null
     
     BOOT_MEM_FILE="../../sw/boot-loader/boot-loader.mem"
-    BOOT_MEM_PARAMS_FILE="../../sw/boot-loader/boot-loader_memparams.v"
+    if [ $SET_5 == 1 ]; then
+        BOOT_MEM_PARAMS_FILE="../../sw/boot-loader/boot-loader_memparams128.v"
+    else
+        BOOT_MEM_PARAMS_FILE="../../sw/boot-loader/boot-loader_memparams32.v"
+    fi
     MAIN_MEM_FILE="../../sw/${AMBER_TEST_NAME}/${AMBER_TEST_NAME}.mem"
     AMBER_LOAD_MAIN_MEM="+define+AMBER_LOAD_MAIN_MEM"
 
@@ -303,8 +316,6 @@ fi
 if [ $SET_TO == 0 ]; then
     AMBER_TIMEOUT=`../tools/get_timeout.sh ${AMBER_TEST_NAME}`      
 fi   
-printf '@00001fec %08x\n' $AMBER_TIMEOUT >> ${BOOT_MEM_FILE}
-echo ${AMBER_TEST_NAME} | ../../sw/tools/amber-ascii-mem 1ff0 >> ${BOOT_MEM_FILE}
 
 
 #--------------------------------------------------------

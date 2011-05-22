@@ -339,23 +339,37 @@ assign system_rdy = phy_init_done && !sys_rst;
 // -------------------------------------------------------------
 // Instantiate Boot Memory - 8KBytes of Embedded SRAM
 // -------------------------------------------------------------
-boot_mem #(
-    .WB_DWIDTH              ( WB_DWIDTH       ),
-    .WB_SWIDTH              ( WB_SWIDTH       )
-    )
-u_boot_mem (
-    .i_wb_clk               ( sys_clk         ),
 
-    .i_wb_adr               ( s_wb_adr  [1]   ),
-    .i_wb_sel               ( s_wb_sel  [1]   ),
-    .i_wb_we                ( s_wb_we   [1]   ),
-    .o_wb_dat               ( s_wb_dat_r[1]   ),
-    .i_wb_dat               ( s_wb_dat_w[1]   ),
-    .i_wb_cyc               ( s_wb_cyc  [1]   ),
-    .i_wb_stb               ( s_wb_stb  [1]   ),
-    .o_wb_ack               ( s_wb_ack  [1]   ),
-    .o_wb_err               ( s_wb_err  [1]   )
-);
+generate
+if (WB_DWIDTH == 32) begin : boot_mem32
+    boot_mem32 u_boot_mem (
+        .i_wb_clk               ( sys_clk         ),
+        .i_wb_adr               ( s_wb_adr  [1]   ),
+        .i_wb_sel               ( s_wb_sel  [1]   ),
+        .i_wb_we                ( s_wb_we   [1]   ),
+        .o_wb_dat               ( s_wb_dat_r[1]   ),
+        .i_wb_dat               ( s_wb_dat_w[1]   ),
+        .i_wb_cyc               ( s_wb_cyc  [1]   ),
+        .i_wb_stb               ( s_wb_stb  [1]   ),
+        .o_wb_ack               ( s_wb_ack  [1]   ),
+        .o_wb_err               ( s_wb_err  [1]   )
+    );
+end
+else begin : boot_mem128
+    boot_mem128 u_boot_mem (
+        .i_wb_clk               ( sys_clk         ),
+        .i_wb_adr               ( s_wb_adr  [1]   ),
+        .i_wb_sel               ( s_wb_sel  [1]   ),
+        .i_wb_we                ( s_wb_we   [1]   ),
+        .o_wb_dat               ( s_wb_dat_r[1]   ),
+        .i_wb_dat               ( s_wb_dat_w[1]   ),
+        .i_wb_cyc               ( s_wb_cyc  [1]   ),
+        .i_wb_stb               ( s_wb_stb  [1]   ),
+        .o_wb_ack               ( s_wb_ack  [1]   ),
+        .o_wb_err               ( s_wb_err  [1]   )
+    );
+end
+endgenerate
 
 
 // -------------------------------------------------------------
@@ -540,7 +554,11 @@ u_interrupt_controller (
     // Instantiate Wishbone to Xilinx Spartan-6 DDR3 Bridge
     // -------------------------------------------------------------
     // The clock crossing fifo for spartan-6 is build into the mcb
-    wb_xs6_ddr3_bridge u_wb_xs6_ddr3_bridge (
+    wb_xs6_ddr3_bridge   #(
+        .WB_DWIDTH              ( WB_DWIDTH             ),
+        .WB_SWIDTH              ( WB_SWIDTH             )
+        )
+    u_wb_xs6_ddr3_bridge(
         .i_clk                  ( sys_clk               ),
 
         .o_cmd_en               ( c3_p0_cmd_en          ),        

@@ -38,7 +38,8 @@
 # ----------------------------------------------------------------
 
 # System
-verilog work ../../vlog/system/boot_mem.v
+verilog work ../../vlog/system/boot_mem32.v
+verilog work ../../vlog/system/boot_mem128.v
 verilog work ../../vlog/system/clocks_resets.v
 verilog work ../../vlog/system/interrupt_controller.v
 verilog work ../../vlog/system/system.v
@@ -115,6 +116,7 @@ verilog work ../../vlog/lib/xs6_sram_2048x32_byte_en.v
 verilog work ../../vlog/lib/xs6_sram_256x128_byte_en.v
 verilog work ../../vlog/lib/xs6_sram_256x21_line_en.v
 verilog work ../../vlog/lib/xs6_sram_256x32_byte_en.v
+verilog work ../../vlog/lib/xs6_sram_512x128_byte_en.v
 
 # Xilinx Spartan-6 DDR3 I/F
 verilog work ../../vlog/xs6_ddr3/mcb_ddr3.v

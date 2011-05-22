@@ -70,8 +70,10 @@
     `define U_MEM               `U_AMBER.u_mem
     `define U_DCACHE            `U_MEM.u_dcache
     `define U_WISHBONE          `U_AMBER.u_wishbone
+    `define U_BOOT_MEM          `U_SYSTEM.boot_mem128.u_boot_mem
 `else    
     `define U_WISHBONE          `U_FETCH.u_wishbone
+    `define U_BOOT_MEM          `U_SYSTEM.boot_mem32.u_boot_mem
 `endif
 // ---------------------------------------------------------------
 

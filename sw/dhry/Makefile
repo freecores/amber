@@ -17,9 +17,11 @@ AMBER_CROSSTOOL ?= amber-crosstool-not-defined
   DS = $(AMBER_CROSSTOOL)-objdump
   OC = $(AMBER_CROSSTOOL)-objcopy
  ELF = $(TOOLSPATH)/amber-elfsplitter
- BMF = $(TOOLSPATH)/amber-memparams.sh
+ BMF32  = ../tools/amber-memparams32.sh
+ BMF128 = ../tools/amber-memparams128.sh
 
- MMP = $(addsuffix _memparams.v, $(basename $(TGT)))
+ MMP32  = $(addsuffix _memparams32.v, $(basename $(TGT)))
+ MMP128 = $(addsuffix _memparams128.v, $(basename $(TGT)))
  MEM = $(addsuffix .mem, $(basename $(TGT)))
  DIS = $(addsuffix .dis, $(basename $(TGT)))
  
@@ -63,7 +65,7 @@ debug:  $(ELF) $(MMP) $(DIS)
 endif
 
 $(MMP): $(MEM)
-	$(BMF) $(MEM) $(MMP)
+	$(BMF32) $(MEM) $(MMP32)
 
 $(MEM): $(TGT)
 	$(ELF) $(TGT) > $(MEM)

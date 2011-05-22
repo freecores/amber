@@ -40,6 +40,7 @@
 *****************************************************************/
 
 #include "amber_registers.h"
+#include "amber_macros.h"
 
 	.section .text
 	.globl	main        
@@ -108,9 +109,7 @@ loop:   mov     r0, #0x1000000
 1:      mov     r9, r14
 2:      add     r9, r9, #1
         ldr     r12, [r0], #4
-        cmp     r12, r9
-        addne   r10, r9, r13
-        bne     testfail
+        compare r12, r9, __LINE__
         add     r10, r14, #8
         cmp     r9, r10
         bne     2b

@@ -53,8 +53,8 @@
 //
 //   e.g. if both caches have 8 ways, the total is 32KB icache + 32KB dcache = 64KB
 
-`define A25_ICACHE_WAYS 2
-`define A25_DCACHE_WAYS 2
+`define A25_ICACHE_WAYS 4
+`define A25_DCACHE_WAYS 4
 
 
 // --------------------------------------------------------------------

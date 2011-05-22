@@ -2,7 +2,7 @@
 
 #--------------------------------------------------------------#
 #                                                              #
-#  amber-memparams.sh                                          #
+#  amber-memparams128.sh                                       #
 #                                                              #
 #  This file is part of the Amber project                      #
 #  http://www.opencores.org/project,amber                      #

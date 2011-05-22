@@ -42,9 +42,10 @@
 //////////////////////////////////////////////////////////////////
 
 
-module boot_mem #(
-parameter WB_DWIDTH  = 32,
-parameter WB_SWIDTH  = 4
+module boot_mem32 #(
+parameter WB_DWIDTH   = 32,
+parameter WB_SWIDTH   = 4,
+parameter MADDR_WIDTH = 11
 )(
 input                       i_wb_clk,     // WISHBONE clock
 
@@ -60,86 +61,31 @@ output                      o_wb_err
 
 );
 
-wire start_write, start_read;
-reg  start_read_d1 = 'd0;
-wire [31:0] read_data;
-wire [31:0] write_data;
-wire [3:0]  byte_enable;
-wire [10:0] address;
+wire                    start_write;
+wire                    start_read;
+reg                     start_read_r = 'd0;
+wire [WB_DWIDTH-1:0]    read_data;
+wire [WB_DWIDTH-1:0]    write_data;
+wire [WB_SWIDTH-1:0]    byte_enable;
+wire [MADDR_WIDTH-1:0]  address;
 
 
 // Can't start a write while a read is completing. The ack for the read cycle
 // needs to be sent first
-assign start_write = i_wb_stb &&  i_wb_we && !start_read_d1;
-assign start_read  = i_wb_stb && !i_wb_we && !start_read_d1;
+assign start_write = i_wb_stb &&  i_wb_we && !start_read_r;
+assign start_read  = i_wb_stb && !i_wb_we && !start_read_r;
 
 
 always @( posedge i_wb_clk )
-    start_read_d1 <= start_read;
+    start_read_r <= start_read;
 
 assign o_wb_err = 1'd0;
 
-
-generate
-if (WB_DWIDTH == 128) 
-    begin : wb128
-    reg [31:0] read_data_r1 = 'd0;
-    reg [31:0] read_data_r2 = 'd0;
-    reg [31:0] read_data_r3 = 'd0;
-    reg [2:0]  access_r     = 'd0;
-    reg        idle_r       = 1'd1;
-    
-    assign write_data  = i_wb_adr[3:2] == 2'd3 ? i_wb_dat[127:96] :
-                         i_wb_adr[3:2] == 2'd2 ? i_wb_dat[ 95:64] :
-                         i_wb_adr[3:2] == 2'd1 ? i_wb_dat[ 63:32] :
-                                                 i_wb_dat[ 31: 0] ;
-                                                 
-    assign byte_enable = i_wb_adr[3:2] == 2'd3 ? i_wb_sel[15:12] :
-                         i_wb_adr[3:2] == 2'd2 ? i_wb_sel[11: 8] :
-                         i_wb_adr[3:2] == 2'd1 ? i_wb_sel[ 7: 4] :
-                                                 i_wb_sel[ 3: 0] ;
-                                                                                           
-    assign o_wb_dat    = {read_data, read_data_r1, read_data_r2, read_data_r3};
-
-    // 4-Word burst accesses
-    always @(posedge i_wb_clk)
-        begin
-        read_data_r1 <= read_data;
-        read_data_r2 <= read_data_r1;
-        read_data_r3 <= read_data_r2;
-        
-        if (idle_r)
-            begin
-            // start read of 4
-            if (i_wb_stb && !i_wb_we)
-                begin 
-                idle_r   <= 1'd0;
-                access_r <= access_r + 1'd1;
-                end
-            end
-        else if (access_r == 3'd4)
-            begin
-            access_r <= 3'd0;
-            idle_r   <= 1'd1;
-            end
-        else
-            access_r <= access_r + 1'd1;
-        end
-
-    assign address     =  start_write ? i_wb_adr[12:2] : {i_wb_adr[12:4],2'd0} + access_r;
-    assign o_wb_ack    =  access_r == 3'd4 || start_write;
-    end
-else
-    begin : wb32
-    assign write_data  = i_wb_dat;
-    assign byte_enable = i_wb_sel;
-    assign o_wb_dat    = read_data;
-    assign address     = i_wb_adr[12:2];
-    assign o_wb_ack    = i_wb_stb && ( start_write || start_read_d1 );
-    end
-endgenerate
-
-
+assign write_data  = i_wb_dat;
+assign byte_enable = i_wb_sel;
+assign o_wb_dat    = read_data;
+assign address     = i_wb_adr[MADDR_WIDTH+1:2];
+assign o_wb_ack    = i_wb_stb && ( start_write || start_read_r );
 
 // ------------------------------------------------------
 // Instantiate SRAMs
@@ -164,7 +110,7 @@ endgenerate
     `include `BOOT_MEM_PARAMS_FILE
 `else
     // default file
-    `include "boot-loader_memparams.v"
+    `include "boot-loader_memparams32.v"
 `endif
 
 )
@@ -173,8 +119,8 @@ endgenerate
 `ifndef XILINX_FPGA
 generic_sram_byte_en
 #(
-    .DATA_WIDTH    ( 32   ) ,
-    .ADDRESS_WIDTH ( 11   )
+    .DATA_WIDTH     ( WB_DWIDTH             ),
+    .ADDRESS_WIDTH  ( MADDR_WIDTH           )
 )
 `endif 
 u_mem (
@@ -204,6 +150,5 @@ u_mem (
 //synopsys translate_on
     
 endmodule
-
 
 

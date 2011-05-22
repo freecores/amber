@@ -71,11 +71,11 @@ reg     [22:0]          mm_ddr3_addr;
 integer                 boot_mem_file;
 reg     [31:0]          boot_mem_file_address;
 reg     [31:0]          boot_mem_file_data;
+reg     [127:0]         boot_mem_file_data_128;
 integer                 boot_mem_line_count;
 integer                 fgets_return;
 reg     [120*8-1:0]     line;
 reg     [120*8-1:0]     aligned_line;
-reg     [8*16-1:0]      test_name;
 integer                 timeout = 0;
 
 wire [12:0]             ddr3_addr;
@@ -273,9 +273,9 @@ always @ ( posedge `U_SYSTEM.sys_clk )
 // ======================================
 // Initialize Boot Memory
 // ======================================
-`ifndef XILINX_FPGA
     initial
         begin
+`ifndef XILINX_FPGA
         $display("Load boot memory from %s", `BOOT_MEM_FILE);
         boot_mem_line_count   = 0;
         boot_mem_file         = $fopen(`BOOT_MEM_FILE,    "r");
@@ -310,8 +310,16 @@ always @ ( posedge `U_SYSTEM.sys_clk )
                         boot_mem_file_address  =   hex_chars_to_32bits (aligned_line[119*8-1:111*8]);
                         boot_mem_file_data     =   hex_chars_to_32bits (aligned_line[110*8-1:102*8]);
                         
-                        tb.u_system.u_boot_mem.u_mem.mem [boot_mem_file_address[12:2]] = boot_mem_file_data;
-
+                        `ifdef AMBER_A25_CORE
+                            boot_mem_file_data_128 = `U_BOOT_MEM.u_mem.mem[boot_mem_file_address[12:4]];
+                            `U_BOOT_MEM.u_mem.mem[boot_mem_file_address[12:4]] = 
+                                    insert_32_into_128 ( boot_mem_file_address[3:2], 
+                                                         boot_mem_file_data_128, 
+                                                         boot_mem_file_data );
+                        `else
+                            `U_BOOT_MEM.u_mem.mem[boot_mem_file_address[12:2]] = boot_mem_file_data;
+                        `endif
+                        
                         `ifdef AMBER_LOAD_MEM_DEBUG
                             $display ("Load Boot Mem: PAddr: 0x%08x, Data 0x%08x", 
                                         boot_mem_file_address, boot_mem_file_data);
@@ -322,18 +330,14 @@ always @ ( posedge `U_SYSTEM.sys_clk )
                 
             $display("Read in %1d lines", boot_mem_line_count);      
             end
+`endif
             
         // Grab the test name from memory    
-        timeout   =              tb.u_system.u_boot_mem.u_mem.mem [11'h7fb];           
-        test_name = { endian_x32(tb.u_system.u_boot_mem.u_mem.mem [11'h7fc]),  
-                      endian_x32(tb.u_system.u_boot_mem.u_mem.mem [11'h7fd]),  
-                      endian_x32(tb.u_system.u_boot_mem.u_mem.mem [11'h7fe]),  
-                      endian_x32(tb.u_system.u_boot_mem.u_mem.mem [11'h7ff])}; 
-        $display("log file %s, timeout %0d, test name %0s ", `AMBER_LOG_FILE, timeout, test_name);          
+        timeout   = `AMBER_TIMEOUT   ;           
+        $display("log file %s, timeout %0d, test name %0s ", `AMBER_LOG_FILE, timeout, `AMBER_TEST_NAME );          
         log_file = $fopen(`AMBER_LOG_FILE, "a");                               
         end
     
-`endif
 
 
 // ======================================
@@ -463,9 +467,9 @@ always @*
                 begin
                 display_registers;
                 $display("++++++++++++++++++++");
-                $write("Passed %s %0d ticks\n", test_name, `U_TB.clk_count);
+                $write("Passed %s %0d ticks\n", `AMBER_TEST_NAME, `U_TB.clk_count);
                 $display("++++++++++++++++++++");
-                $fwrite(`U_TB.log_file,"Passed %s %0d ticks\n", test_name, `U_TB.clk_count);
+                $fwrite(`U_TB.log_file,"Passed %s %0d ticks\n", `AMBER_TEST_NAME, `U_TB.clk_count);
                 $finish;
                 end
             else
@@ -474,23 +478,23 @@ always @*
                 if ( testfail )
                     begin
                     $display("++++++++++++++++++++");
-                    $write("Failed %s\n", test_name);
+                    $write("Failed %s\n", `AMBER_TEST_NAME);
                     $display("++++++++++++++++++++");
-                    $fwrite(`U_TB.log_file,"Failed %s\n", test_name);
+                    $fwrite(`U_TB.log_file,"Failed %s\n", `AMBER_TEST_NAME);
                     $finish;
                     end
                 else
                     begin
                     $display("++++++++++++++++++++");
                     if (test_status_reg >= 32'h8000)
-                        $write("Failed %s - with error 0x%08x\n", test_name, test_status_reg);
+                        $write("Failed %s - with error 0x%08x\n", `AMBER_TEST_NAME, test_status_reg);
                     else
-                        $write("Failed %s - with error on line %1d\n", test_name, test_status_reg);
+                        $write("Failed %s - with error on line %1d\n", `AMBER_TEST_NAME, test_status_reg);
                     $display("++++++++++++++++++++");
                     if (test_status_reg >= 32'h8000)
-                        $fwrite(`U_TB.log_file,"Failed %s - with error 0x%08h\n", test_name, test_status_reg);
+                        $fwrite(`U_TB.log_file,"Failed %s - with error 0x%08h\n", `AMBER_TEST_NAME, test_status_reg);
                     else
-                        $fwrite(`U_TB.log_file,"Failed %s - with error on line %1d\n", test_name, test_status_reg);
+                        $fwrite(`U_TB.log_file,"Failed %s - with error on line %1d\n", `AMBER_TEST_NAME, test_status_reg);
                     $finish;
                     end
                 end

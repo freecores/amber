@@ -2,16 +2,16 @@
 
 #--------------------------------------------------------------#
 #                                                              #
-#  all.sh                                                      #
+#  amber-memparams128.sh                                       #
 #                                                              #
 #  This file is part of the Amber project                      #
 #  http://www.opencores.org/project,amber                      #
 #                                                              #
 #  Description                                                 #
-#  Runa list of tests from the $AMBER_BASE/hw/tests directory  #
+#  Create a memparams file. Used to seed the boot_mem SRAM     #
 #                                                              #
 #  Author(s):                                                  #
-#      - Conor Santifort, santifort@opencores.org              #
+#      - Conor Santifort, csantifort.amber@gmail.com           #
 #                                                              #
 #//////////////////////////////////////////////////////////////#
 #                                                              #
@@ -40,41 +40,57 @@
 #                                                              #
 #--------------------------------------------------------------#
 
-TEST_LIST="
-           add adc sub sbc barrel_shift barrel_shift_rs \
-           change_sbits change_mode \
-           bl bcc \
-           ldr ldr_str_pc strb \
-           ldm1 ldm2 ldm3 ldm4 stm1 stm2 ldm_stm_onetwo stm_stream \
-           mul mla  \
-           swp \
-           \
-           irq firq swi undefined_ins addr_ex irq_stm \
-           \
-           cache1 cache2 cache3 cache_swap \
-           cacheable_area cache_flush \
-           \
-           flow1 flow2 flow3 conflict_rd \
-           \
-           hiboot_mem ddr31 ddr32 ddr33 \
-           \
-           ethmac_reg ethmac_mem ethmac_tx \
-           \
-           uart_reg uart_tx uart_rx uart_rxint \
-           \
-           bic_bug movs_bug flow_bug \
-           mlas_bug inflate_bug swp_lock_bug \
-           cache_swap_bug \
-           "
-LOG_FILE=$1
+grep '@' $1 | awk '{print $2}'  |  awk 'NR%4==1' |\
+paste -d" "  - - - - - - - - | \
+awk '{printf "    .SRAM0_INIT_" NR-1 " ( 256%ch", 39 } \
+     $8==""  {printf "00000000"} \
+     $7==""  {printf "00000000"} \
+     $6==""  {printf "00000000"} \
+     $5==""  {printf "00000000"} \
+     $4==""  {printf "00000000"} \
+     $3==""  {printf "00000000"} \
+     $2==""  {printf "00000000"} \
+     {print $8 $7 $6 $5 $4 $3 $2 $1 " )," } '  \
+     > $2
 
-echo "----------------------------------" >> ${LOG_FILE}
-date >> ${LOG_FILE}
+grep '@' $1 | awk '{print $2}'  |  awk 'NR%4==2' |\
+paste -d" "  - - - - - - - - | \
+awk '{printf "    .SRAM1_INIT_" NR-1 " ( 256%ch", 39 } \
+     $8==""  {printf "00000000"} \
+     $7==""  {printf "00000000"} \
+     $6==""  {printf "00000000"} \
+     $5==""  {printf "00000000"} \
+     $4==""  {printf "00000000"} \
+     $3==""  {printf "00000000"} \
+     $2==""  {printf "00000000"} \
+     {print $8 $7 $6 $5 $4 $3 $2 $1 " )," } '  \
+     >> $2
 
-for i in $TEST_LIST; do
-    echo "Run test $i"
-    ../tools/run.sh ${i} $2 $3
-done
+grep '@' $1 | awk '{print $2}'  |  awk 'NR%4==3' |\
+paste -d" "  - - - - - - - - | \
+awk '{printf "    .SRAM2_INIT_" NR-1 " ( 256%ch", 39 } \
+     $8==""  {printf "00000000"} \
+     $7==""  {printf "00000000"} \
+     $6==""  {printf "00000000"} \
+     $5==""  {printf "00000000"} \
+     $4==""  {printf "00000000"} \
+     $3==""  {printf "00000000"} \
+     $2==""  {printf "00000000"} \
+     {print $8 $7 $6 $5 $4 $3 $2 $1 " )," } '  \
+     >> $2
 
-echo "----------------------------------" >> ${LOG_FILE}
 
+grep '@' $1 | awk '{print $2}'  |  awk 'NR%4==0' |\
+paste -d" "  - - - - - - - - | \
+awk '{printf "    .SRAM3_INIT_" NR-1 " ( 256%ch", 39 } \
+     $8==""  {printf "00000000"} \
+     $7==""  {printf "00000000"} \
+     $6==""  {printf "00000000"} \
+     $5==""  {printf "00000000"} \
+     $4==""  {printf "00000000"} \
+     $3==""  {printf "00000000"} \
+     $2==""  {printf "00000000"} \
+     {print $8 $7 $6 $5 $4 $3 $2 $1 " )," } '  \
+     >> $2
+
+echo "    .UNUSED       ( 1'd0 ) " >> $2

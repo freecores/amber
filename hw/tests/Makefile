@@ -46,24 +46,26 @@ TEST            ?= add
 AMBER_CROSSTOOL ?= amber-crosstool-not-defined
 TOOLSPATH        = ../../sw/tools
 
- TGT = $(addsuffix .elf, $(basename $(TEST)))
- MMP = $(addsuffix _memparams.v, $(basename $(TGT)))
- SRC = $(addsuffix .S,   $(basename $(TEST)))
- MEM = $(addsuffix .mem, $(basename $(TGT)))
- DIS = $(addsuffix .dis, $(basename $(TGT)))
- OBJ = $(addsuffix .o,   $(basename $(SRC)))
- MAP = $(addsuffix .map, $(basename $(TGT))) 
- LDS = sections.lds
+ TGT    = $(addsuffix .elf,            $(basename $(TEST)))
+ MMP32  = $(addsuffix _memparams32.v,  $(basename $(TGT)))
+ MMP128 = $(addsuffix _memparams128.v, $(basename $(TGT)))
+ SRC    = $(addsuffix .S,              $(basename $(TEST)))
+ MEM    = $(addsuffix .mem,            $(basename $(TGT)))
+ DIS    = $(addsuffix .dis,            $(basename $(TGT)))
+ OBJ    = $(addsuffix .o,              $(basename $(SRC)))
+ MAP    = $(addsuffix .map,            $(basename $(TGT))) 
+ LDS    = sections.lds
 
-  AS = $(AMBER_CROSSTOOL)-as
-  CC = $(AMBER_CROSSTOOL)-gcc
- CXX = $(AMBER_CROSSTOOL)-g++
-  AR = $(AMBER_CROSSTOOL)-ar
-  LD = $(AMBER_CROSSTOOL)-ld
-  DS = $(AMBER_CROSSTOOL)-objdump
-  OC = $(AMBER_CROSSTOOL)-objcopy
- ELF = ../../sw/tools/amber-elfsplitter
- BMF = ../../sw/tools/amber-memparams.sh
+  AS    = $(AMBER_CROSSTOOL)-as
+  CC    = $(AMBER_CROSSTOOL)-gcc
+ CXX    = $(AMBER_CROSSTOOL)-g++
+  AR    = $(AMBER_CROSSTOOL)-ar
+  LD    = $(AMBER_CROSSTOOL)-ld
+  DS    = $(AMBER_CROSSTOOL)-objdump
+  OC    = $(AMBER_CROSSTOOL)-objcopy
+ ELF    = ../../sw/tools/amber-elfsplitter
+ BMF32  = ../../sw/tools/amber-memparams32.sh
+ BMF128 = ../../sw/tools/amber-memparams128.sh
  
  ASFLAGS = -I../../sw/include
   CFLAGS = -c -march=armv2a -mno-thumb-interwork -I../../sw/include
@@ -71,10 +73,13 @@ TOOLSPATH        = ../../sw/tools
  LDFLAGS = -Bstatic -Map $(MAP) --fix-v4bx
  
 
-all:  $(ELF) $(MMP) $(DIS)
+all:  $(ELF) $(MMP32) $(MMP128) $(DIS)
 
-$(MMP): $(MEM)
-	$(BMF) $(MEM) $(MMP)
+$(MMP32): $(MEM)
+	$(BMF32) $(MEM) $(MMP32)
+
+$(MMP128): $(MEM)
+	$(BMF128) $(MEM) $(MMP128)
 
 $(MEM): $(TGT)
 	$(ELF) $(TGT) > $(MEM)
@@ -92,5 +97,5 @@ $(ELF):
 	$(MAKE) -C $(TOOLSPATH)
 
 clean:
-	@rm -rfv *.o *.elf *.dis *.map *.mem *_memparams.v
+	@rm -rfv *.o *.elf *.dis *.map *.mem *_memparams*.v
 

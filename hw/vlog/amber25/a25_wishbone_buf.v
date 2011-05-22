@@ -89,9 +89,17 @@ reg                         busy_reading_r = 'd0;
 // Access Buffer
 // ----------------------------------------------------
 always @(posedge i_clk)
-    if (!wbuf_used_r && i_req)
+    if (i_req && !wbuf_used_r)
         begin
         wbuf_used_r     <= !i_accepted;
+        wbuf_wdata_r    <= i_wdata;
+        wbuf_addr_r     <= i_addr;
+        wbuf_be_r       <= i_write ? i_be : 16'hffff;
+        wbuf_write_r    <= i_write;
+        end
+    else if ( i_req && wbuf_used_r && o_valid && i_accepted)   
+        begin
+        wbuf_used_r     <= 1'd1;
         wbuf_wdata_r    <= i_wdata;
         wbuf_addr_r     <= i_addr;
         wbuf_be_r       <= i_write ? i_be : 16'hffff;

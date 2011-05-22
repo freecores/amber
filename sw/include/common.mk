@@ -43,19 +43,21 @@ DEP             += ../include/amber_registers.h ../mini-libc/stdio.h
 TOOLSPATH        = ../tools
 AMBER_CROSSTOOL ?= amber-crosstool-not-defined
 
-  AS = $(AMBER_CROSSTOOL)-as
-  CC = $(AMBER_CROSSTOOL)-gcc
- CXX = $(AMBER_CROSSTOOL)-g++
-  AR = $(AMBER_CROSSTOOL)-ar
-  LD = $(AMBER_CROSSTOOL)-ld
-  DS = $(AMBER_CROSSTOOL)-objdump
-  OC = $(AMBER_CROSSTOOL)-objcopy
- ELF = $(TOOLSPATH)/amber-elfsplitter
- BMF = $(TOOLSPATH)/amber-memparams.sh
+  AS    = $(AMBER_CROSSTOOL)-as
+  CC    = $(AMBER_CROSSTOOL)-gcc
+ CXX    = $(AMBER_CROSSTOOL)-g++
+  AR    = $(AMBER_CROSSTOOL)-ar
+  LD    = $(AMBER_CROSSTOOL)-ld
+  DS    = $(AMBER_CROSSTOOL)-objdump
+  OC    = $(AMBER_CROSSTOOL)-objcopy
+ ELF    = $(TOOLSPATH)/amber-elfsplitter
+ BMF32  = ../tools/amber-memparams32.sh
+ BMF128 = ../tools/amber-memparams128.sh
 
- MMP = $(addsuffix _memparams.v, $(basename $(TGT)))
- MEM = $(addsuffix .mem, $(basename $(TGT)))
- DIS = $(addsuffix .dis, $(basename $(TGT)))
+ MMP32  = $(addsuffix _memparams32.v, $(basename $(TGT)))
+ MMP128 = $(addsuffix _memparams128.v, $(basename $(TGT)))
+ MEM    = $(addsuffix .mem, $(basename $(TGT)))
+ DIS    = $(addsuffix .dis, $(basename $(TGT)))
  
 ifdef USE_MINI_LIBC
  OBJ = $(addsuffix .o,   $(basename $(SRC))) $(LIBC_OBJ)
@@ -91,13 +93,16 @@ endif
 
 
 ifdef USE_MINI_LIBC
-debug:  mini-libc $(ELF) $(MMP) $(DIS)
+debug:  mini-libc $(ELF) $(MMP32) $(MMP128) $(DIS)
 else
 debug:  $(ELF) $(MMP) $(DIS)
 endif
 
-$(MMP): $(MEM)
-	$(BMF) $(MEM) $(MMP)
+$(MMP32): $(MEM)
+	$(BMF32) $(MEM) $(MMP32)
+
+$(MMP128): $(MEM)
+	$(BMF128) $(MEM) $(MMP128)
 
 $(MEM): $(TGT)
 	$(ELF) $(TGT) > $(MEM)
@@ -118,5 +123,5 @@ $(DIS): $(TGT)
 	$(DS) $(DSFLAGS) $^ > $@
 
 clean:
-	@rm -rfv *.o *.elf *.dis *.map *.mem *.v $(MMP)
+	@rm -rfv *.o *.elf *.dis *.map *.mem *.v $(MMP32) $(MMP128)
 
