@@ -655,7 +655,11 @@ u_interrupt_controller (
     // -------------------------------------------------------------
     // The clock crossing fifo for virtex-6 is insode the bridge
     // module
-    wb_xv6_ddr3_bridge u_wb_xv6_ddr3_bridge (
+    wb_xv6_ddr3_bridge    #(
+        .WB_DWIDTH              ( WB_DWIDTH             ),
+        .WB_SWIDTH              ( WB_SWIDTH             )
+        )
+    u_wb_xv6_ddr3_bridge (
         .i_sys_clk              ( sys_clk               ),
         .i_ddr_clk              ( xv6_ddr3_clk          ),
 

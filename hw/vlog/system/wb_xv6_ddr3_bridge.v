@@ -43,8 +43,10 @@
 //////////////////////////////////////////////////////////////////
 
 
-module wb_xv6_ddr3_bridge
-(
+module wb_xv6_ddr3_bridge #(
+parameter WB_DWIDTH   = 32,
+parameter WB_SWIDTH   = 4
+)(
 input                          i_sys_clk,
 input                          i_ddr_clk,
 
@@ -52,10 +54,10 @@ input                          i_mem_ctrl,  // 0=128MB, 1=32MB
 
 // Wishbone Ports
 input       [31:0]             i_wb_adr,
-input       [3:0]              i_wb_sel,
+input       [WB_SWIDTH-1:0]    i_wb_sel,
 input                          i_wb_we,
-output      [31:0]             o_wb_dat,
-input       [31:0]             i_wb_dat,
+output      [WB_DWIDTH-1:0]    o_wb_dat,
+input       [WB_DWIDTH-1:0]    i_wb_dat,
 input                          i_wb_cyc,
 input                          i_wb_stb,
 output                         o_wb_ack,
@@ -80,46 +82,73 @@ input                          i_ddr_rd_valid          // low when read data is 
 
 );
                  
-wire            start_write;
-wire            start_read;
-wire            busy;
-reg             read_busy = 1'd0;
+wire                    start_write;
+wire                    start_read;
+wire                    busy;
+reg                     read_busy = 1'd0;
 
-wire            cmd_en;
-wire  [2:0]     cmd_instr;
-wire  [26:0]    cmd_addr;
-wire            cmd_full;
-wire            wr_full;
-wire            rd_valid;
-wire  [26:0]    ddr_cmd_byte_addr;
-wire  [31:0]    ddr_wr_data;
-wire  [31:0]    ddr_rd_data;
-wire  [3:0]     ddr_wr_mask;
-wire  [7:0]     wr_mask64;
-wire  [1:0]     ddr_wr_addr_32;
-wire            ddr_addr2;
-reg             ddr_addr2_r     = 1'd0;
-wire            ddr_wr_en;
-reg             ddr_wr_en_r     = 1'd0;
-wire            ddr_rd_valid;
-reg             ddr_rd_valid_r  = 1'd0;
+wire                    cmd_en;
+wire  [2:0]             cmd_instr;
+wire  [26:0]            cmd_addr;
+wire                    cmd_full;
+wire                    wr_full;
+wire                    rd_valid;
+wire  [26:0]            ddr_cmd_byte_addr;
+wire  [WB_DWIDTH-1:0]   ddr_wr_data;
+wire  [WB_DWIDTH-1:0]   ddr_rd_data;
+wire  [WB_SWIDTH-1:0]   ddr_wr_mask;
+wire  [7:0]             wr_mask64;
+wire  [1:0]             ddr_wr_addr_32;
+wire                    ddr_addr2;
+reg                     ddr_addr2_r     = 1'd0;
+wire                    ddr_addr4;
+reg                     ddr_addr4_r     = 1'd0;
+wire                    ddr_wr_en;
+reg                     ddr_wr_en_r     = 1'd0;
+wire                    ddr_rd_valid;
+reg                     ddr_rd_valid_r   = 1'd0;
+reg                     ddr_rd_valid_r2  = 1'd0;
 
-reg             cmd_en_r    = 'd0;
-reg [2:0]       cmd_instr_r = 'd0;
-reg [26:0]      cmd_addr_r  = 'd0;
-reg [11:0]      phy_init_count = 'd0;
+reg                     cmd_en_r    = 'd0;
+reg [2:0]               cmd_instr_r = 'd0;
+reg [26:0]              cmd_addr_r  = 'd0;
+reg [11:0]              phy_init_count = 'd0;
+reg [63:0]              ddr_rd_data_r  = 'd0;
 
 
 assign o_wb_err             = 'd0;
 assign o_wb_ack             = i_wb_stb && ( start_write || rd_valid );
 assign o_ddr_cmd_byte_addr  = {ddr_cmd_byte_addr[26:3], 3'd0};
 assign ddr_addr2            = ddr_cmd_byte_addr[2];
+assign ddr_addr4            = ddr_cmd_byte_addr[4];
 
 assign o_ddr_wr_en          = ddr_wr_en | ddr_wr_en_r;
 assign o_ddr_wr_end         = ddr_wr_en_r;
-assign o_ddr_wr_data        = ddr_wr_en_r ?  64'h0 : {2{ddr_wr_data}};
-assign o_ddr_wr_mask        = ddr_wr_en_r ?  8'hff : wr_mask64;
-assign wr_mask64            = ddr_wr_addr_32[0] ?  {ddr_wr_mask, 4'hf} : {4'hf, ddr_wr_mask} ;
+
+generate
+if (WB_DWIDTH == 128) begin : wb128
+    reg [63:0] ddr_wr_data_r = 'd0;
+    reg [7:0]  ddr_wr_mask_r = 'd0;
+    
+    always @(posedge i_ddr_clk) 
+        begin
+        ddr_wr_data_r <= ddr_wr_data[127:64];
+        ddr_wr_mask_r <= ddr_wr_mask[15:8];
+        end
+        
+    assign o_ddr_wr_data        = ddr_wr_en_r ?  ddr_wr_data_r   : ddr_wr_data[63:00];
+    assign o_ddr_wr_mask        = ddr_wr_en_r ?  ddr_wr_mask_r   : ddr_wr_mask[7:0] ;
+    assign ddr_rd_valid         = ddr_rd_valid_r && !ddr_rd_valid_r2;
+    assign ddr_rd_data          = {i_ddr_rd_data, ddr_rd_data_r} ;
+end
+else begin : wb32
+    assign o_ddr_wr_data        = ddr_wr_en_r ?  64'h0 : {2{ddr_wr_data}};
+    assign o_ddr_wr_mask        = ddr_wr_en_r ?  8'hff : wr_mask64;
+    assign wr_mask64            = ddr_wr_addr_32[0] ?  {ddr_wr_mask, 4'hf} : {4'hf, ddr_wr_mask} ;
+    assign ddr_rd_valid         = i_ddr_rd_valid && !ddr_rd_valid_r;
+    assign ddr_rd_data          = ddr_addr2_r ? i_ddr_rd_data[63:32] : i_ddr_rd_data[31:00];
+end
+endgenerate
 
 assign start_write          = i_wb_stb &&  i_wb_we && !busy;
 assign start_read           = i_wb_stb && !i_wb_we && !busy;
@@ -129,10 +158,12 @@ assign cmd_en               = start_write || start_read;
 assign cmd_instr            = start_write ? 3'd0 : 3'd1;
 assign cmd_addr             = i_mem_ctrl ? {2'd0, i_wb_adr[24:0]} : i_wb_adr[26:0];
 
-assign ddr_rd_valid         = i_ddr_rd_valid && !ddr_rd_valid_r;
-assign ddr_rd_data          = ddr_addr2_r ? i_ddr_rd_data[63:32] : i_ddr_rd_data[31:00];
 
 
+always @( posedge i_ddr_clk )
+    ddr_rd_data_r <= i_ddr_rd_data;
+    
+    
 // Delay the phy_init_done signal.
 // The memory model issues an error if
 // it is accesses striaght away after
@@ -169,14 +200,18 @@ always @( posedge i_ddr_clk )
     begin
     ddr_wr_en_r     <= ddr_wr_en;
     ddr_rd_valid_r  <= i_ddr_rd_valid;
-    if ( o_ddr_cmd_en ) 
+    ddr_rd_valid_r2  <= ddr_rd_valid_r;
+    if ( o_ddr_cmd_en )
+        begin
         ddr_addr2_r <= ddr_addr2;
+        ddr_addr4_r <= ddr_addr4;
+        end
     end
 
     
 ddr3_afifo#(
             .ADDR_WIDTH             ( 27                    ),
-            .DATA_WIDTH             ( 32                    )
+            .DATA_WIDTH             ( WB_DWIDTH             )
             )
        u_ddr3_afifo (
             .i_sys_clk              ( i_sys_clk             ),
