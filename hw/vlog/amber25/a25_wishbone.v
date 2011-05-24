@@ -64,30 +64,30 @@ input                       i_clk,
 
 // Port 0 - dcache uncached
 input                       i_port0_req,
+output                      o_port0_ack,
 input                       i_port0_write,
 input       [127:0]         i_port0_wdata,
 input       [15:0]          i_port0_be,
 input       [31:0]          i_port0_addr,
 output      [127:0]         o_port0_rdata,
-output                      o_port0_ready,
 
 // Port 1 - dcache cached
 input                       i_port1_req,
+output                      o_port1_ack,
 input                       i_port1_write,
 input       [127:0]         i_port1_wdata,
 input       [15:0]          i_port1_be,
 input       [31:0]          i_port1_addr,
 output      [127:0]         o_port1_rdata,
-output                      o_port1_ready,
 
 // Port 2 - instruction cache accesses, read only
 input                       i_port2_req,
+output                      o_port2_ack,
 input                       i_port2_write,
 input       [127:0]         i_port2_wdata,
 input       [15:0]          i_port2_be,
 input       [31:0]          i_port2_addr,
 output      [127:0]         o_port2_rdata,
-output                      o_port2_ready,
 
 
 // 128-bit Wishbone Bus
@@ -130,12 +130,12 @@ a25_wishbone_buf u_a25_wishbone_buf_p0 (
     .i_clk          ( i_clk                 ),
 
     .i_req          ( i_port0_req           ),
+    .o_ack          ( o_port0_ack           ),
     .i_write        ( i_port0_write         ),
     .i_wdata        ( i_port0_wdata         ),
     .i_be           ( i_port0_be            ),
     .i_addr         ( i_port0_addr          ),
     .o_rdata        ( o_port0_rdata         ),
-    .o_ready        ( o_port0_ready         ),
 
     .o_valid        ( wbuf_valid       [0]  ),
     .i_accepted     ( wbuf_accepted    [0]  ),
@@ -152,12 +152,12 @@ a25_wishbone_buf u_a25_wishbone_buf_p1 (
     .i_clk          ( i_clk                 ),
 
     .i_req          ( i_port1_req           ),
+    .o_ack          ( o_port1_ack           ),
     .i_write        ( i_port1_write         ),
     .i_wdata        ( i_port1_wdata         ),
     .i_be           ( i_port1_be            ),
     .i_addr         ( i_port1_addr          ),
     .o_rdata        ( o_port1_rdata         ),
-    .o_ready        ( o_port1_ready         ),
 
     .o_valid        ( wbuf_valid        [1] ),
     .i_accepted     ( wbuf_accepted     [1] ),
@@ -174,12 +174,12 @@ a25_wishbone_buf u_a25_wishbone_buf_p2 (
     .i_clk          ( i_clk                 ),
 
     .i_req          ( i_port2_req           ),
+    .o_ack          ( o_port2_ack           ),
     .i_write        ( i_port2_write         ),
     .i_wdata        ( i_port2_wdata         ),
     .i_be           ( i_port2_be            ),
     .i_addr         ( i_port2_addr          ),
     .o_rdata        ( o_port2_rdata         ),
-    .o_ready        ( o_port2_ready         ),
 
     .o_valid        ( wbuf_valid        [2] ),
     .i_accepted     ( wbuf_accepted     [2] ),

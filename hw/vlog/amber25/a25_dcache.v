@@ -117,16 +117,13 @@ localparam       C_INIT   = 0,
                  
 localparam [3:0] CS_INIT               = 4'd0,
                  CS_IDLE               = 4'd1,
-                 CS_FILL0              = 4'd2,
-                 CS_FILL1              = 4'd3,
-                 CS_FILL2              = 4'd4,
-                 CS_FILL3              = 4'd5,
-                 CS_FILL_COMPLETE      = 4'd6,
-                 CS_TURN_AROUND        = 4'd7,
-                 CS_WRITE_HIT1         = 4'd8,
-                 CS_WRITE_HIT_WAIT_WB  = 4'd8,
-                 CS_WRITE_MISS_WAIT_WB = 4'd9,
-                 CS_EX_DELETE          = 4'd10;
+                 CS_FILL               = 4'd2,
+                 CS_FILL_COMPLETE      = 4'd3,
+                 CS_TURN_AROUND        = 4'd4,
+                 CS_WRITE_HIT          = 4'd5,
+                 CS_WRITE_HIT_WAIT_WB  = 4'd6,
+                 CS_WRITE_MISS_WAIT_WB = 4'd7,
+                 CS_EX_DELETE          = 4'd8;
                  
 
 reg  [3:0]                  c_state    = CS_IDLE;
@@ -266,11 +263,11 @@ always @ ( posedge i_clk )
                     source_sel  <= 1'd1 << C_INVA;
                     end
                 else if ( read_miss ) 
-                    c_state <= CS_FILL3; 
+                    c_state <= CS_FILL; 
                 else if ( write_hit )
                     begin
                     if ( i_wb_cached_ready )
-                        c_state <= CS_WRITE_HIT1;        
+                        c_state <= CS_WRITE_HIT;        
                     else    
                         c_state <= CS_WRITE_HIT_WAIT_WB;        
                     end    
@@ -279,7 +276,7 @@ always @ ( posedge i_clk )
                 end
                    
                                    
-             CS_FILL3 :
+             CS_FILL :
                 // third read of burst of 4
                 // wb read request asserted, wait for ack
                 if ( i_wb_cached_ready ) 
@@ -329,7 +326,7 @@ always @ ( posedge i_clk )
                 end
                 
                                  
-             CS_WRITE_HIT1:
+             CS_WRITE_HIT:
                 if ( !consecutive_write )           
                     c_state     <= CS_IDLE;
 
@@ -378,7 +375,7 @@ always @ ( posedge i_clk )
 
 assign consecutive_write = miss_address[31:4] == i_address[31:4] && 
                            i_write_enable && 
-                           c_state == CS_WRITE_HIT1 && 
+                           c_state == CS_WRITE_HIT && 
                            request_pulse;
 
 
@@ -388,7 +385,7 @@ always @(posedge i_clk)
     else if ( i_wb_cached_ready && fill_state )    
         wb_address <= {wb_address[31:4], wb_address[3:2] + 1'd1, 2'd0};
         
-assign fill_state       = c_state == CS_FILL0 || c_state == CS_FILL1 || c_state == CS_FILL2 || c_state == CS_FILL3 ;
+assign fill_state       = c_state == CS_FILL ;
 assign wb_hit           = i_address == wb_address && i_wb_cached_ready && fill_state;
 
 
@@ -531,7 +528,7 @@ assign ex_read_cache_busy = exclusive_access && !i_write_enable && c_state != CS
                           // Need to stall for a write miss to wait for the current wb 
                           // read miss access to complete. Also for a write idle_hit, need 
                           // to stall for 1 cycle while the data cache is being written to
-assign write_state      = c_state == CS_IDLE || c_state == CS_WRITE_HIT1 ||  
+assign write_state      = c_state == CS_IDLE || c_state == CS_WRITE_HIT ||  
                           c_state == CS_WRITE_HIT_WAIT_WB ||  c_state == CS_WRITE_MISS_WAIT_WB;
                           
 assign write_stall      = (write_miss && !(i_wb_cached_ready && write_state)) || (write_hit && !i_wb_cached_ready);
@@ -540,7 +537,7 @@ assign read_stall       = request_hold && !idle_hit && !rbuf_hit && !wb_hit && !
 
 assign cache_busy_stall = c_state == CS_FILL_COMPLETE || c_state == CS_TURN_AROUND || c_state == CS_INIT ||
                           (fill_state && !rbuf_hit && !wb_hit) ||
-                          (c_state == CS_WRITE_HIT1 && !consecutive_write);
+                          (c_state == CS_WRITE_HIT && !consecutive_write);
 
 
 // ======================================
@@ -872,18 +869,15 @@ assign xSOURCE_SEL = source_sel[C_CORE]               ? "C_CORE"                
                      source_sel[C_INVA]               ? "C_INVA"                :
                                                         "UNKNON"                ;
  
-assign xC_STATE    = c_state == CS_INIT               ? "CS_INIT"               :
-                     c_state == CS_IDLE               ? "CS_IDLE"               :
-                     c_state == CS_FILL0              ? "CS_FILL0"              :
-                     c_state == CS_FILL1              ? "CS_FILL1"              :
-                     c_state == CS_FILL2              ? "CS_FILL2"              :
-                     c_state == CS_FILL3              ? "CS_FILL3"              :
-                     c_state == CS_FILL_COMPLETE      ? "CS_FILL_COMPLETE"      :
-                     c_state == CS_EX_DELETE          ? "CS_EX_DELETE"          :
-                     c_state == CS_TURN_AROUND        ? "CS_TURN_AROUND"        :
-                     c_state == CS_WRITE_HIT1         ? "CS_WRITE_HIT1"         :
-                     c_state == CS_WRITE_HIT_WAIT_WB  ? "CS_WRITE_HIT_WAIT_WB"  :
-                     c_state == CS_WRITE_MISS_WAIT_WB ? "CS_WRITE_MISS_WAIT_WB" :
+assign xC_STATE    = c_state == CS_INIT               ? "INIT"               :
+                     c_state == CS_IDLE               ? "IDLE"               :
+                     c_state == CS_FILL               ? "FILL"               :
+                     c_state == CS_FILL_COMPLETE      ? "FILL_COMPLETE"      :
+                     c_state == CS_EX_DELETE          ? "EX_DELETE"          :
+                     c_state == CS_TURN_AROUND        ? "TURN_AROUND"        :
+                     c_state == CS_WRITE_HIT          ? "WRITE_HIT"          :
+                     c_state == CS_WRITE_HIT_WAIT_WB  ? "WRITE_HIT_WAIT_WB"  :
+                     c_state == CS_WRITE_MISS_WAIT_WB ? "WRITE_MISS_WAIT_WB" :
                                                         "UNKNOWN"               ;
 
 

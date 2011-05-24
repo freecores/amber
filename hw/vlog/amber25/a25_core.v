@@ -163,7 +163,6 @@ wire     [10:0]           wb_load_rd;
                
 wire                      dcache_wb_cached_req;
 wire                      dcache_wb_uncached_req;
-wire                      dcache_wb_qword;
 wire                      dcache_wb_write;
 wire     [15:0]           dcache_wb_byte_enable;
 wire     [31:0]           dcache_wb_address;
@@ -404,7 +403,6 @@ a25_mem u_mem (
     
     .o_wb_cached_req                    ( dcache_wb_cached_req              ),
     .o_wb_uncached_req                  ( dcache_wb_uncached_req            ),
-    .o_wb_qword                         ( dcache_wb_qword                   ),
     .o_wb_write                         ( dcache_wb_write                   ),
     .o_wb_write_data                    ( dcache_wb_write_data              ),
     .o_wb_byte_enable                   ( dcache_wb_byte_enable             ),
@@ -447,30 +445,30 @@ a25_wishbone u_wishbone (
     
     // Port 0 - dcache uncached
     .i_port0_req                        ( dcache_wb_uncached_req            ),
+    .o_port0_ack                        ( dcache_wb_uncached_ready          ),
     .i_port0_write                      ( dcache_wb_write                   ),
     .i_port0_wdata                      ( dcache_wb_write_data              ),
     .i_port0_be                         ( dcache_wb_byte_enable             ),
     .i_port0_addr                       ( dcache_wb_address                 ),
     .o_port0_rdata                      ( dcache_wb_uncached_rdata          ),
-    .o_port0_ready                      ( dcache_wb_uncached_ready          ),
 
     // Port 1 - dcache cached
     .i_port1_req                        ( dcache_wb_cached_req              ),
+    .o_port1_ack                        ( dcache_wb_cached_ready            ),
     .i_port1_write                      ( dcache_wb_write                   ),
     .i_port1_wdata                      ( dcache_wb_write_data              ),
     .i_port1_be                         ( dcache_wb_byte_enable             ),
     .i_port1_addr                       ( dcache_wb_address                 ),
     .o_port1_rdata                      ( dcache_wb_cached_rdata            ),
-    .o_port1_ready                      ( dcache_wb_cached_ready            ),
 
     // Port 2 - instruction cache accesses, read only
     .i_port2_req                        ( icache_wb_req                     ),
+    .o_port2_ack                        ( icache_wb_ready                   ),
     .i_port2_write                      ( 1'd0                              ),
     .i_port2_wdata                      ( 128'd0                            ),
     .i_port2_be                         ( 16'd0                             ),
     .i_port2_addr                       ( icache_wb_address                 ),
     .o_port2_rdata                      ( icache_wb_read_data               ),
-    .o_port2_ready                      ( icache_wb_ready                   ),
 
     // Wishbone
     .o_wb_adr                           ( o_wb_adr                          ),

@@ -68,7 +68,6 @@ output      [10:0]          o_mem_load_rd,          // The destination register 
 // Wishbone accesses                                                         
 output                      o_wb_cached_req,        // Cached Request
 output                      o_wb_uncached_req,      // Unached Request
-output                      o_wb_qword,             // High for a quad-word read request
 output                      o_wb_write,             // Read=0, Write=1
 output     [15:0]           o_wb_byte_enable,       // byte eable
 output     [127:0]          o_wb_write_data,
@@ -150,7 +149,6 @@ assign o_wb_address             = {i_daddress[31:2], 2'd0};
 assign o_wb_write_data          = {4{i_write_data}};
 assign o_wb_cached_req          = !cached_wb_stop_r && cached_wb_req;
 assign o_wb_uncached_req        = !uncached_wb_stop_r && uncached_data_access_p;
-assign o_wb_qword               = !cached_wb_stop_r && cached_wb_req && !i_write_enable;
 
 assign uncached_wb_wait         = (o_wb_uncached_req || uncached_wb_req_r) && !i_wb_uncached_ready;
 
