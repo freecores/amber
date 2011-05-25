@@ -1,6 +1,5 @@
 flow4 3936
 tmp 2756
-add 3576
 adc 3228
 sub 3356
 sbc 4256
@@ -58,3 +57,4 @@ mlas_bug 3812
 inflate_bug 3220
 swp_lock_bug 3220
 cache_swap_bug 25448
+add 1692

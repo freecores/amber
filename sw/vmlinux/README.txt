@@ -4,10 +4,25 @@ initrd                      A disk image needed if you want to build the
 patch-2.4.27-amber2.bz2     Amber Linux patch file
 patch-2.4.27-vrs1.bz2       ARM Linux patch file
 README.txt                  This file
+vmlinux                     Kernel executable file
 vmlinux.dis                 Kernel disassembly file
 vmlinux.mem                 Kernel .mem file for Verilog simulations
                             If you build the kernal from source these 2 files
                             get replaced.
+
+# +++++++++++++++++++++++++++++++++++++++++++
+# How to run Amber Linux kernel on a development board
+# +++++++++++++++++++++++++++++++++++++++++++
+1. Download the bitfile to configure the FPGA using Impact ir Chipscope
+2. Connect HyperTerminal to the serial port on the FPGA to connect to the boot loader
+3. Download the disk image
+> b 800000
+Then select the file $AMBER_BASE/sw/vmlinux/initrd to transfer
+4. Download the kernel image
+> l
+Then select the file $AMBER_BASE/sw/vmlinux/vmlinux to transfer
+5. Execute th ekernel
+> j
 
 
 # +++++++++++++++++++++++++++++++++++++++++++

@@ -72,6 +72,9 @@
 // Debug switches 
 // --------------------------------------------------------------------
 
+// Add jitter to wishbone accesses
+//`define AMBER_WISHBONE_DEBUG
+
 // Print UART debug messages
 //`define AMBER_UART_DEBUG
 

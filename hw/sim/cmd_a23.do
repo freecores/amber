@@ -12,6 +12,6 @@ configure list -namelimit 5
 
 radix -hexadecimal
 
-do wave.do
+do wave_a23.do
 
 run -all

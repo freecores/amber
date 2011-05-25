@@ -149,10 +149,18 @@ done
 #--------------------------------------------------------
 
 if [ $SET_G == 1 ]; then
-    RUN_OPTIONS="-do cmd.do"
+    if [ $SET_5 == 1 ]; then
+        RUN_OPTIONS="-do cmd_a25.do"
+    else    
+        RUN_OPTIONS="-do cmd_a23.do"
+    fi
 else    
     if [ $SET_L == 1 ]; then
-        RUN_OPTIONS="${RUN_OPTIONS} -c -do run-log.do"
+        if [ $SET_5 == 1 ]; then
+            RUN_OPTIONS="${RUN_OPTIONS} -c -do run_log_a25.do"
+        else
+            RUN_OPTIONS="${RUN_OPTIONS} -c -do run_log_a23.do"
+        fi
     else    
         RUN_OPTIONS="${RUN_OPTIONS} -c -do run.do"
     fi

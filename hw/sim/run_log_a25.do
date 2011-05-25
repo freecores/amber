@@ -1,9 +1,10 @@
 log -r /tb/u_system/u_amber/u_fetch/*
 log -r /tb/u_system/u_amber/u_mem/*
 log -r /tb/u_system/u_amber/u_execute/*
+log -r /tb/u_system/u_amber/u_wishbone/*
 log /tb/u_system/u_amber/u_execute/u_register_bank/*
 log /tb/u_system/u_amber/u_decode/*
-log /tb/u_system/u_amber/u_wishbone/*
+log /tb/u_system/boot_mem128/u_boot_mem/*
 
 
 log /tb/clk_count

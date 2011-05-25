@@ -63,7 +63,12 @@ output                      o_wb_err
 
 wire                    start_write;
 wire                    start_read;
-reg                     start_read_r = 'd0;
+`ifdef AMBER_WISHBONE_DEBUG
+    reg  [7:0]              jitter_r = 8'h0f;
+    reg  [1:0]              start_read_r = 'd0;
+`else
+    reg                     start_read_r = 'd0;
+`endif
 wire [WB_DWIDTH-1:0]    read_data;
 wire [WB_DWIDTH-1:0]    write_data;
 wire [WB_SWIDTH-1:0]    byte_enable;
@@ -72,12 +77,29 @@ wire [MADDR_WIDTH-1:0]  address;
 
 // Can't start a write while a read is completing. The ack for the read cycle
 // needs to be sent first
-assign start_write = i_wb_stb &&  i_wb_we && !start_read_r;
+`ifdef AMBER_WISHBONE_DEBUG
+    assign start_write = i_wb_stb &&  i_wb_we && !(|start_read_r) && jitter_r[0];
+`else
+    assign start_write = i_wb_stb &&  i_wb_we && !(|start_read_r);
+`endif
 assign start_read  = i_wb_stb && !i_wb_we && !start_read_r;
 
 
-always @( posedge i_wb_clk )
-    start_read_r <= start_read;
+`ifdef AMBER_WISHBONE_DEBUG
+    always @( posedge i_wb_clk )
+        jitter_r <= {jitter_r[6:0], jitter_r[7] ^ jitter_r[4] ^ jitter_r[1]};
+        
+    always @( posedge i_wb_clk )
+        if (start_read)
+            start_read_r <= {3'd0, start_read};
+        else if (o_wb_ack)
+            start_read_r <= 'd0;
+        else
+            start_read_r <= {start_read_r[2:0], start_read};
+`else
+    always @( posedge i_wb_clk )
+        start_read_r <= start_read;
+`endif
 
 assign o_wb_err = 1'd0;
 
@@ -85,7 +107,12 @@ assign write_data  = i_wb_dat;
 assign byte_enable = i_wb_sel;
 assign o_wb_dat    = read_data;
 assign address     = i_wb_adr[MADDR_WIDTH+1:2];
-assign o_wb_ack    = i_wb_stb && ( start_write || start_read_r );
+
+`ifdef AMBER_WISHBONE_DEBUG
+    assign o_wb_ack    = i_wb_stb && ( start_write || start_read_r[jitter_r[1]] );
+`else
+    assign o_wb_ack    = i_wb_stb && ( start_write || start_read_r );
+`endif
 
 // ------------------------------------------------------
 // Instantiate SRAMs
