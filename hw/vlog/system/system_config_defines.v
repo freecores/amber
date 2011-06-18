@@ -55,7 +55,11 @@
 //
 // Note that for FPGA synthesis this value is overridden
 // by a value specified in $AMBER_BASE/hw/fpga/bin/Makefile
-`define AMBER_CLK_DIVIDER 20
+`ifdef XILINX_VIRTEX6_FPGA
+    `define AMBER_CLK_DIVIDER 13
+`else 
+    `define AMBER_CLK_DIVIDER 20
+`endif
 
 // Specify a device, if none defined then the
 // generic library is used which is the fastest for simulations

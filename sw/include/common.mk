@@ -58,6 +58,7 @@ AMBER_CROSSTOOL ?= amber-crosstool-not-defined
  MMP128 = $(addsuffix _memparams128.v, $(basename $(TGT)))
  MEM    = $(addsuffix .mem, $(basename $(TGT)))
  DIS    = $(addsuffix .dis, $(basename $(TGT)))
+ FLT    = $(addsuffix .flt, $(basename $(TGT)))
  
 ifdef USE_MINI_LIBC
  OBJ = $(addsuffix .o,   $(basename $(SRC))) $(LIBC_OBJ)
@@ -65,7 +66,6 @@ else
  OBJ = $(addsuffix .o,   $(basename $(SRC)))
 endif
 
- 
 ifdef LDS
     TLDS = -T $(LDS)
 else
@@ -91,7 +91,6 @@ endif
  DSFLAGS = -C -S -EL
  LDFLAGS = -Bstatic -Map $(MAP) --strip-debug --fix-v4bx
 
-
 ifdef USE_MINI_LIBC
 debug:  mini-libc $(ELF) $(MMP32) $(MMP128) $(DIS)
 else
@@ -108,6 +107,9 @@ $(MEM): $(TGT)
 	$(ELF) $(TGT) > $(MEM)
 
 $(TGT): $(OBJ)
+ifdef CREATE_FLT_OUTPUT
+	$(LD) $(LDFLAGS) -elf2flt=-v -elf2flt=-k -o $(FLT) $(TLDS) $(OBJ)
+endif
 	$(LD) $(LDFLAGS) -o $(TGT) $(TLDS) $(OBJ)
 	$(OC) -R .comment -R .note $(TGT)
 
@@ -123,5 +125,5 @@ $(DIS): $(TGT)
 	$(DS) $(DSFLAGS) $^ > $@
 
 clean:
-	@rm -rfv *.o *.elf *.dis *.map *.mem *.v $(MMP32) $(MMP128)
+	@rm -rfv *.o *.elf *.flt *.gdb *.dis *.map *.mem *.v $(MMP32) $(MMP128)
 

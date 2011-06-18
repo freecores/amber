@@ -45,5 +45,6 @@ TGT = hello-world.elf
 LDS = sections.lds
 
 USE_MINI_LIBC = 1
+CREATE_FLT_OUTPUT = 1
 
 include ../include/common.mk

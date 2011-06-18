@@ -1,7 +1,7 @@
 log -r /tb/u_system/u_amber/u_fetch/*
 log -r /tb/u_system/u_amber/u_execute/*
+log -r /tb/u_system/u_amber/u_decode/*
 log /tb/u_system/u_amber/u_execute/u_register_bank/*
-log /tb/u_system/u_amber/u_decode/*
 
 log /tb/clk_count
 log /tb/u_system/u_uart0/i_uart_rxd

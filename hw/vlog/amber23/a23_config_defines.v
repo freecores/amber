@@ -49,7 +49,7 @@
 //   3 ways -> 12KB cache
 //   4 ways -> 16KB cache
 //   8 ways -> 32KB cache
-`define A23_CACHE_WAYS 8
+`define A23_CACHE_WAYS 4
 
 // --------------------------------------------------------------------
 // Debug switches 

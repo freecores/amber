@@ -48,36 +48,16 @@ ENTRY(main)
 
 SECTIONS {
 
-        . = 0x0080e400;
+        . = 0x00000000;
+                        
+	.text   : {  start*(.text); *(.text); }
         
-	._start :
-	{
-        	start*(.text)
-	}
-                
-	.text :
-	{
-		*(.text)
-	}
+	.data : { *(.data); }
+
+	.rodata : { *(.rodata); }
         
-	.rodata :
-	{
-		*(.rodata)
-	}
+ 	.bss : { *(.bss); }
 
-	.data :
-	{
-		*(.data)
-	}
-
-	.bss :
-	{
-		*(.bss)
-	}
-
-	.stack :
-	{
-		__stack = . ;
-	}
+	.stack : { __stack = . ; }
 
 }

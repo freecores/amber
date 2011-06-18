@@ -114,7 +114,7 @@ mknod ${LINUX_WORK_DIR}/mnt/dev/null c 1 3
 mknod ${LINUX_WORK_DIR}/mnt/dev/loop0 b 7 0
 chmod 600 ${LINUX_WORK_DIR}/mnt/dev/*
 
-cp $AMBER_BASE/sw/hello-world/hello-world.elf ${LINUX_WORK_DIR}/mnt/sbin/init
+cp $AMBER_BASE/sw/hello-world/hello-world.flt ${LINUX_WORK_DIR}/mnt/sbin/init
 chmod +x ${LINUX_WORK_DIR}/mnt/sbin/init
 
 # Check
@@ -122,6 +122,7 @@ df ${LINUX_WORK_DIR}/mnt
 
 # Unmount
 umount ${LINUX_WORK_DIR}/mnt
+rm -rf ${LINUX_WORK_DIR}/mnt
 exit
 
 cp initrd $AMBER_BASE/sw/vmlinux

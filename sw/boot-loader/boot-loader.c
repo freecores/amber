@@ -243,7 +243,7 @@ void parse ( char * buf )
 void load_run( int type, unsigned int address )
 {
     int file_size;        
-    char * message = "Send file w/ 1K Xmodem protocol from terminal emulator now...\n";
+    char * message = "Send file w/ 1K Xmodem protocol from terminal emulator now...";
       
     /* testing tyhe boot loader itself in simulation */
     if ( type == 2 ) {
@@ -256,7 +256,7 @@ void load_run( int type, unsigned int address )
     /* Load a file but don't run it */    
     else if ( type == 1 ) {
         /* Load a file using the xmodem protocol */
-        printf  ("%s", message);
+        printf  ("%s\n", message);
 
                                   /*       Destination,    Destination Size */
         file_size = xmodemReceive((char *) FILE_LOAD_BASE, FILE_MAX_SIZE);   
@@ -278,7 +278,7 @@ void load_run( int type, unsigned int address )
     /* Load a binary file into memory */    
     else if ( type == 5 ) {
         /* Load a file using the xmodem protocol */
-        printf  ("%s", message);
+        printf  ("%s\n", message);
                                   /*       Destination,    Destination Size */
         file_size = xmodemReceive((char *) address, FILE_MAX_SIZE);   
         if (file_size < 0 || file_size > FILE_MAX_SIZE) {

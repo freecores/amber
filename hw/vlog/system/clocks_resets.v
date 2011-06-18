@@ -167,7 +167,7 @@ assign o_sys_rst = rst0 || !calib_done_33mhz;
         (
          .CLKIN1_PERIOD      ( 5                    ),   // 200 MHz
          .CLKOUT2_DIVIDE     ( `AMBER_CLK_DIVIDER   ),
-         .CLKFBOUT_MULT_F    ( 5                    )    // 200 MHz x 5 = 1000 MHz
+         .CLKFBOUT_MULT_F    ( 6                    )    // 200 MHz x 6 = 1200 MHz
          )
         u_pll_adv
           (

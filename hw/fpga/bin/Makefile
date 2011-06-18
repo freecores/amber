@@ -71,7 +71,7 @@ RTL_TOP         = system
 # For Spartan-6 divide 800MHz by this number to get the frequency
 #   e.g. AMBER_CLK_DIVIDER=24
 #   800 MHz / 24 = 33.33 MHz
-# For Virtex-6 divide 1000MHz by this number to get the frequency
+# For Virtex-6 divide 1200MHz by this number to get the frequency
 
 # Select either the A23 or A25 core
 ifdef A25
@@ -85,7 +85,7 @@ endif
 ifdef VIRTEX6
     # Virtex-6 device
     XILINX_FPGA     = xc6vlx75tff784-3
-    XST_DEFINES     = XILINX_FPGA XILINX_VIRTEX6_FPGA  $(AMBER_CORE) AMBER_CLK_DIVIDER=12
+    XST_DEFINES     = XILINX_FPGA XILINX_VIRTEX6_FPGA  $(AMBER_CORE) AMBER_CLK_DIVIDER=15
     # Xilinx placement and timing constraints
     XST_CONST_FILE  = xv6_constraints.ucf
     # List of verilog source files for Xilinx Virtex-6 device
@@ -93,7 +93,7 @@ ifdef VIRTEX6
 else
     # The spartan6 device used on SP605 Development board
     XILINX_FPGA     = xc6slx45tfgg484-3
-    XST_DEFINES     = XILINX_FPGA XILINX_SPARTAN6_FPGA $(AMBER_CORE) AMBER_CLK_DIVIDER=18
+    XST_DEFINES     = XILINX_FPGA XILINX_SPARTAN6_FPGA $(AMBER_CORE) AMBER_CLK_DIVIDER=20
     # Xilinx placement and timing constraints
     XST_CONST_FILE  = xs6_constraints.ucf
     # List of verilog source files for Xilinx Spartan-6 device
@@ -236,20 +236,20 @@ $(WORK_FOLDER)/$(RTL_TOP).ncd : $(WORK_FOLDER)/$(RTL_TOP).map.ncd
 # ----------------------------------------------------
 $(WORK_FOLDER)/$(RTL_TOP).map.ncd : $(WORK_FOLDER)/$(RTL_TOP).ngd
 	cd $(WORK_FOLDER); \
-	map -intstyle xflow       \
-          -p $(XILINX_FPGA)       \
-          -ol high                \
-          -t $(MAP_SEED)          \
-          -w                      \
-          -ignore_keep_hierarchy  \
-          -detail                 \
-          -timing                 \
-          -register_duplication   \
-          -lc auto                \
-          -xe c -mt off -ir off   \
-          -pr off  -power off     \
-          -o $(RTL_TOP).map.ncd   \
-          $(RTL_TOP).ngd          \
+	map -intstyle xflow        \
+          -p $(XILINX_FPGA)        \
+          -ol high                 \
+          -t $(MAP_SEED)           \
+          -w                       \
+          -ignore_keep_hierarchy   \
+          -detail                  \
+          -timing                  \
+          -register_duplication on \
+          -lc auto                 \
+          -xe c -mt off -ir off    \
+          -pr off  -power off      \
+          -o $(RTL_TOP).map.ncd    \
+          $(RTL_TOP).ngd           \
           $(RTL_TOP).pcf
 	cp $(WORK_FOLDER)/$(RTL_TOP).map.mrp $(LOG_FOLDER)/$(RTL_TOP).map.$(RUN_ID).mrp
   
