@@ -5,8 +5,8 @@ patch-2.4.27-amber2.bz2     Amber Linux patch file
 patch-2.4.27-vrs1.bz2       ARM Linux patch file
 README.txt                  This file
 vmlinux                     Kernel executable file
-vmlinux.dis                 Kernel disassembly file
-vmlinux.mem                 Kernel .mem file for Verilog simulations
+vmlinux.dis.bz2             Kernel disassembly file, bzip2 compressed
+vmlinux.mem.bz2             Kernel .mem file for Verilog simulations, bzip2 compressed
                             If you build the kernal from source these 2 files
                             get replaced.
 

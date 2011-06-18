@@ -248,6 +248,17 @@ fi
 
 echo "Test ${AMBER_TEST_NAME}, type $TEST_TYPE"
 
+# Uncompress the vmlinux.mem file
+if [ $TEST_TYPE == 3 ]; then
+    pushd ../../sw/${AMBER_TEST_NAME} > /dev/null
+    if [ ! -e vmlinux.mem ]; then 
+        bzip2 -dk vmlinux.mem.bz2
+        bzip2 -dk vmlinux.dis.bz2
+    fi
+    popd > /dev/null
+fi
+
+    
 # Now compile the test
 if [ $TEST_TYPE == 1 ]; then
     # hw assembly test
