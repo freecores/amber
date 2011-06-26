@@ -127,7 +127,7 @@ localparam RX_INTERRUPT_COUNT = 24'h3fffff;
 localparam real UART_BAUD         = `AMBER_UART_BAUD;            // Hz
 
 `ifdef XILINX_VIRTEX6_FPGA
-localparam real CLK_FREQ          = 1000.0 / `AMBER_CLK_DIVIDER ; // MHz
+localparam real CLK_FREQ          = 1200.0 / `AMBER_CLK_DIVIDER ; // MHz
 `else
 localparam real CLK_FREQ          = 800.0 / `AMBER_CLK_DIVIDER ; // MHz
 `endif
