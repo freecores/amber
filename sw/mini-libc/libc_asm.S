@@ -483,6 +483,13 @@ bytes_different:
         ldmia	sp!, {r4-r8, pc}^
         
 
+        @ initialize malloc
+        .globl init_malloc
+init_malloc:
+        ldr     r1, AdrMalloc
+        str     r1, [r1]
+        mov     pc, lr
+
 
         /* void *malloc(size_t size); */
         .globl malloc

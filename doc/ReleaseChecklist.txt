@@ -9,3 +9,4 @@
    Both cores must pass timing; Spartan6 at 40MHz, Virtex6 at 80Mhz, with max caches
    Check all synthesis warnings, clean up as many as possible.
    
+4. Regenerate the vmlinux patch file, if any changes to the kernel source files.

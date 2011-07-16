@@ -226,15 +226,13 @@ if [ -f ../tests/${AMBER_TEST_NAME}.S ]; then
     TEST_TYPE=1
 elif [ ${AMBER_TEST_NAME} == vmlinux ]; then
     TEST_TYPE=3
-elif [ ${AMBER_TEST_NAME} == hello-world ]; then
-    TEST_TYPE=4
 elif [ -d ../../sw/${AMBER_TEST_NAME} ]; then
     # Does this test type need the boot-loader ?
     if [ -e ../../sw/${AMBER_TEST_NAME}/sections.lds ]; then
-        grep 80000 ../../sw/${AMBER_TEST_NAME}/sections.lds > /dev/null
+        grep 8000 ../../sw/${AMBER_TEST_NAME}/sections.lds > /dev/null
         if [ $? == 0 ]; then
-            # Needs boot loader, starts at 0x80000
-            TEST_TYPE=3
+            # Needs boot loader, starts at 0x8000
+            TEST_TYPE=4
         else
             TEST_TYPE=2
         fi

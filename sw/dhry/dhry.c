@@ -82,7 +82,8 @@ main ()
   REG   int             Number_Of_Runs;
 
   /* Initializations */
-
+  init_malloc();
+  
   Next_Ptr_Glob = (Rec_Pointer) malloc (sizeof (Rec_Type));
   Ptr_Glob      = (Rec_Pointer) malloc (sizeof (Rec_Type));
 
@@ -256,7 +257,7 @@ main ()
     => 1 dhrystone = 569 cycles on a 1 instruction per cycle Vax machine.
     */
   }
-  
+    _testpass();
 }
 
 

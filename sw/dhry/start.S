@@ -55,10 +55,6 @@ _start:
         mov     r0,  #1
 	mcr	15, 0, r0, cr2, cr0, 0   @ cache enable
         
-        @ initialize malloc
-        ldr     r1, AdrMalloc
-        str     r1, [r1]
-        
         @ initialize the stack pointer
         ldr     sp, AdrStack
 

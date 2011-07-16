@@ -48,7 +48,7 @@ ENTRY(main)
 
 SECTIONS {
 
-        . = 0x00080000;
+        . = 0x00008000;
         
 	.text :
 	{

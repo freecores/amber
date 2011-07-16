@@ -10,19 +10,23 @@ vmlinux.mem.bz2             Kernel .mem file for Verilog simulations, bzip2 comp
                             If you build the kernal from source these 2 files
                             get replaced.
 
+
 # +++++++++++++++++++++++++++++++++++++++++++
 # How to run Amber Linux kernel on a development board
 # +++++++++++++++++++++++++++++++++++++++++++
-1. Download the bitfile to configure the FPGA using Impact ir Chipscope
+1. Download the bitfile to configure the FPGA using Impact or Chipscope
 2. Connect HyperTerminal to the serial port on the FPGA to connect to the boot loader
 3. Download the disk image
 > b 800000
-Then select the file $AMBER_BASE/sw/vmlinux/initrd to transfer
+Then select one of the provided disk image files to transfer, e.g.
+   $AMBER_BASE/sw/vmlinux/initrd-200k-hello-world
+   
 4. Download the kernel image
 > l
 Then select the file $AMBER_BASE/sw/vmlinux/vmlinux to transfer
-5. Execute th ekernel
-> j
+
+5. Execute the kernel
+> j 80000
 
 
 # +++++++++++++++++++++++++++++++++++++++++++
@@ -66,9 +70,11 @@ cp vmlinux vmlinux_unstripped
 ${AMBER_CROSSTOOL}-objcopy -R .comment -R .note vmlinux
 ${AMBER_CROSSTOOL}-objcopy --change-addresses -0x02000000 vmlinux
 $AMBER_BASE/sw/tools/amber-elfsplitter vmlinux > vmlinux.mem
+
 # Add the ram disk image to the .mem file
-$AMBER_BASE/sw/tools/amber-bin2mem ${AMBER_BASE}/sw/vmlinux/initrd 800000 >> vmlinux.mem
-${AMBER_CROSSTOOL}-objdump -C -S -EL vmlinux_unstripped > vmlinux.dis 
+# You can use one of the provided disk images or generate your own (see below)
+$AMBER_BASE/sw/tools/amber-bin2mem ${AMBER_BASE}/sw/vmlinux/initrd-200k-hello-world 800000 >> vmlinux.mem
+${AMBER_CROSSTOOL}-objdump -C -S -EL vmlinux_unstripped > vmlinux.dis
 cp vmlinux.mem $AMBER_BASE/sw/vmlinux/vmlinux.mem
 cp vmlinux.dis $AMBER_BASE/sw/vmlinux/vmlinux.dis
 
@@ -91,7 +97,10 @@ export AMBER_BASE=/proj/opencores-svn/trunk
 export LINUX_WORK_DIR=/proj/amber2-linux
 
 
+# Create the Linux build directory
+test -e ${LINUX_WORK_DIR} || mkdir ${LINUX_WORK_DIR}
 cd ${LINUX_WORK_DIR}
+
 # Need root permissions to mount disks
 su root
 dd if=/dev/zero of=initrd bs=200k count=1
@@ -115,6 +124,7 @@ mknod ${LINUX_WORK_DIR}/mnt/dev/loop0 b 7 0
 chmod 600 ${LINUX_WORK_DIR}/mnt/dev/*
 
 cp $AMBER_BASE/sw/hello-world/hello-world.flt ${LINUX_WORK_DIR}/mnt/sbin/init
+#cp $AMBER_BASE/sw/dhry/dhry.flt ${LINUX_WORK_DIR}/mnt/sbin/init
 chmod +x ${LINUX_WORK_DIR}/mnt/sbin/init
 
 # Check
@@ -123,6 +133,19 @@ df ${LINUX_WORK_DIR}/mnt
 # Unmount
 umount ${LINUX_WORK_DIR}/mnt
 rm -rf ${LINUX_WORK_DIR}/mnt
-exit
+exit # from being root
 
-cp initrd $AMBER_BASE/sw/vmlinux
+cp initrd $AMBER_BASE/sw/vmlinux/initrd-<my name>
+
+---
+
+If 200k is not large enough, you can change the size as follows.
+You'll need to change a couple of values in the ATAG data structure defined in the 
+boot loader. Specifically the ATAG_RAMDISK_SIZE parameter and the ATAG_INITRD_SIZE 
+parameter in file $AMBER_BASE/sw/boot-loader/start.S. Then create an initrd image 
+with a different bs number, for example; 
+dd if=/dev/zero of=initrd bs=400k count=1
+
+The initrd image size gets picked up automatically by the kernel, as long as the 
+ram disk defined in the ATAG data is large enough to contain it.
+

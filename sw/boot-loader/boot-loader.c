@@ -149,10 +149,6 @@ void parse ( char * buf )
                 load_run(1,0);
                 break;
 
-            case 'j': /* Jump to 0x80000 */  
-                load_run(0,0);
-                break;
-
             case 's': /* Status */    
                 _core_status();
                 /* Flush out the uart with spaces */
@@ -185,6 +181,13 @@ void parse ( char * buf )
                         }
                     }
                 break;
+
+            case 'j': /* Jump to <address> */  
+                if (get_hex ( buf, 2, &address, &length )) { 
+                    load_run(0, address);
+                    }
+                break;
+
 
             case 'p': /* Print String */
                 /* Recover the address from the string - the address is written in hex */  
@@ -244,58 +247,76 @@ void load_run( int type, unsigned int address )
 {
     int file_size;        
     char * message = "Send file w/ 1K Xmodem protocol from terminal emulator now...";
-      
-    /* testing tyhe boot loader itself in simulation */
-    if ( type == 2 ) {
-        print_help();
-        _core_status();        
-        print_spaces(16);
-        _testpass();
-        }
+    
+    switch (type) {
         
-    /* Load a file but don't run it */    
-    else if ( type == 1 ) {
-        /* Load a file using the xmodem protocol */
-        printf  ("%s\n", message);
+        case 1: /* Load a binary file to FILE_LOAD_BASE */   
+            /* Load a file using the xmodem protocol */
+            printf  ("%s\n", message);
 
-                                  /*       Destination,    Destination Size */
-        file_size = xmodemReceive((char *) FILE_LOAD_BASE, FILE_MAX_SIZE);   
-        if (file_size < 0 || file_size > FILE_MAX_SIZE) {
-            printf ("Xmodem error file size 0x%x \n", file_size);
-            return;
-            }
+                                      /*       Destination,    Destination Size */
+            file_size = xmodemReceive((char *) FILE_LOAD_BASE, FILE_MAX_SIZE);   
+            if (file_size < 0 || file_size > FILE_MAX_SIZE) {
+                printf ("Xmodem error file size 0x%x \n", file_size);
+                return;
+                }
+                
+            printf("\nelf split\n");
+            elfsplitter(FILE_LOAD_BASE, file_size);
+            break;
+    
+
+        case 2: /* testing the boot loader itself in simulation */
+            print_help();
+            _core_status();        
+            print_spaces(16);
+            _testpass();
+            break;
+
+
+        case 3: /* vmlinux in simulation */
+            printf("j 0x%08x\n", LINUX_JUMP_ADR);
+            /* Flush the uart tx buffer with spaces */
+            print_spaces(16);
+            printf("\n");
+            /* pc jump */
+            _jump_to_program(LINUX_JUMP_ADR);
+            _testpass();
+            break;
+
+
+        case 4: /* programs starting at 0x8000 in simulation */
+            printf("j 0x%08x\n", APP_JUMP_ADR);
+            /* Flush the uart tx buffer with spaces */
+            print_spaces(16);
+            printf("\n");
+            /* pc jump */
+            _jump_to_program(APP_JUMP_ADR);
+            _testpass();
+            break;
+
             
-        printf("\nelf split\n");
-        elfsplitter(FILE_LOAD_BASE, file_size);
-        }
+        case 5: /* Load a binary file into memory, to 'address' */    
+            /* Load a file using the xmodem protocol */
+            printf  ("%s\n", message);
+                                      /*       Destination,    Destination Size */
+            file_size = xmodemReceive((char *) address, FILE_MAX_SIZE);   
+            if (file_size < 0 || file_size > FILE_MAX_SIZE) {
+                printf ("Xmodem error file size 0x%x \n", file_size);
+                return;
+                }
+            break;
 
-    /* Hello world special start address - simulations only */    
-    else if ( type == 4 ) {
-        _jump_to_program(0x0080e400);
-        }
 
-
-    /* Load a binary file into memory */    
-    else if ( type == 5 ) {
-        /* Load a file using the xmodem protocol */
-        printf  ("%s\n", message);
-                                  /*       Destination,    Destination Size */
-        file_size = xmodemReceive((char *) address, FILE_MAX_SIZE);   
-        if (file_size < 0 || file_size > FILE_MAX_SIZE) {
-            printf ("Xmodem error file size 0x%x \n", file_size);
-            return;
-            }
-        }
-
-    /* Run the program */    
-    else  {    
-        printf("j 0x%08x\n", JUMP_ADR);
-        /* Flush the uart tx buffer with spaces */
-        print_spaces(16);
-        printf("\n");
-        /* pc jump */
-        _jump_to_program(JUMP_ADR);
-        _testpass();
+        default:    /* Run the program */    
+            printf("j 0x%08x\n", address);
+            /* Flush the uart tx buffer with spaces */
+            print_spaces(16);
+            printf("\n");
+            /* pc jump */
+            _jump_to_program(address);
+            _testpass();
+            break;
         }
 }
 
@@ -325,9 +346,9 @@ void print_help ( void )
     print_spaces(29);
     printf(": Print help message\n");
 
-    printf("j");                     
-    print_spaces(29);
-    printf(": Execute loaded elf, jumping to 0x%08x\n", JUMP_ADR);
+    printf("j <address>");                     
+    print_spaces(19);
+    printf(": Execute loaded elf, jumping to <address>\n");
 
     printf("p <address>");                   
     print_spaces(19);
