@@ -102,40 +102,41 @@ test -e ${LINUX_WORK_DIR} || mkdir ${LINUX_WORK_DIR}
 cd ${LINUX_WORK_DIR}
 
 # Need root permissions to mount disks
-su root
-dd if=/dev/zero of=initrd bs=200k count=1
-mke2fs -F -m0 -b 1024 initrd
+sudo dd if=/dev/zero of=initrd bs=200k count=1
+#sudo dd if=/dev/zero of=initrd bs=400k count=1
+sudo mke2fs -F -m0 -b 1024 initrd
 
 mkdir mnt
-mount -t ext2 -o loop initrd ${LINUX_WORK_DIR}/mnt
+sudo mount -t ext2 -o loop initrd ${LINUX_WORK_DIR}/mnt
 
 # Add files 
-mkdir ${LINUX_WORK_DIR}/mnt/sbin
-mkdir ${LINUX_WORK_DIR}/mnt/dev
-mkdir ${LINUX_WORK_DIR}/mnt/bin
-mkdir ${LINUX_WORK_DIR}/mnt/etc
-mkdir ${LINUX_WORK_DIR}/mnt/proc
-mkdir ${LINUX_WORK_DIR}/mnt/lib
+sudo mkdir ${LINUX_WORK_DIR}/mnt/sbin
+sudo mkdir ${LINUX_WORK_DIR}/mnt/dev
+sudo mkdir ${LINUX_WORK_DIR}/mnt/bin
+sudo mkdir ${LINUX_WORK_DIR}/mnt/etc
+sudo mkdir ${LINUX_WORK_DIR}/mnt/proc
+sudo mkdir ${LINUX_WORK_DIR}/mnt/lib
 
-mknod ${LINUX_WORK_DIR}/mnt/dev/console c 5 1
-mknod ${LINUX_WORK_DIR}/mnt/dev/tty2 c 4 2
-mknod ${LINUX_WORK_DIR}/mnt/dev/null c 1 3
-mknod ${LINUX_WORK_DIR}/mnt/dev/loop0 b 7 0
-chmod 600 ${LINUX_WORK_DIR}/mnt/dev/*
+sudo mknod ${LINUX_WORK_DIR}/mnt/dev/console c 5 1
+sudo mknod ${LINUX_WORK_DIR}/mnt/dev/tty2 c 4 2
+sudo mknod ${LINUX_WORK_DIR}/mnt/dev/null c 1 3
+sudo mknod ${LINUX_WORK_DIR}/mnt/dev/loop0 b 7 0
+sudo chmod 600 ${LINUX_WORK_DIR}/mnt/dev/*
 
-cp $AMBER_BASE/sw/hello-world/hello-world.flt ${LINUX_WORK_DIR}/mnt/sbin/init
-#cp $AMBER_BASE/sw/dhry/dhry.flt ${LINUX_WORK_DIR}/mnt/sbin/init
-chmod +x ${LINUX_WORK_DIR}/mnt/sbin/init
+sudo cp $AMBER_BASE/sw/hello-world/hello-world.flt ${LINUX_WORK_DIR}/mnt/sbin/init
+#sudo cp $AMBER_BASE/sw/dhry/dhry.flt ${LINUX_WORK_DIR}/mnt/sbin/init
+#sudo cp /proj/amber2-linux/busybox-1.18.5/busybox ${LINUX_WORK_DIR}/mnt/sbin/init
+sudo chmod +x ${LINUX_WORK_DIR}/mnt/sbin/init
 
 # Check
 df ${LINUX_WORK_DIR}/mnt
 
 # Unmount
-umount ${LINUX_WORK_DIR}/mnt
+sudo umount ${LINUX_WORK_DIR}/mnt
 rm -rf ${LINUX_WORK_DIR}/mnt
-exit # from being root
 
 cp initrd $AMBER_BASE/sw/vmlinux/initrd-<my name>
+#cp initrd $AMBER_BASE/sw/vmlinux/initrd-400k-busybox
 
 ---
 

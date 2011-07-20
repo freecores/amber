@@ -510,7 +510,7 @@ always @ ( posedge `U_SYSTEM.sys_clk )
         if (`U_TB.clk_count >= timeout)
             begin
             `TB_ERROR_MESSAGE
-            $display("Timeout Error");
+            $display("Timeout Error. Edit $AMBER_BASE/hw/tests/timeouts.txt to change the timeout");
             end
             
 // ======================================
