@@ -1,6 +1,5 @@
 flow4 3936
 tmp 2756
-add 25
 adc 1440
 sub 1536
 sbc 2676
