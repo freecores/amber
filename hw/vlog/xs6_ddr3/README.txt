@@ -20,8 +20,9 @@ Replace the inputs c3_sys_clk_p, c3_sys_clk_n with sys_clk_ibufg.
 Delete the outputs c3_clk0 and c3_rst0.
 
 2. memc3_infrastructure.v
-Replace the inputs c3_sys_clk_p, c3_sys_clk_n with sys_clk_ibufg.
-Delete the outputs c3_clk0 and c3_rst0.
+Replace the inputs sys_clk_p, sys_clk_n with sys_clk_ibufg.
+Delete the outputs clk0 and rst0.
+Delete the line with (* KEEP = "TRUE" *) wire sys_clk_ibufg;
 
 Change the localparam from
 localparam CLK_PERIOD_NS = C_MEMCLK_PERIOD / 1000.0;
