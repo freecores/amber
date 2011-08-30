@@ -298,8 +298,6 @@ wire                   swi_request;
 wire                   und_request;
 wire                   dabt_request;
 reg    [1:0]           copro_operation_nxt;
-reg                    mtrans_r15 = 'd0;
-reg                    mtrans_r15_nxt;
 reg                    restore_base_address = 'd0;
 reg                    restore_base_address_nxt;
 
@@ -728,7 +726,6 @@ always @*
     // Save an instruction to use later
     saved_current_instruction_wen   = 1'd0;
     pre_fetch_instruction_wen       = 1'd0;
-    mtrans_r15_nxt                  = mtrans_r15;
     restore_base_address_nxt        = restore_base_address;
     
     // default Mux Select values
@@ -949,7 +946,6 @@ always @*
             saved_current_instruction_wen   = 1'd1; // Save the memory access instruction to refer back to later
             decode_daccess_nxt              = 1'd1; // valid data access
             alu_out_sel_nxt                 = 4'd1; // Add
-            mtrans_r15_nxt                  = instruction[15];  // load or save r15 ?
             base_address_wen_nxt            = 1'd1; // Save the value of the register used for the base address,
                                                     // in case of a data abort, and need to restore the value                        
 
@@ -1618,7 +1614,6 @@ always @ ( posedge i_clk )
         o_copro_num                 <= instruction[11:8];
         o_copro_operation           <= copro_operation_nxt;
         o_copro_write_data_wen      <= copro_write_data_wen_nxt;
-        mtrans_r15                  <= mtrans_r15_nxt;
         restore_base_address        <= restore_base_address_nxt;
         control_state               <= control_state_nxt;
         end

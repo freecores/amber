@@ -167,7 +167,6 @@ wire                      dcache_wb_write;
 wire     [15:0]           dcache_wb_byte_enable;
 wire     [31:0]           dcache_wb_address;
 wire     [127:0]          dcache_wb_cached_rdata;
-wire     [127:0]          dcache_wb_uncached_rdata;
 wire     [127:0]          dcache_wb_write_data;
 wire                      dcache_wb_cached_ready;
 wire                      dcache_wb_uncached_ready;
@@ -450,7 +449,7 @@ a25_wishbone u_wishbone (
     .i_port0_wdata                      ( dcache_wb_write_data              ),
     .i_port0_be                         ( dcache_wb_byte_enable             ),
     .i_port0_addr                       ( dcache_wb_address                 ),
-    .o_port0_rdata                      ( dcache_wb_uncached_rdata          ),
+    .o_port0_rdata                      (                                   ),
 
     // Port 1 - dcache cached
     .i_port1_req                        ( dcache_wb_cached_req              ),

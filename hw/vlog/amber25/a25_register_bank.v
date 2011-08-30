@@ -341,7 +341,6 @@ always @*
        4'd12 :  o_rs = r12_rds ; 
        4'd13 :  o_rs = r13_rds ; 
        4'd14 :  o_rs = r14_rds ; 
-       4'd15 :  o_rs = r15_out_rn ; 
        default: o_rs = r15_out_rn ; 
     endcase
 
@@ -366,7 +365,6 @@ always @*
        4'd12 :  o_rd = r12_rds ; 
        4'd13 :  o_rd = r13_rds ; 
        4'd14 :  o_rd = r14_rds ; 
-       4'd15 :  o_rd = r15_out_rm_nxt ; 
        default: o_rd = r15_out_rm_nxt ; 
     endcase
 

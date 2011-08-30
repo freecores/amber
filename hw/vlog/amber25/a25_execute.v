@@ -357,10 +357,10 @@ assign adex_nxt      = |o_iaddress_nxt[31:26] && i_decode_iaccess;
 // mem_load_rd[6:5] -> Write into this Mode registers
 // mem_load_rd[4]   -> zero_extend byte
 // mem_load_rd[3:0] -> Destination Register 
-assign read_data_filtered1 = i_wb_load_rd[10:9] === 2'd0 ? i_wb_read_data                                 :
-                             i_wb_load_rd[10:9] === 2'd1 ? {i_wb_read_data[7:0],  i_wb_read_data[31:8]}  :
-                             i_wb_load_rd[10:9] === 2'd2 ? {i_wb_read_data[15:0], i_wb_read_data[31:16]} :
-                                                           {i_wb_read_data[23:0], i_wb_read_data[31:24]} ;
+assign read_data_filtered1 = i_wb_load_rd[10:9] == 2'd0 ? i_wb_read_data                                :
+                             i_wb_load_rd[10:9] == 2'd1 ? {i_wb_read_data[7:0],  i_wb_read_data[31:8]}  :
+                             i_wb_load_rd[10:9] == 2'd2 ? {i_wb_read_data[15:0], i_wb_read_data[31:16]} :
+                                                          {i_wb_read_data[23:0], i_wb_read_data[31:24]} ;
 
 assign read_data_filtered  = i_wb_load_rd[4] ? {24'd0, read_data_filtered1[7:0]} : read_data_filtered1 ; 
 

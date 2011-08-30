@@ -59,7 +59,6 @@ input                       i_daddress_valid
 reg  [31:0]         mem_read_data_r = 'd0;          // Register read data from Data Cache
 reg                 mem_read_data_valid_r = 'd0;    // Register read data from Data Cache
 reg  [10:0]         mem_load_rd_r = 'd0;            // Register the Rd value for loads
-reg  [31:0]         daddress_r = 'd0;               // Register read data from Data Cache
 
 assign o_wb_read_data       = mem_read_data_r;
 assign o_wb_read_data_valid = mem_read_data_valid_r;
@@ -68,13 +67,20 @@ assign o_wb_load_rd         = mem_load_rd_r;
 
 always @( posedge i_clk )
     if ( !i_mem_stall )
-    begin                                                                                                             
-    mem_read_data_r         <= i_mem_read_data;
-    mem_read_data_valid_r   <= i_mem_read_data_valid;
-    mem_load_rd_r           <= i_mem_load_rd;
-    daddress_r              <= i_daddress;
-    end
-    
+        begin                                                                                                             
+        mem_read_data_r         <= i_mem_read_data;
+        mem_read_data_valid_r   <= i_mem_read_data_valid;
+        mem_load_rd_r           <= i_mem_load_rd;
+        end
+
+
+// Used by a25_decompile.v, so simulation only
+//synopsys translate_off    
+reg  [31:0]         daddress_r = 'd0;               // Register read data from Data Cache
+always @( posedge i_clk )
+    if ( !i_mem_stall )
+        daddress_r              <= i_daddress;
+//synopsys translate_on    
 
 endmodule
 

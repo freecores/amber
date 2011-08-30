@@ -107,7 +107,6 @@ wire                        wait_write_ack;
 wire                        wb_wait;
 
 // Write buffer
-reg     [31:0]              wbuf_data_r = 'd0;
 reg     [31:0]              wbuf_addr_r = 'd0;
 reg     [3:0]               wbuf_sel_r  = 'd0;
 reg                         wbuf_busy_r = 'd0;
@@ -149,7 +148,6 @@ assign byte_enable          = wbuf_busy_r                                   ? wb
 always @( posedge i_clk )
     if ( wb_wait && !wbuf_busy_r && (core_write_request || cache_write_request) )
         begin
-        wbuf_data_r <= i_write_data;
         wbuf_addr_r <= i_address;
         wbuf_sel_r  <= i_byte_enable;
         wbuf_busy_r <= 1'd1;

@@ -80,8 +80,6 @@ reg  [5:0]  count_nxt;
 reg  [67:0] product = 'd0;
 reg  [67:0] product_nxt;
 reg  [1:0]  flags_nxt;
-reg         sum_acc1_carry = 'd0;
-reg         sum_acc1_carry_nxt;
 wire [32:0] sum_acc1;           // the MSB is the carry out for the upper 32 bit addition
 
 
@@ -154,7 +152,6 @@ always @*
     begin
     // Defaults
     count_nxt           = count;
-    sum_acc1_carry_nxt  = sum_acc1_carry;
     product_nxt         = product;
     
     // update Negative and Zero flags
@@ -173,7 +170,6 @@ always @*
         // Note that bit 0 is not part of the product. It is used during the booth
         // multiplication algorithm
         product_nxt         = { product[64:33], sum_acc1[31:0], 1'd0}; // Accumulate
-        sum_acc1_carry_nxt  = sum_acc1[32];
         end
         
     // Multiplication state counter
@@ -192,7 +188,6 @@ always @ ( posedge i_clk )
         begin
         count           <= i_execute ? count_nxt          : count;           
         product         <= i_execute ? product_nxt        : product;        
-        sum_acc1_carry  <= i_execute ? sum_acc1_carry_nxt : sum_acc1_carry;  
         o_done          <= i_execute ? count == 6'd31     : o_done;          
         end
 
