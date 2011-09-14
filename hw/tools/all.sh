@@ -49,7 +49,7 @@ TEST_LIST="
            mul mla  \
            swp \
            \
-           irq firq swi undefined_ins addr_ex irq_stm \
+           irq firq swi undefined_ins addr_ex irq_stm irq_disable \
            \
            cache1 cache2 cache3 cache_swap \
            cacheable_area cache_flush \

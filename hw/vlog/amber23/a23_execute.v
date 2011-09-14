@@ -187,12 +187,16 @@ wire                adex_nxt;
 // ========================================================
 // Status Bits in PC register
 // ========================================================
+wire [1:0] status_bits_out;
+assign status_bits_out = (i_status_bits_mode_wen && i_status_bits_sel == 3'd1) ? 
+                            alu_out[1:0] : status_bits_mode ;
+
+
 assign o_status_bits = {   status_bits_flags,           // 31:28
                            status_bits_irq_mask,        // 7
                            status_bits_firq_mask,       // 6
                            24'd0,
-                           status_bits_mode };          // 1:0 = mode
-
+                           status_bits_out};          // 1:0 = mode
 
 // ========================================================
 // Status Bits Select

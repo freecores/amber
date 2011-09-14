@@ -57,3 +57,4 @@ mlas_bug 1972
 inflate_bug 1408
 swp_lock_bug 1356
 cache_swap_bug 32656
+irq_disable 101356

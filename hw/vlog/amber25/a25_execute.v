@@ -217,11 +217,15 @@ wire                ldm_status_bits;
 // ========================================================
 // Status Bits in PC register
 // ========================================================
+wire [1:0] status_bits_mode_out;
+assign status_bits_mode_out = (i_status_bits_mode_wen && i_status_bits_sel == 3'd1 && !ldm_status_bits) ? 
+                                    alu_out[1:0] : status_bits_mode ;
+
 assign o_status_bits = {   status_bits_flags,           // 31:28
                            status_bits_irq_mask,        // 7
                            status_bits_firq_mask,       // 6
                            24'd0,
-                           status_bits_mode };          // 1:0 = mode
+                           status_bits_mode_out };      // 1:0 = mode
 
 
 // ========================================================
