@@ -152,7 +152,18 @@ else
         addr_d1        <= i_mem_ctrl ? {5'd0, i_wb_adr[24:2]} : i_wb_adr[29:2];
         
         if ( wr_en )
+            begin
             ram [addr_d1[27:2]]  <= masked_wdata;
+            `ifdef AMBER_MEMIF_DEBUG
+            $write("%09d  ", `U_TB.clk_count);
+            $display("Main memory write: address %h, data %h, be %d%d%d%d",
+                        {2'd0, addr_d1, 2'd0}, wr_data[31:0], 
+                        ~wr_mask[addr_d1[1:0]*4+3],
+                        ~wr_mask[addr_d1[1:0]*4+2],
+                        ~wr_mask[addr_d1[1:0]*4+1],
+                        ~wr_mask[addr_d1[1:0]*4+0]                        );
+            `endif
+            end
         end
 
 
