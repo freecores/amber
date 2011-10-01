@@ -45,12 +45,16 @@ TOFILE=../tests/timeouts.txt
 TEST=$1
 
 # is test already in list ?
-egrep "^${TEST} " $TOFILE > /dev/null
-TEST_LISTED=$?
+if [ -e $TOFILE ]; then
+    egrep "^${TEST} " $TOFILE > /dev/null
+    TEST_LISTED=$?
 
-# If the test is already in the list
-if [ $TEST_LISTED == 0 ]; then
-    egrep "^${TEST} " $TOFILE | awk '{print $2}'
+    # If the test is already in the list
+    if [ $TEST_LISTED == 0 ]; then
+        egrep "^${TEST} " $TOFILE | awk '{print $2}'
+    else
+        echo "0"
+    fi
 else
     echo "0"
 fi

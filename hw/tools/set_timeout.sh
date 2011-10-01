@@ -46,13 +46,17 @@ TEST=$1
 TICKS=$2
 
 # is test already in list ?
-egrep "^${TEST} " $TOFILE > /dev/null
-TEST_LISTED=$?
+if [ -e $TOFILE ]; then
+    egrep "^${TEST} " $TOFILE > /dev/null
+    TEST_LISTED=$?
 
-# If the test is already in the list
-if [ $TEST_LISTED == 0 ]; then
-    egrep -v "^${TEST} " $TOFILE > ${TOFILE}1
-    mv ${TOFILE}1 $TOFILE
+    # If the test is already in the list
+    if [ $TEST_LISTED == 0 ]; then
+        egrep -v "^${TEST} " $TOFILE > ${TOFILE}1
+        mv ${TOFILE}1 $TOFILE
+    fi
+else
+    echo "Creating $TOFILE"
 fi
 echo "${TEST} ${TICKS}" >> ${TOFILE}
 
