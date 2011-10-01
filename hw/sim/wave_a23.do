@@ -16,25 +16,14 @@ add wave -noupdate -expand -group System -height 20 -group tb_uart -format Logic
 add wave -noupdate -expand -group System -height 20 -group tb_uart -format Literal /tb/u_tb_uart/rx_bit_count
 add wave -noupdate -expand -group System -height 20 -group tb_uart -format Logic /tb/u_tb_uart/rx_bit_start
 add wave -noupdate -expand -group System -height 20 -group tb_uart -format Literal /tb/u_tb_uart/rx_byte
-add wave -noupdate -expand -group System -height 20 -group {DDR3 Bus} -format Literal /tb/u_system/ddr3_addr
-add wave -noupdate -expand -group System -height 20 -group {DDR3 Bus} -format Literal /tb/u_system/ddr3_ba
-add wave -noupdate -expand -group System -height 20 -group {DDR3 Bus} -format Logic /tb/u_system/ddr3_cas_n
-add wave -noupdate -expand -group System -height 20 -group {DDR3 Bus} -format Logic /tb/u_system/ddr3_ck_n
-add wave -noupdate -expand -group System -height 20 -group {DDR3 Bus} -format Logic /tb/u_system/ddr3_ck_p
-add wave -noupdate -expand -group System -height 20 -group {DDR3 Bus} -format Logic /tb/u_system/ddr3_cke
-add wave -noupdate -expand -group System -height 20 -group {DDR3 Bus} -format Literal /tb/u_system/ddr3_dm
-add wave -noupdate -expand -group System -height 20 -group {DDR3 Bus} -format Literal /tb/u_system/ddr3_dq
-add wave -noupdate -expand -group System -height 20 -group {DDR3 Bus} -format Literal /tb/u_system/ddr3_dqs_n
-add wave -noupdate -expand -group System -height 20 -group {DDR3 Bus} -format Literal /tb/u_system/ddr3_dqs_p
-add wave -noupdate -expand -group System -height 20 -group {DDR3 Bus} -format Logic /tb/u_system/ddr3_odt
-add wave -noupdate -expand -group System -height 20 -group {DDR3 Bus} -format Logic /tb/u_system/ddr3_ras_n
-add wave -noupdate -expand -group System -height 20 -group {DDR3 Bus} -format Logic /tb/u_system/ddr3_reset_n
-add wave -noupdate -expand -group System -height 20 -group {DDR3 Bus} -format Logic /tb/u_system/ddr3_we_n
 add wave -noupdate -expand -group Amber -expand -group {Core Memory Accesses} -format Literal /tb/u_system/u_amber/u_execute/pc
 add wave -noupdate -expand -group Amber -expand -group {Core Memory Accesses} -format Literal -radix ascii /tb/u_system/u_amber/u_decode/u_decompile/xINSTRUCTION_EXECUTE
 add wave -noupdate -expand -group Amber -expand -group {Core Memory Accesses} -format Literal -radix ascii /tb/u_system/u_amber/u_decode/xCONTROL_STATE
 add wave -noupdate -expand -group Amber -expand -group {Core Memory Accesses} -format Literal -radix ascii /tb/u_system/u_amber/u_execute/xMODE
 add wave -noupdate -expand -group Amber -expand -group {Core Memory Accesses} -format Logic /tb/u_system/u_amber/fetch_stall
+add wave -noupdate -expand -group Amber -expand -group {Core Memory Accesses} -format Literal /tb/u_system/u_amber/u_fetch/i_address
+add wave -noupdate -expand -group Amber -expand -group {Core Memory Accesses} -format Logic /tb/u_system/u_amber/u_fetch/i_address_valid
+add wave -noupdate -expand -group Amber -expand -group {Core Memory Accesses} -format Literal /tb/u_system/u_amber/u_fetch/o_read_data
 add wave -noupdate -expand -group Amber -expand -group {Core Memory Accesses} -format Logic /tb/u_system/u_amber/u_execute/o_write_enable
 add wave -noupdate -expand -group Amber -expand -group {Core Memory Accesses} -format Literal /tb/u_system/u_amber/u_execute/o_write_data
 add wave -noupdate -expand -group Amber -height 20 -group Fetch -height 20 -expand -group {Instruction Cache} -format Logic /tb/u_system/u_amber/u_fetch/u_cache/o_stall
@@ -44,7 +33,6 @@ add wave -noupdate -expand -group Amber -height 20 -group Fetch -height 20 -expa
 add wave -noupdate -expand -group Amber -height 20 -group Fetch -height 20 -expand -group {Instruction Cache} -format Literal /tb/u_system/u_amber/u_fetch/u_cache/miss_address
 add wave -noupdate -expand -group Amber -height 20 -group Fetch -height 20 -expand -group {Instruction Cache} -format Logic /tb/u_system/u_amber/u_fetch/u_cache/read_miss
 add wave -noupdate -expand -group Amber -height 20 -group Fetch -height 20 -expand -group {Instruction Cache} -format Literal /tb/u_system/u_amber/u_fetch/u_cache/o_read_data
-add wave -noupdate -expand -group Amber -height 20 -group Fetch -height 20 -expand -group {Instruction Cache} -format Logic /tb/u_system/u_amber/u_coprocessor/o_cache_enable
 add wave -noupdate -expand -group Amber -height 20 -group Fetch -height 20 -expand -group {Instruction Cache} -format Logic /tb/u_system/u_amber/u_fetch/u_cache/i_core_stall
 add wave -noupdate -expand -group Amber -height 20 -group Fetch -height 20 -expand -group {Instruction Cache} -format Logic /tb/u_system/u_amber/u_fetch/u_cache/i_select
 add wave -noupdate -expand -group Amber -height 20 -group Fetch -height 20 -expand -group {Instruction Cache} -format Logic /tb/u_system/u_amber/u_fetch/sel_cache
@@ -62,54 +50,54 @@ add wave -noupdate -expand -group Amber -height 20 -group Decode -format Logic /
 add wave -noupdate -expand -group Amber -height 20 -group Decode -format Logic /tb/u_system/u_amber/u_decode/use_saved_current_instruction
 add wave -noupdate -expand -group Amber -height 20 -group Decode -format Logic /tb/u_system/u_amber/u_decode/pc_wen_nxt
 add wave -noupdate -expand -group Amber -height 20 -group Decode -format Logic /tb/u_system/u_amber/u_decode/write_pc
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -format Logic /tb/u_system/u_amber/u_execute/execute
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -format Literal -radix ascii /tb/u_system/u_amber/u_decode/u_decompile/xINSTRUCTION_EXECUTE
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -format Literal /tb/u_system/u_amber/u_execute/i_pc_sel
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group Registers -format Literal /tb/u_system/u_amber/u_execute/reg_write_nxt
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group Registers -format Literal -radix hexadecimal /tb/u_system/u_amber/u_execute/i_reg_bank_wen
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group Registers -format Literal /tb/u_system/u_amber/u_execute/u_register_bank/r0
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group Registers -format Literal /tb/u_system/u_amber/u_execute/u_register_bank/r1
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group Registers -format Literal /tb/u_system/u_amber/u_execute/u_register_bank/r2
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group Registers -format Literal /tb/u_system/u_amber/u_execute/u_register_bank/r3
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group Registers -format Literal /tb/u_system/u_amber/u_execute/u_register_bank/r8
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group Registers -format Literal /tb/u_system/u_amber/u_execute/u_register_bank/r12_out
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group Registers -format Literal /tb/u_system/u_amber/u_execute/u_register_bank/r13_out
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group Registers -format Literal /tb/u_system/u_amber/u_execute/u_register_bank/r14_irq
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group Registers -format Literal /tb/u_system/u_amber/u_execute/u_register_bank/r14_svc
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group Registers -format Literal /tb/u_system/u_amber/u_execute/u_register_bank/r14_out
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group Registers -format Logic /tb/u_system/u_amber/u_execute/pc_wen
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group Registers -format Literal /tb/u_system/u_amber/u_execute/pc_nxt
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group Registers -format Literal /tb/u_system/u_amber/u_execute/rn
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group Registers -format Literal /tb/u_system/u_amber/u_execute/u_register_bank/r15
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group internals -format Logic /tb/u_system/u_amber/u_decode/instruction_execute
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group internals -format Literal /tb/u_system/u_amber/u_decode/pre_fetch_instruction
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group internals -format Literal -radix ascii /tb/u_system/u_amber/u_decode/xCONTROL_STATE
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group internals -format Literal -radix ascii /tb/u_system/u_amber/u_decode/xMODE
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group internals -format Literal /tb/u_system/u_amber/u_execute/i_pc_sel
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group internals -format Logic /tb/u_system/u_amber/u_decode/o_pc_wen
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group internals -format Logic /tb/u_system/u_amber/u_decode/u_decompile/execute_valid
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group internals -format Literal /tb/u_system/u_amber/u_execute/u_register_bank/r14_irq
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group internals -format Logic /tb/u_system/u_amber/u_execute/pc_wen
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group internals -format Literal /tb/u_system/u_amber/u_execute/i_pc_sel
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group internals -format Literal /tb/u_system/u_amber/u_execute/alu_out
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group internals -format Logic /tb/u_system/u_amber/u_execute/i_status_bits_flags_wen
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group internals -format Literal /tb/u_system/u_amber/u_execute/status_bits_flags
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group internals -format Literal /tb/u_system/u_amber/u_execute/i_status_bits_sel
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group internals -format Literal /tb/u_system/u_amber/u_execute/i_condition
-add wave -noupdate -expand -group Amber -height 20 -expand -group Execute -height 20 -group internals -format Logic /tb/u_system/u_amber/u_execute/execute
-add wave -noupdate -expand -group Amber -height 20 -group Wishbone -height 20 -expand -group {WB Bus} -format Logic /tb/u_system/u_amber/o_wb_cyc
-add wave -noupdate -expand -group Amber -height 20 -group Wishbone -height 20 -expand -group {WB Bus} -format Logic /tb/u_system/u_amber/o_wb_stb
-add wave -noupdate -expand -group Amber -height 20 -group Wishbone -height 20 -expand -group {WB Bus} -format Logic /tb/u_system/u_amber/i_wb_ack
-add wave -noupdate -expand -group Amber -height 20 -group Wishbone -height 20 -expand -group {WB Bus} -format Literal /tb/u_system/u_amber/o_wb_dat
-add wave -noupdate -expand -group Amber -height 20 -group Wishbone -height 20 -expand -group {WB Bus} -format Literal /tb/u_system/u_amber/o_wb_sel
-add wave -noupdate -expand -group Amber -height 20 -group Wishbone -height 20 -expand -group {WB Bus} -format Logic /tb/u_system/u_amber/o_wb_we
-add wave -noupdate -expand -group Amber -height 20 -group Wishbone -height 20 -expand -group {WB Bus} -format Literal /tb/u_system/u_amber/i_wb_dat
-add wave -noupdate -expand -group Amber -height 20 -group Wishbone -height 20 -expand -group {WB Bus} -format Logic /tb/u_system/u_amber/i_wb_err
+add wave -noupdate -expand -group Amber -height 20 -group Execute -format Logic /tb/u_system/u_amber/u_execute/execute
+add wave -noupdate -expand -group Amber -height 20 -group Execute -format Literal -radix ascii /tb/u_system/u_amber/u_decode/u_decompile/xINSTRUCTION_EXECUTE
+add wave -noupdate -expand -group Amber -height 20 -group Execute -format Literal /tb/u_system/u_amber/u_execute/i_pc_sel
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group Registers -format Literal /tb/u_system/u_amber/u_execute/reg_write_nxt
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group Registers -format Literal -radix hexadecimal /tb/u_system/u_amber/u_execute/i_reg_bank_wen
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group Registers -format Literal /tb/u_system/u_amber/u_execute/u_register_bank/r0
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group Registers -format Literal /tb/u_system/u_amber/u_execute/u_register_bank/r1
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group Registers -format Literal /tb/u_system/u_amber/u_execute/u_register_bank/r2
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group Registers -format Literal /tb/u_system/u_amber/u_execute/u_register_bank/r3
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group Registers -format Literal /tb/u_system/u_amber/u_execute/u_register_bank/r8
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group Registers -format Literal /tb/u_system/u_amber/u_execute/u_register_bank/r12_out
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group Registers -format Literal /tb/u_system/u_amber/u_execute/u_register_bank/r13_out
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group Registers -format Literal /tb/u_system/u_amber/u_execute/u_register_bank/r14_irq
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group Registers -format Literal /tb/u_system/u_amber/u_execute/u_register_bank/r14_svc
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group Registers -format Literal /tb/u_system/u_amber/u_execute/u_register_bank/r14_out
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group Registers -format Logic /tb/u_system/u_amber/u_execute/pc_wen
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group Registers -format Literal /tb/u_system/u_amber/u_execute/pc_nxt
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group Registers -format Literal /tb/u_system/u_amber/u_execute/rn
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group Registers -format Literal /tb/u_system/u_amber/u_execute/u_register_bank/r15
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group internals -format Logic /tb/u_system/u_amber/u_decode/instruction_execute
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group internals -format Literal /tb/u_system/u_amber/u_decode/pre_fetch_instruction
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group internals -format Literal -radix ascii /tb/u_system/u_amber/u_decode/xCONTROL_STATE
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group internals -format Literal -radix ascii /tb/u_system/u_amber/u_decode/xMODE
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group internals -format Literal /tb/u_system/u_amber/u_execute/i_pc_sel
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group internals -format Logic /tb/u_system/u_amber/u_decode/o_pc_wen
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group internals -format Logic /tb/u_system/u_amber/u_decode/u_decompile/execute_valid
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group internals -format Literal /tb/u_system/u_amber/u_execute/u_register_bank/r14_irq
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group internals -format Logic /tb/u_system/u_amber/u_execute/pc_wen
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group internals -format Literal /tb/u_system/u_amber/u_execute/i_pc_sel
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group internals -format Literal /tb/u_system/u_amber/u_execute/alu_out
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group internals -format Logic /tb/u_system/u_amber/u_execute/i_status_bits_flags_wen
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group internals -format Literal /tb/u_system/u_amber/u_execute/status_bits_flags
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group internals -format Literal /tb/u_system/u_amber/u_execute/i_status_bits_sel
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group internals -format Literal /tb/u_system/u_amber/u_execute/i_condition
+add wave -noupdate -expand -group Amber -height 20 -group Execute -height 20 -group internals -format Logic /tb/u_system/u_amber/u_execute/execute
+add wave -noupdate -expand -group Amber -height 20 -expand -group Wishbone -height 20 -expand -group {WB Bus} -format Literal /tb/u_system/u_amber/u_fetch/u_wishbone/o_wb_adr
+add wave -noupdate -expand -group Amber -height 20 -expand -group Wishbone -height 20 -expand -group {WB Bus} -format Logic /tb/u_system/u_amber/o_wb_stb
+add wave -noupdate -expand -group Amber -height 20 -expand -group Wishbone -height 20 -expand -group {WB Bus} -format Logic /tb/u_system/u_amber/o_wb_we
+add wave -noupdate -expand -group Amber -height 20 -expand -group Wishbone -height 20 -expand -group {WB Bus} -format Logic /tb/u_system/u_amber/i_wb_ack
+add wave -noupdate -expand -group Amber -height 20 -expand -group Wishbone -height 20 -expand -group {WB Bus} -format Literal /tb/u_system/u_amber/o_wb_dat
+add wave -noupdate -expand -group Amber -height 20 -expand -group Wishbone -height 20 -expand -group {WB Bus} -format Literal /tb/u_system/u_amber/o_wb_sel
+add wave -noupdate -expand -group Amber -height 20 -expand -group Wishbone -height 20 -expand -group {WB Bus} -format Literal /tb/u_system/u_amber/i_wb_dat
+add wave -noupdate -expand -group Amber -height 20 -expand -group Wishbone -height 20 -expand -group {WB Bus} -format Logic /tb/u_system/u_amber/i_wb_err
 add wave -noupdate -expand -group Amber -height 20 -group Co-Processor -format Literal /tb/u_system/u_amber/u_coprocessor/fault_address
 add wave -noupdate -expand -group Amber -height 20 -group Co-Processor -format Literal /tb/u_system/u_amber/u_coprocessor/fault_status
 add wave -noupdate -format Literal /tb/u_system/u_amber/u_execute/u_barrel_shift/i_shift_amount
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {30001543 ps} 0} {{Cursor 3} {81811238721 ps} 0}
+WaveRestoreCursors {{Cursor 1} {58634196982 ps} 0} {{Cursor 3} {215604038270 ps} 0}
 configure wave -namecolwidth 258
 configure wave -valuecolwidth 203
 configure wave -justifyvalue left
@@ -124,4 +112,4 @@ configure wave -griddelta 4000
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {0 ps} {9019087 ps}
+WaveRestoreZoom {58633993389 ps} {58634585773 ps}
