@@ -86,7 +86,6 @@ wire    [(8*8)-1:0]    TYPE_NAME;
 reg     [3:0]          fchars;
 reg     [31:0]         execute_address = 'd0;
 reg     [2:0]          interrupt_d1;
-reg     [31:0]         clk_count = 'd0;
 reg     [31:0]         execute_instruction = 'd0;
 reg                    execute_now = 'd0;
 reg                    execute_valid = 'd0;
@@ -251,9 +250,6 @@ always @*
 
 always @ ( posedge i_clk )
     xINSTRUCTION_EXECUTE_R <= xINSTRUCTION_EXECUTE;
-
-always @( posedge i_clk )
-    clk_count <= clk_count + 1'd1;
         
 // =================================================================================
 // Memory Reads and Writes
@@ -268,7 +264,7 @@ always @( posedge i_clk )
     if ( get_1bit_signal(0) && !get_1bit_signal(3) )
         begin
         
-        $fwrite(decompile_file, "%09d              write   addr ", clk_count);
+        $fwrite(decompile_file, "%09d              write   addr ", `U_TB.clk_count);
         tmp_address = get_32bit_signal(2);
         fwrite_hex_drop_zeros(decompile_file, {tmp_address [31:2], 2'd0} );
                   
@@ -282,7 +278,7 @@ always @( posedge i_clk )
     // Data Read    
     if ( get_1bit_signal(4) && !get_1bit_signal(1) )     
         begin
-        $fwrite(decompile_file, "%09d              read    addr ", clk_count);
+        $fwrite(decompile_file, "%09d              read    addr ", `U_TB.clk_count);
         tmp_address = get_32bit_signal(5);
         fwrite_hex_drop_zeros(decompile_file, {tmp_address[31:2], 2'd0} );    
                      
@@ -299,7 +295,7 @@ always @( posedge i_clk )
             // Interrupts override instructions that are just starting
         if ( interrupt_d1 == 3'd0 || interrupt_d1 == 3'd7 )
             begin
-            $fwrite(decompile_file,"%09d  ", clk_count);
+            $fwrite(decompile_file,"%09d  ", `U_TB.clk_count);
             
             // Right justify the address
             if      ( execute_address < 32'h10)        $fwrite(decompile_file,"       %01x:  ", {execute_address[ 3:1], 1'd0});
@@ -317,7 +313,7 @@ always @( posedge i_clk )
                 begin
                 $fwrite(decompile_file,"-");
                 if ( type == SWI )
-                    $display ("Cycle %09d  SWI not taken *************", clk_count);
+                    $display ("Cycle %09d  SWI not taken *************", `U_TB.clk_count);
                 end
             else     
                 $fwrite(decompile_file," ");
@@ -406,7 +402,7 @@ always @( posedge i_clk )
         // Undefined Instruction Interrupts    
         if ( i_instruction_execute && execute_undefined )
             begin
-            $fwrite( decompile_file,"%09d              interrupt undefined instruction", clk_count );
+            $fwrite( decompile_file,"%09d              interrupt undefined instruction", `U_TB.clk_count );
             $fwrite( decompile_file,", return addr " );
             $fwrite( decompile_file,"%08x\n",  pcf(get_reg_val(5'd21)-4'd4) );
             end
@@ -414,7 +410,7 @@ always @( posedge i_clk )
         // Software Interrupt  
         if ( i_instruction_execute && type == SWI )    
             begin
-            $fwrite( decompile_file,"%09d              interrupt swi", clk_count );
+            $fwrite( decompile_file,"%09d              interrupt swi", `U_TB.clk_count );
             $fwrite( decompile_file,", return addr " );
             $fwrite( decompile_file,"%08x\n",  pcf(get_reg_val(5'd21)-4'd4) );
             end
@@ -431,7 +427,7 @@ always @( posedge i_clk )
         // Asynchronous Interrupts    
         if ( interrupt_d1 != 3'd0 && i_interrupt_state )
             begin
-            $fwrite( decompile_file,"%09d              interrupt ", clk_count );
+            $fwrite( decompile_file,"%09d              interrupt ", `U_TB.clk_count );
             case ( interrupt_d1 )
                 3'd1:    $fwrite( decompile_file,"data abort" );
                 3'd2:    $fwrite( decompile_file,"firq" );
@@ -469,7 +465,7 @@ always @( posedge i_clk )
              execute_address != get_32bit_signal(0)  // Don't print jump to same address
              )
             begin
-            $fwrite(decompile_file,"%09d              jump    from ", clk_count);
+            $fwrite(decompile_file,"%09d              jump    from ", `U_TB.clk_count);
             fwrite_hex_drop_zeros(decompile_file,  pcf(execute_address));
             $fwrite(decompile_file," to ");
             fwrite_hex_drop_zeros(decompile_file,  pcf(get_32bit_signal(0)) ); // u_execute.pc_nxt
