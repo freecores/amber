@@ -41,9 +41,6 @@ export AMBER_BASE=/proj/opencores-svn/trunk
 # Pick a directory on your system where you want to build Linux
 export LINUX_WORK_DIR=/proj/amber2-linux
 
-export AMBER_CROSSTOOL=arm-none-linux-gnueabi
-
-
 # Create the Linux build directory
 test -e ${LINUX_WORK_DIR} || mkdir ${LINUX_WORK_DIR}
 cd ${LINUX_WORK_DIR}
@@ -52,7 +49,7 @@ cd ${LINUX_WORK_DIR}
 wget http://www.kernel.org/pub/linux/kernel/v2.4/linux-2.4.27.tar.gz
 tar zxf linux-2.4.27.tar.gz
 ln -s linux-2.4.27 linux
-cd linux
+cd ${LINUX_WORK_DIR}/linux
 
 #Apply 2 patch files
 cp ${AMBER_BASE}/sw/vmlinux/patch-2.4.27-vrs1.bz2 .
@@ -80,7 +77,7 @@ cp vmlinux.dis $AMBER_BASE/sw/vmlinux/vmlinux.dis
 
 # Run the Linux simulation to verify that you have a good kernel image
 cd $AMBER_BASE/hw/sim
-run vmlinux
+./run vmlinux
 
 
 # +++++++++++++++++++++++++++++++++++++++++++
@@ -103,7 +100,7 @@ cd ${LINUX_WORK_DIR}
 
 # Need root permissions to mount disks
 sudo dd if=/dev/zero of=initrd bs=200k count=1
-#sudo dd if=/dev/zero of=initrd bs=400k count=1
+#sudo dd if=/dev/zero of=initrd bs=800k count=1
 sudo mke2fs -F -m0 -b 1024 initrd
 
 mkdir mnt
@@ -125,7 +122,6 @@ sudo chmod 600 ${LINUX_WORK_DIR}/mnt/dev/*
 
 sudo cp $AMBER_BASE/sw/hello-world/hello-world.flt ${LINUX_WORK_DIR}/mnt/sbin/init
 #sudo cp $AMBER_BASE/sw/dhry/dhry.flt ${LINUX_WORK_DIR}/mnt/sbin/init
-#sudo cp /proj/amber2-linux/busybox-1.18.5/busybox ${LINUX_WORK_DIR}/mnt/sbin/init
 sudo chmod +x ${LINUX_WORK_DIR}/mnt/sbin/init
 
 # Check
@@ -133,10 +129,10 @@ df ${LINUX_WORK_DIR}/mnt
 
 # Unmount
 sudo umount ${LINUX_WORK_DIR}/mnt
-rm -rf ${LINUX_WORK_DIR}/mnt
+sudo rm -rf ${LINUX_WORK_DIR}/mnt
 
 cp initrd $AMBER_BASE/sw/vmlinux/initrd-<my name>
-#cp initrd $AMBER_BASE/sw/vmlinux/initrd-400k-busybox
+#cp initrd $AMBER_BASE/sw/vmlinux/initrd-800k-busybox
 
 ---
 
