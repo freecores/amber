@@ -114,8 +114,8 @@ wire     [31:0]             wb_rdata32;
 assign address_cachable         = in_cachable_mem( i_daddress ) && i_cacheable_area[i_daddress[25:21]];
 assign sel_cache_p              = daddress_valid_p && address_cachable && i_cache_enable && !i_exclusive;
 assign sel_cache                = i_daddress_valid && address_cachable && i_cache_enable && !i_exclusive;
-assign uncached_data_access     = i_daddress_valid && !sel_cache   && !(cache_stall);
-assign uncached_data_access_p   = daddress_valid_p && !sel_cache   && !(cache_stall);
+assign uncached_data_access     = i_daddress_valid && !sel_cache && !cache_stall;
+assign uncached_data_access_p   = daddress_valid_p && !sel_cache;
 
 assign use_mem_reg              = wb_stop && !mem_stall_r;
 assign o_mem_read_data          = use_mem_reg ? mem_read_data_r       : mem_read_data_c;
@@ -170,7 +170,7 @@ assign daddress_valid_p = i_daddress_valid && !daddress_valid_stop_r;
 
 always @( posedge i_clk )
     begin
-    uncached_wb_stop_r      <= (uncached_wb_stop_r || uncached_data_access_p) && (i_fetch_stall || o_mem_stall);
+    uncached_wb_stop_r      <= (uncached_wb_stop_r || (uncached_data_access_p&&!cache_stall)) && (i_fetch_stall || o_mem_stall);
     cached_wb_stop_r        <= (cached_wb_stop_r   || cached_wb_req)          && (i_fetch_stall || o_mem_stall);
     daddress_valid_stop_r   <= (daddress_valid_stop_r || daddress_valid_p)    && (i_fetch_stall || o_mem_stall);
     // hold this until the mem access completes

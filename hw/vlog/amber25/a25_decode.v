@@ -288,6 +288,7 @@ wire                   use_saved_current_instruction;
 wire                   use_hold_instruction;
 wire                   use_pre_fetch_instruction;
 wire                   interrupt;
+wire                   interrupt_or_conflict;
 wire   [1:0]           interrupt_mode;
 wire   [2:0]           next_interrupt;
 reg                    irq = 'd0;
@@ -457,7 +458,12 @@ assign rds_use_rs           = (type == REGOP && !instruction[25] && instruction[
                               (type == MULT && 
                                (control_state == MULT_PROC1  || 
                                 control_state == MULT_PROC2  ||
-                                instruction_valid && !interrupt )) ;
+//                                instruction_valid && !interrupt )) ;
+// remove the '!conflict' term from the interrupt logic used here
+// to break a combinational loop
+                                (instruction_valid && !interrupt_or_conflict))) ;
+
+
 assign branch               = type == BRANCH;
 assign opcode_compare       = opcode == CMP || opcode == CMN || opcode == TEQ || opcode == TST ;
 assign mem_op               = type == TRANS;
@@ -687,14 +693,23 @@ assign next_interrupt = dabt_request     ? 3'd1 :  // Data Abort
                         swi_request      ? 3'd7 :  // SWI
                                            3'd0 ;  // none             
 
-        // SWI and undefined instructions do not cause an interrupt in the decode
-        // stage. They only trigger interrupts if they arfe executed, so the
-        // interrupt is triggered if the execute condition is met in the execute stage
+
+// SWI and undefined instructions do not cause an interrupt in the decode
+// stage. They only trigger interrupts if they arfe executed, so the
+// interrupt is triggered if the execute condition is met in the execute stage
 assign interrupt      = next_interrupt != 3'd0 && 
                         next_interrupt != 3'd7 &&  // SWI
                         next_interrupt != 3'd6 &&  // undefined interrupt
                         !conflict               ;  // Wait for conflicts to resolve before
                                                    // triggering int
+
+
+// Added to use in rds_use_rs logic to break a combinational loop invloving
+// the conflict signal
+assign interrupt_or_conflict 
+                     =  next_interrupt != 3'd0 && 
+                        next_interrupt != 3'd7 &&  // SWI
+                        next_interrupt != 3'd6  ;  // undefined interrupt
 
 assign interrupt_mode = next_interrupt == 3'd2 ? FIRQ :
                         next_interrupt == 3'd3 ? IRQ  :
@@ -704,8 +719,6 @@ assign interrupt_mode = next_interrupt == 3'd2 ? FIRQ :
                         next_interrupt == 3'd7 ? SVC  :
                         next_interrupt == 3'd1 ? SVC  :
                                                  USR  ;
-
-
 
 
 // ========================================================
