@@ -93,9 +93,10 @@ unsigned int addr;
 
 struct func_name func_names [NAMES_SIZE];
 char a[12], n[48];
-char s_clk_count[12], s_from_addr[12], s_to_addr[12], s_r0[12];
+char s_clk_count[12], s_from_addr[12], s_to_addr[12], s_r0[12], s_r1[12];
 unsigned int from_addr, to_addr, clk_count;
 unsigned int x;
+char current_func_name [48] = "none";
 
 unsigned int slen;
 
@@ -154,7 +155,7 @@ num_func_names = i;
 /* Assign names to jumps */
 while ( (bytes_read = getline (&line_buffer, &nbytes, jumps_file)) > 0)
     {
-    sscanf(line_buffer, "%s %s %s %s", s_clk_count, s_from_addr, s_to_addr, s_r0);
+    sscanf(line_buffer, "%s %s %s %s %s", s_clk_count, s_from_addr, s_to_addr, s_r0, s_r1);
     
     if ( !conv_hstring(s_from_addr, &from_addr) )
         {
@@ -185,8 +186,8 @@ while ( (bytes_read = getline (&line_buffer, &nbytes, jumps_file)) > 0)
         {
         mid = (start + end) / 2;
         
-        if ( to_addr >= func_names[mid].address &&
-             to_addr <  func_names[mid+1].address )
+        if (  to_addr >= func_names[mid].address &&
+             (to_addr <  func_names[mid+1].address || mid == end) )
             {
             found = 1;
             to_func_num = mid;
@@ -203,7 +204,11 @@ while ( (bytes_read = getline (&line_buffer, &nbytes, jumps_file)) > 0)
                 end = mid;
             }    
         }
-        
+    
+    
+    if (!found)
+        fprintf(stderr,"WARNING: to_addr 0x%08x not found\n", to_addr);
+            
     /* 
        now assign a function to the from_address
        this just assigns a function within the range
@@ -219,37 +224,31 @@ while ( (bytes_read = getline (&line_buffer, &nbytes, jumps_file)) > 0)
             {
             mid = (start + end) / 2;
             
-            if ( from_addr >= func_names[mid].address &&
-                 from_addr <  func_names[mid+1].address )
+            if (  from_addr >= func_names[mid].address &&
+                 (from_addr <  func_names[mid+1].address || mid == end) )
                 {
                 found = 1;
                 if ( strcmp ( func_names[mid].name, func_names[to_func_num].name ) )
                     {
 
                     if ( exact ) {                    
-                        if ( func_names[to_func_num].address < 0x02000000 )
-                            printf("%9d u %s ->", clk_count, func_names[mid].name);
-                        else
-                            printf("%9d   %s ->", clk_count, func_names[mid].name);
+                        printf("%9d %s ->", clk_count, func_names[mid].name);
                         
                         slen = 35 - strlen ( func_names[mid].name );
                         if ( slen > 0 ) {
                             for (x=0;x<slen;x++) printf(" ");
                             }
                             
+                        printf("( r0 %s, r1 %s ) %s\n",             
+                            s_r0,                             
+                            s_r1,                             
+                            func_names[to_func_num].name);    
                                 
-                        if ( func_names[to_func_num].address < 0x02000000 )
-                            printf("( %s ) %s u\n", 
-                                s_r0,
-                                func_names[to_func_num].name);
-                        else
-                            printf("( %s ) %s\n", 
-                                s_r0,
-                                func_names[to_func_num].name);
+                        strcpy(current_func_name, func_names[to_func_num].name);
                         
                         }   
-                    else {
-                        printf("%9d   %s <-", 
+                    else if ( strcmp(func_names[to_func_num].name, current_func_name)) {
+                        printf("%9d %s <-", 
                                 clk_count, 
                                 func_names[to_func_num].name);
                                 
@@ -259,8 +258,8 @@ while ( (bytes_read = getline (&line_buffer, &nbytes, jumps_file)) > 0)
                             }
                             
                                 
-                        printf("( %s )\n", 
-                                s_r0);
+                        printf("( r0 %s, r1 %s )\n", 
+                                s_r0, s_r1);
                         }         
                     }        
                 }

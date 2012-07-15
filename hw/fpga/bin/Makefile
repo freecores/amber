@@ -46,6 +46,7 @@
 BIN_FOLDER              = ../bin
 LOG_FOLDER              = ../logs
 BITFILE_FOLDER          = ../bitfiles
+BOOT_LOADER_ETHMAC      = 1
 
 # Can supply different work directories
 # for multiple runs in parallel
@@ -55,7 +56,15 @@ else
     WORK_FOLDER             = ../work0
 endif
 
-VERILOG_INCLUDE_PATH    = ../../vlog/lib ../../../sw/boot-loader
+ifdef BOOT_LOADER_ETHMAC
+        BOOT_LOADER_DIR         = ../../../sw/boot-loader-ethmac
+        BOOT_LOADER_DEF         = BOOT_LOADER_ETHMAC
+else
+        BOOT_LOADER_DIR         = ../../../sw/boot-loader
+        BOOT_LOADER_DEF         = 
+endif
+
+VERILOG_INCLUDE_PATH    = ../../vlog/lib $(BOOT_LOADER_DIR)
 
 # Name of top level verilog file (must be the same as its module name)
 RTL_TOP         = system
@@ -85,7 +94,7 @@ endif
 ifdef VIRTEX6
     # Virtex-6 device
     XILINX_FPGA     = xc6vlx75tff784-3
-    XST_DEFINES     = XILINX_FPGA XILINX_VIRTEX6_FPGA  $(AMBER_CORE) AMBER_CLK_DIVIDER=15
+    XST_DEFINES     = XILINX_FPGA XILINX_VIRTEX6_FPGA  $(AMBER_CORE) AMBER_CLK_DIVIDER=15 $(BOOT_LOADER_DEF)
     # Xilinx placement and timing constraints
     XST_CONST_FILE  = xv6_constraints.ucf
     # List of verilog source files for Xilinx Virtex-6 device
@@ -93,7 +102,7 @@ ifdef VIRTEX6
 else
     # The spartan6 device used on SP605 Development board
     XILINX_FPGA     = xc6slx45tfgg484-3
-    XST_DEFINES     = XILINX_FPGA XILINX_SPARTAN6_FPGA $(AMBER_CORE) AMBER_CLK_DIVIDER=20
+    XST_DEFINES     = XILINX_FPGA XILINX_SPARTAN6_FPGA $(AMBER_CORE) AMBER_CLK_DIVIDER=20 $(BOOT_LOADER_DEF)
     # Xilinx placement and timing constraints
     XST_CONST_FILE  = xs6_constraints.ucf
     # List of verilog source files for Xilinx Spartan-6 device
@@ -242,8 +251,8 @@ $(WORK_FOLDER)/$(RTL_TOP).map.ncd : $(WORK_FOLDER)/$(RTL_TOP).ngd
           -t $(MAP_SEED)           \
           -w                       \
           -ignore_keep_hierarchy   \
-          -detail                  \
           -timing                  \
+          -detail                  \
           -register_duplication on \
           -lc auto                 \
           -xe c -mt off -ir off    \
@@ -286,7 +295,7 @@ $(WORK_FOLDER)/$(RTL_TOP).ngc : $(WORK_FOLDER)/run_id.txt $(XST_PROJ_FILE)
 	echo "-lso ./$(RTL_TOP).lso"                       >> $(WORK_FOLDER)/$(RTL_TOP).xst
 	echo $(XST_OPTIONS)                                >> $(WORK_FOLDER)/$(RTL_TOP).xst
 	echo "-iobuf YES"                                  >> $(WORK_FOLDER)/$(RTL_TOP).xst
-	echo "-define { $(XST_DEFINES) )}"                 >> $(WORK_FOLDER)/$(RTL_TOP).xst
+	echo "-define { $(XST_DEFINES) }"                  >> $(WORK_FOLDER)/$(RTL_TOP).xst
 	cd $(WORK_FOLDER); \
 	xst -intstyle xflow -ifn ./$(RTL_TOP).xst -ofn $(LOG_FOLDER)/$(RTL_TOP).xst.$(RUN_ID).srp
 
@@ -304,5 +313,6 @@ $(WORK_FOLDER)/run_id.txt :
 	echo 0 > $(WORK_FOLDER)/seed.txt
 	date +%Y%m%d%H%M%S > $(WORK_FOLDER)/run_id.txt
 	$(BIN_FOLDER)/set_fpga_version.sh $(WORK_FOLDER)/run_id.txt
-	$(MAKE) -C ../../../sw/boot-loader
+	$(MAKE) -C $(BOOT_LOADER_DIR) clean
+	$(MAKE) -C $(BOOT_LOADER_DIR)
 

@@ -42,7 +42,8 @@
 
 grep '@' $1 | awk '{print $2}'  |  awk 'NR%4==1' |\
 paste -d" "  - - - - - - - - | \
-awk '{printf "    .SRAM0_INIT_" NR-1 " ( 256%ch", 39 } \
+awk '{ if      (NR<=64)  { printf "    .SRAM0_INIT_" NR-1  " ( 256%ch", 39 }  \
+       else if (NR<=128) { printf "    .SRAM4_INIT_" NR-65 " ( 256%ch", 39 }} \
      $8==""  {printf "00000000"} \
      $7==""  {printf "00000000"} \
      $6==""  {printf "00000000"} \
@@ -55,7 +56,8 @@ awk '{printf "    .SRAM0_INIT_" NR-1 " ( 256%ch", 39 } \
 
 grep '@' $1 | awk '{print $2}'  |  awk 'NR%4==2' |\
 paste -d" "  - - - - - - - - | \
-awk '{printf "    .SRAM1_INIT_" NR-1 " ( 256%ch", 39 } \
+awk '{ if      (NR<=64)  { printf "    .SRAM1_INIT_" NR-1  " ( 256%ch", 39 }  \
+       else if (NR<=128) { printf "    .SRAM5_INIT_" NR-65 " ( 256%ch", 39 }} \
      $8==""  {printf "00000000"} \
      $7==""  {printf "00000000"} \
      $6==""  {printf "00000000"} \
@@ -68,7 +70,8 @@ awk '{printf "    .SRAM1_INIT_" NR-1 " ( 256%ch", 39 } \
 
 grep '@' $1 | awk '{print $2}'  |  awk 'NR%4==3' |\
 paste -d" "  - - - - - - - - | \
-awk '{printf "    .SRAM2_INIT_" NR-1 " ( 256%ch", 39 } \
+awk '{ if      (NR<=64)  { printf "    .SRAM2_INIT_" NR-1  " ( 256%ch", 39 }  \
+       else if (NR<=128) { printf "    .SRAM6_INIT_" NR-65 " ( 256%ch", 39 }} \
      $8==""  {printf "00000000"} \
      $7==""  {printf "00000000"} \
      $6==""  {printf "00000000"} \
@@ -82,7 +85,8 @@ awk '{printf "    .SRAM2_INIT_" NR-1 " ( 256%ch", 39 } \
 
 grep '@' $1 | awk '{print $2}'  |  awk 'NR%4==0' |\
 paste -d" "  - - - - - - - - | \
-awk '{printf "    .SRAM3_INIT_" NR-1 " ( 256%ch", 39 } \
+awk '{ if      (NR<=64)  { printf "    .SRAM3_INIT_" NR-1  " ( 256%ch", 39 }  \
+       else if (NR<=128) { printf "    .SRAM7_INIT_" NR-65 " ( 256%ch", 39 }} \
      $8==""  {printf "00000000"} \
      $7==""  {printf "00000000"} \
      $6==""  {printf "00000000"} \

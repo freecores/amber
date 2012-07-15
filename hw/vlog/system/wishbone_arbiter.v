@@ -49,7 +49,7 @@ parameter WB_SWIDTH  = 4
 
 input                       i_wb_clk,     // WISHBONE clock
 
-// WISHBONE master 0 - Amber
+// WISHBONE master 0 - Ethmac
 input       [31:0]          i_m0_wb_adr,
 input       [WB_SWIDTH-1:0] i_m0_wb_sel,
 input                       i_m0_wb_we,
@@ -61,7 +61,7 @@ output                      o_m0_wb_ack,
 output                      o_m0_wb_err,
 
 
-// WISHBONE master 1 - Ethmac
+// WISHBONE master 1 - Amber
 input       [31:0]          i_m1_wb_adr,
 input       [WB_SWIDTH-1:0] i_m1_wb_sel,
 input                       i_m1_wb_we,

@@ -58,8 +58,9 @@ input       [WB_DWIDTH-1:0] i_wb_dat,
 input                       i_wb_cyc,
 input                       i_wb_stb,
 output                      o_wb_ack,
-output                      o_wb_err
-
+output                      o_wb_err,
+output     [3:0]            o_led,
+output                      o_phy_rst_n
 
 );
 
@@ -89,6 +90,10 @@ reg             wb_start_read_d1    = 'd0;
 reg  [31:0]     wb_rdata32          = 'd0;
 wire [31:0]     wb_wdata32;
 
+reg  [3:0]      led_reg             = 'd0;
+reg             phy_rst_reg         = 'd0;
+
+
 // Can't start a write while a read is completing. The ack for the read cycle
 // needs to be sent first
 assign wb_start_write = i_wb_stb && i_wb_we && !wb_start_read_d1;
@@ -97,10 +102,11 @@ assign wb_start_read  = i_wb_stb && !i_wb_we && !o_wb_ack;
 always @( posedge i_clk )
     wb_start_read_d1 <= wb_start_read;
 
-assign o_wb_ack   = i_wb_stb && ( wb_start_write || wb_start_read_d1 );
-assign o_wb_err   = 1'd0;
-assign o_mem_ctrl = mem_ctrl_reg;
-
+assign o_wb_ack     = i_wb_stb && ( wb_start_write || wb_start_read_d1 );
+assign o_wb_err     = 1'd0;
+assign o_mem_ctrl   = mem_ctrl_reg;
+assign o_led        = led_reg;
+assign o_phy_rst_n  = phy_rst_reg;
 
 generate
 if (WB_DWIDTH == 128) 
@@ -118,6 +124,7 @@ else
     assign o_wb_dat    = wb_rdata32;
     end
 endgenerate
+
 
 // ========================================================
 // Register Reads
@@ -160,6 +167,8 @@ always @( posedge i_clk )
             AMBER_TEST_MEM_CTRL:         wb_rdata32 <= {31'd0, mem_ctrl_reg};
             
             AMBER_TEST_CYCLES:           wb_rdata32 <=  cycles_reg;
+            AMBER_TEST_LED:              wb_rdata32 <= {27'd0, led_reg};
+            AMBER_TEST_PHY_RST:          wb_rdata32 <= {31'd0, phy_rst_reg};
             default:                     wb_rdata32 <= 32'haabbccdd;
             
         endcase
@@ -255,18 +264,36 @@ always @( posedge i_clk )
     if ( wb_start_write && i_wb_adr[15:0] == AMBER_TEST_STATUS )
         test_status_set <= 1'd1;     
 
+
 // ======================================
 // Cycles counter
 // ======================================
 always @( posedge i_clk )
     cycles_reg <= cycles_reg + 1'd1;
-    
+
+  
 // ======================================
 // Memory Configuration Register Write
 // ======================================
 always @( posedge i_clk )
     if ( wb_start_write && i_wb_adr[15:0] == AMBER_TEST_MEM_CTRL )
         mem_ctrl_reg <= wb_wdata32[0];     
+
+
+// ======================================
+// Test LEDs
+// ======================================
+always @( posedge i_clk )
+    if ( wb_start_write && i_wb_adr[15:0] == AMBER_TEST_LED )
+        led_reg <= wb_wdata32[3:0];     
+
+
+// ======================================
+// PHY Reset Register
+// ======================================
+always @( posedge i_clk )
+    if ( wb_start_write && i_wb_adr[15:0] == AMBER_TEST_PHY_RST )
+        phy_rst_reg <= wb_wdata32[0];     
 
 
 // ======================================

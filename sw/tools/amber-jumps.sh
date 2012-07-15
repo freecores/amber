@@ -78,7 +78,7 @@ else
 fi
 
 
-grep jump amber.dis | awk '{print $1, $4, $6, $8}' | sed 's/,//' > /tmp/jumps
+grep jump amber.dis | awk '{print $1, $4, $6, $8, $10}' | sed 's/,//g' > /tmp/jumps
 
 grep '>:' $TEST_DIS  | sed 's/<//' | sed 's/>://' > /tmp/funcsx
 

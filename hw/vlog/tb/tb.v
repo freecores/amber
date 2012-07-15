@@ -48,6 +48,7 @@ module tb();
 
 `include "debug_functions.v"
 `include "system_functions.v"
+`include "memory_configuration.v"
 
 reg                     sysrst;
 `ifdef XILINX_VIRTEX6_FPGA  
@@ -99,12 +100,20 @@ wire                    mcb3_rzq;
 wire                    mcb3_zio;      
 `endif
 
-tri1                    md_pad_io;
+tri1                    md;         // bi-directional phy config data
+wire                    mdc;        // phy config clock
 
 wire                    uart0_cts;
 wire                    uart0_rx;
 wire                    uart0_rts;
 wire                    uart0_tx;
+
+wire [3:0]              eth_mtxd;
+wire                    eth_mtxdv; 
+wire                    eth_mtxerr;
+wire [3:0]              eth_mrxd;
+wire                    eth_mrxdv;
+
 
 
 // ======================================
@@ -152,22 +161,41 @@ system u_system (
 
     // Ethernet MII signals
     .mtx_clk_pad_i      ( clk_25mhz         ),
-    .mtxd_pad_o         (                   ), 
-    .mtxen_pad_o        (                   ),
+    .mtxd_pad_o         ( eth_mrxd          ), 
+    .mtxen_pad_o        ( eth_mrxdv         ),
     .mtxerr_pad_o       (                   ),
     .mrx_clk_pad_i      ( clk_25mhz         ),
-    .mrxd_pad_i         ( 4'd0              ),
-    .mrxdv_pad_i        ( 1'd0              ),
-    .mrxerr_pad_i       ( 1'd0              ),
+    .mrxd_pad_i         ( eth_mtxd          ),
+    .mrxdv_pad_i        ( eth_mtxdv         ),
+    .mrxerr_pad_i       ( eth_mtxerr        ),
     .mcoll_pad_i        ( 1'd0              ),
     .mcrs_pad_i         ( 1'd0              ),  // Assert Carrier Sense from PHY
     .phy_reset_n        (                   ),
     
-    // Ethernet MD signals
-    .md_pad_io          ( md_pad_io         ),
-    .mdc_pad_o          (                   )
-
+    // Ethernet Management Data signals
+    .md_pad_io          ( md                ),
+    .mdc_pad_o          ( mdc               ),
+    
+    // LEDs
+    .led                (                   )
 );
+
+
+
+// ======================================
+// Instantiate Ethernet Test Device
+// ======================================
+eth_test u_eth_test(
+    .md_io              ( md                ),
+    .mdc_i              ( mdc               ),
+    .mtx_clk_i          ( clk_25mhz         ),
+    .mtxd_o             ( eth_mtxd          ),
+    .mtxdv_o            ( eth_mtxdv         ),
+    .mtxerr_o           ( eth_mtxerr        ),
+    .mrxd_i             ( eth_mrxd          ), 
+    .mrxdv_i            ( eth_mrxdv         )
+);
+
 
 
 // ======================================
@@ -202,6 +230,7 @@ system u_system (
 `endif
 
 
+
 // ======================================
 // Instantiate Testbench UART
 // ======================================
@@ -212,6 +241,7 @@ tb_uart u_tb_uart (
     .o_uart_txd     ( uart0_tx  )
 
 );
+
 
 
 // ======================================
@@ -311,13 +341,13 @@ always @ ( posedge `U_SYSTEM.sys_clk )
                         boot_mem_file_data     =   hex_chars_to_32bits (aligned_line[110*8-1:102*8]);
                         
                         `ifdef AMBER_A25_CORE
-                            boot_mem_file_data_128 = `U_BOOT_MEM.u_mem.mem[boot_mem_file_address[12:4]];
-                            `U_BOOT_MEM.u_mem.mem[boot_mem_file_address[12:4]] = 
+                            boot_mem_file_data_128 = `U_BOOT_MEM.u_mem.mem[boot_mem_file_address[BOOT_MSB:4]];
+                            `U_BOOT_MEM.u_mem.mem[boot_mem_file_address[BOOT_MSB:4]] = 
                                     insert_32_into_128 ( boot_mem_file_address[3:2], 
                                                          boot_mem_file_data_128, 
                                                          boot_mem_file_data );
                         `else
-                            `U_BOOT_MEM.u_mem.mem[boot_mem_file_address[12:2]] = boot_mem_file_data;
+                            `U_BOOT_MEM.u_mem.mem[boot_mem_file_address[BOOT_MSB:2]] = boot_mem_file_data;
                         `endif
                         
                         `ifdef AMBER_LOAD_MEM_DEBUG

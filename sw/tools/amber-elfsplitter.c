@@ -207,16 +207,18 @@ char* pSHT ( int sh_type )
 int main(int argc,char *argv[])
 {
    FILE *infile,*outfile;
-   unsigned char *buf;
+   unsigned char *inbuf;
+   unsigned char *outbuf;
    int buf_size;
    unsigned int length,i;
    unsigned int StringSectionOffset;
    unsigned int StringSectionOffsetFound = 0;
-
+   unsigned int outP;
+   
    char filename_mem[80], filename_nopath[80];
    char tmp[6] = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
    FILE *file_mem;
-   unsigned int j, k;
+   unsigned int j, k, last_k;
    int m;
    ElfHeader *elfHeader;
    Elf32_Phdr *elfProgram;
@@ -225,6 +227,8 @@ int main(int argc,char *argv[])
    char* ptr=argv[1];
 
    int infile_size;
+   int boffset;
+   int max_out = 0;
    
    if (argc<2){
       printf("%s ERROR: no input file specified. Quitting\n", argv[0]);
@@ -239,8 +243,9 @@ int main(int argc,char *argv[])
    }
    infile_size = fsize(infile);
    
-   buf=(unsigned char*)malloc(infile_size);
-   buf_size=fread(buf,1,infile_size,infile);
+   inbuf =(unsigned char*)malloc(infile_size);
+   outbuf=(unsigned char*)malloc(infile_size*2);
+   buf_size=fread(inbuf,1,infile_size,infile);
    fclose(infile);
 
    if ( buf_size != infile_size ) {
@@ -255,7 +260,7 @@ int main(int argc,char *argv[])
       argv[0], argv[1], infile_size);
       }
       
-   elfHeader=(ElfHeader*)buf;
+   elfHeader=(ElfHeader*)inbuf;
 
 #ifdef DEBUG   
    strncpy(tmp, (char*)elfHeader->e_ident+1, 3);
@@ -281,7 +286,7 @@ int main(int argc,char *argv[])
 #endif
 
    for(i=0;i<elfHeader->e_phnum;++i) {
-      elfProgram           = (Elf32_Phdr*)(buf+elfHeader->e_phoff+elfHeader->e_phentsize*i);      
+      elfProgram           = (Elf32_Phdr*)(inbuf+elfHeader->e_phoff+elfHeader->e_phentsize*i);      
 
       length=elfProgram->p_vaddr+elfProgram->p_memsz;
 #ifdef DEBUG   
@@ -294,7 +299,7 @@ int main(int argc,char *argv[])
       containing the section names
    */   
    for(i=0;i<elfHeader->e_shnum;++i) {
-      elfSection=(Elf32_Shdr*)(buf+elfHeader->e_shoff+elfHeader->e_shentsize*i);
+      elfSection=(Elf32_Shdr*)(inbuf+elfHeader->e_shoff+elfHeader->e_shentsize*i);
       if (elfSection->sh_type == SHT_STRTAB && !StringSectionOffsetFound) { 
          StringSectionOffset      = elfSection->sh_offset; 
          StringSectionOffsetFound = 1;
@@ -302,39 +307,50 @@ int main(int argc,char *argv[])
       }
 
    for(i=0;i<elfHeader->e_shnum;++i) {
-      elfSection=(Elf32_Shdr*)(buf+elfHeader->e_shoff+elfHeader->e_shentsize*i);
+      elfSection=(Elf32_Shdr*)(inbuf+elfHeader->e_shoff+elfHeader->e_shentsize*i);
+
+        /* Get the byte offset and use it to word-align the data */
+        boffset = elfSection->sh_offset & 3;
 
         if (elfSection->sh_type != SHT_NULL) {
-          printf("// Section name %s\n", (char*)(buf+StringSectionOffset+elfSection->sh_name));
-          printf("//  Type %s, Size 0x%x, Start address 0x%08x, File offset 0x%x\n",
+          printf("// Section name %s\n", (char*)(inbuf+StringSectionOffset+elfSection->sh_name));
+          printf("//  Type %s, Size 0x%x, Start address 0x%08x, File offset 0x%x, boffset %d\n",
               pSHT(elfSection->sh_type), 
               elfSection->sh_size, 
               elfSection->sh_addr, 
-              elfSection->sh_offset);
+              elfSection->sh_offset,
+              boffset);
            }     
+        
 
         /* section with non-zero bits, can be either text or data */
         if (elfSection->sh_type == SHT_PROGBITS && elfSection->sh_size != 0) {
-            for (j=0; j<elfSection->sh_size; j=j+4) {
+            for (j=0; j<elfSection->sh_size; j++) {
                k = j + elfSection->sh_offset;
-               printf("@%08x %02x%02x%02x%02x\n", 
-                      (elfSection->sh_addr + j),        /* use word addresses */
-                      buf[k+3], buf[k+2], buf[k+1], buf[k+0]);
+               outP = elfSection->sh_addr + j;
+               outbuf[outP] = inbuf[k];
+               if (outP > max_out) max_out = outP;
                }
            }
            
+           
         if (elfSection->sh_type == SHT_NOBITS && elfSection->sh_size != 0) {
             printf("// .bss Dump Zeros\n");
-            for (j=elfSection->sh_offset; j<elfSection->sh_offset+elfSection->sh_size; j=j+4) {
-               printf("@%08x 00000000\n", 
-               (j + elfSection->sh_addr - elfSection->sh_offset)); /* use word addresses */
+            for (j=0; j<elfSection->sh_size; j++) {
+               outP = j + elfSection->sh_addr;
+               outbuf[outP] = 0;
+               if (outP > max_out) max_out = outP;
                }
            }
-
-
    }
+
    
-   free(buf);
+   for(j=0;j<max_out+3;j=j+4) {
+        printf("@%08x %02x%02x%02x%02x\n", j, outbuf[j+3], outbuf[j+2], outbuf[j+1], outbuf[j+0]);
+        }
+        
+   free(inbuf);
+   free(outbuf);
 
    return 0;
 }

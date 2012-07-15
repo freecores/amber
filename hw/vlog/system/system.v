@@ -95,7 +95,9 @@ input                       mcoll_pad_i,
 input                       mcrs_pad_i,
 inout                       md_pad_io,
 output                      mdc_pad_o,    
-output                      phy_reset_n
+output                      phy_reset_n,
+
+output  [3:0]               led
 );
 
 
@@ -331,7 +333,7 @@ generic_iobuf u_iobuf (
 );
 
 // Ethernet MII PHY reset
-assign phy_reset_n = !sys_rst;
+//assign phy_reset_n = !sys_rst;
 
 // Halt core until system is ready
 assign system_rdy = phy_init_done && !sys_rst;
@@ -454,7 +456,9 @@ u_test_module (
     .i_wb_cyc               ( s_wb_cyc  [5]  ),
     .i_wb_stb               ( s_wb_stb  [5]  ),
     .o_wb_ack               ( s_wb_ack  [5]  ),
-    .o_wb_err               ( s_wb_err  [5]  )
+    .o_wb_err               ( s_wb_err  [5]  ),
+    .o_led                  ( led            ),
+    .o_phy_rst_n            ( phy_reset_n    )
 );
 
 

@@ -138,10 +138,12 @@ endgenerate
 // ======================================
 assign raw_interrupts =  {23'd0,   
                           i_ethmac_int,             // 8: Ethernet MAC interrupt
+                          
                           i_tm_timer_int[2],        // 7: Timer Module Interrupt 2
                           i_tm_timer_int[1],        // 6: Timer Module Interrupt 1
                           i_tm_timer_int[0],        // 5: Timer Module Interrupt 0
                           1'd0,
+                          
                           1'd0,
                           i_uart1_int,              // 2: Uart 1 interrupt
                           i_uart0_int,              // 1: Uart 0 interrupt

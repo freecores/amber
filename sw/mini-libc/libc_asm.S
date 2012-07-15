@@ -514,7 +514,7 @@ strncpy:
         add     r4, r0, r2    @ set r4 to the address of the last byte copied
 1:      ldrb    r3, [r1], #1
         strb    r3, [r0], #1
-        cmp     r2,  r4
+        cmp     r0,  r4
         bne     1b
 2:      ldmia	sp!, {r4, pc}^
 

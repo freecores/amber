@@ -112,11 +112,12 @@ verilog work ../../vlog/amber25/a25_write_back.v
 
 # Xilinx Spartan-6 FPGA Hardware wrappers
 verilog work ../../vlog/lib/xs6_addsub_n.v
-verilog work ../../vlog/lib/xs6_sram_2048x32_byte_en.v
+verilog work ../../vlog/lib/xs6_sram_4096x32_byte_en.v
 verilog work ../../vlog/lib/xs6_sram_256x128_byte_en.v
 verilog work ../../vlog/lib/xs6_sram_256x21_line_en.v
 verilog work ../../vlog/lib/xs6_sram_256x32_byte_en.v
 verilog work ../../vlog/lib/xs6_sram_512x128_byte_en.v
+verilog work ../../vlog/lib/xs6_sram_1024x128_byte_en.v
 
 # Xilinx Spartan-6 DDR3 I/F
 verilog work ../../vlog/xs6_ddr3/mcb_ddr3.v

@@ -45,7 +45,7 @@
 module boot_mem32 #(
 parameter WB_DWIDTH   = 32,
 parameter WB_SWIDTH   = 4,
-parameter MADDR_WIDTH = 11
+parameter MADDR_WIDTH = 12
 )(
 input                       i_wb_clk,     // WISHBONE clock
 
@@ -119,14 +119,7 @@ assign address     = i_wb_adr[MADDR_WIDTH+1:2];
 // ------------------------------------------------------
 //         
 `ifdef XILINX_FPGA
-
-    `ifdef XILINX_SPARTAN6_FPGA
-        xs6_sram_2048x32_byte_en
-    `endif 
-    `ifdef XILINX_VIRTEX6_FPGA
-        xv6_sram_2048x32_byte_en
-    `endif 
-
+    xs6_sram_4096x32_byte_en
 #(
 // This file holds a software image used for FPGA simulations
 // This pre-processor syntax works with both the simulator
@@ -136,8 +129,12 @@ assign address     = i_wb_adr[MADDR_WIDTH+1:2];
 `ifdef BOOT_MEM_PARAMS_FILE
     `include `BOOT_MEM_PARAMS_FILE
 `else
-    // default file
-    `include "boot-loader_memparams32.v"
+    `ifdef BOOT_LOADER_ETHMAC
+        `include "boot-loader-ethmac_memparams32.v"
+    `else
+        // default file
+        `include "boot-loader_memparams32.v"
+    `endif
 `endif
 
 )

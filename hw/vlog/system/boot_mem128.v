@@ -45,7 +45,7 @@
 module boot_mem128 #(
 parameter WB_DWIDTH   = 128,
 parameter WB_SWIDTH   = 16,
-parameter MADDR_WIDTH = 9
+parameter MADDR_WIDTH = 10
 )(
 input                       i_wb_clk,     // WISHBONE clock
 
@@ -121,12 +121,7 @@ assign address     = i_wb_adr[MADDR_WIDTH+3:4];
 //         
 `ifdef XILINX_FPGA
 
-    `ifdef XILINX_SPARTAN6_FPGA
-        xs6_sram_512x128_byte_en
-    `endif 
-    `ifdef XILINX_VIRTEX6_FPGA
-        xv6_sram_512x128_byte_en
-    `endif 
+    xs6_sram_1024x128_byte_en
 
 #(
 // This file holds a software image used for FPGA simulations
@@ -137,8 +132,12 @@ assign address     = i_wb_adr[MADDR_WIDTH+3:4];
 `ifdef BOOT_MEM_PARAMS_FILE
     `include `BOOT_MEM_PARAMS_FILE
 `else
-    // default file
-    `include "boot-loader_memparams128.v"
+    `ifdef BOOT_LOADER_ETHMAC
+        `include "boot-loader-ethmac_memparams128.v"
+    `else
+        // default file
+        `include "boot-loader_memparams128.v"
+    `endif
 `endif
 
 )
@@ -155,7 +154,7 @@ u_mem (
     .i_clk          ( i_wb_clk          ),
     .i_write_enable ( start_write       ),
     .i_byte_enable  ( byte_enable       ),
-    .i_address      ( address           ),  // 2048 words, 32 bits
+    .i_address      ( address           ),  // 1024 words, 128 bits
     .o_read_data    ( read_data         ),
     .i_write_data   ( write_data        )
 );

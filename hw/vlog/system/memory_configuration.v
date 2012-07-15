@@ -43,8 +43,8 @@
 // e.g. 24 for 32MBytes, 26 for 128MBytes
 localparam MAIN_MSB             = 26; 
 
-// e.g. 12 for 2k words
-localparam BOOT_MSB             = 12;  
+// e.g. 13 for 4k words
+localparam BOOT_MSB             = 13;  
 
 localparam MAIN_BASE            = 32'h0000_0000; /*  Main Memory            */
 localparam BOOT_BASE            = 32'h0000_0000; /*  Cachable Boot Memory   */

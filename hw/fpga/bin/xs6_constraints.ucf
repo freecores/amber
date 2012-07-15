@@ -109,6 +109,7 @@ NET  "mcrs_pad_i"                                IOSTANDARD = LVCMOS25;
 NET  "md_pad_io"                                 IOSTANDARD = LVCMOS25;
 NET  "mdc_pad_o"                                 IOSTANDARD = LVCMOS25;
 NET  "phy_reset_n"                               IOSTANDARD = LVCMOS25;
+NET  "led[*]"                                    IOSTANDARD = LVCMOS25;
 
 
 ############################################################################
@@ -121,6 +122,11 @@ NET "o_uart0_cts"                                LOC = F18;
 NET "i_uart0_rts"                                LOC = F19;
 NET "o_uart0_rx"                                 LOC = B21;
 NET "i_uart0_tx"                                 LOC = H17;
+NET "led[0]"                                     LOC = D17;
+NET "led[1]"                                     LOC = AB4;
+NET "led[2]"                                     LOC = D21;
+NET "led[3]"                                     LOC = W15;
+
 
 ############################################################################
 # DDR3 Interface pin locations

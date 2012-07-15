@@ -56,6 +56,15 @@ end
 endfunction
 
 
+function [7:0] hex_chars_to_8bits;
+input [8*2-1:0] hex_chars;
+begin
+hex_chars_to_8bits[ 7: 4] = hex_chars_to_4bits (hex_chars[2*8-1:1*8]);
+hex_chars_to_8bits[ 3: 0] = hex_chars_to_4bits (hex_chars[1*8-1:  0]);
+end
+endfunction
+
+
 function [3:0] hex_chars_to_4bits;
 input [7:0] hex_chars;
 begin

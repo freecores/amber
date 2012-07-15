@@ -428,6 +428,7 @@ reg    [15:0]   LatchedTxLength;
 reg   [14:11]   TxStatus;
 
 reg   [14:13]   RxStatus;
+wire  [14:13]   RxStatus_s;
 
 reg             TxStartFrm_wb;
 reg             TxRetry_wb;
@@ -1352,8 +1353,8 @@ assign PerPacketPad     = TxStatus[12];
 assign PerPacketCrcEn   = TxStatus[11];
 
 
-assign RxIRQEn         = RxStatus[14];
-assign WrapRxStatusBit = RxStatus[13];
+assign RxIRQEn         = RxStatus_s[14];
+assign WrapRxStatusBit = RxStatus_s[13];
 
 
 // Temporary Tx and Rx buffer descriptor address 
@@ -1387,7 +1388,7 @@ end
 
 wire [8:0] TxStatusInLatched = {TxUnderRun, RetryCntLatched[3:0], RetryLimit, LateCollLatched, DeferLatched, CarrierSenseLost};
 
-assign RxBDDataIn = {LatchedRxLength, 1'b0, RxStatus, 4'h0, RxStatusInLatched};
+assign RxBDDataIn = {LatchedRxLength, 1'b0, RxStatus_s, 4'h0, RxStatusInLatched};
 assign TxBDDataIn = {LatchedTxLength, 1'b0, TxStatus, 2'h0, TxStatusInLatched};
 
 
@@ -1873,6 +1874,9 @@ begin
   if(RxEn & RxEn_q & RxBDRead)
     RxStatus <=#Tp ram_do[14:13];
 end
+
+// Need the RxStatus 1 cycle early when doing an RxStatusWrite immediately after a read
+assign RxStatus_s = (RxEn & RxEn_q & RxBDRead) ? ram_do[14:13] : RxStatus;
 
 
 // RxReady generation

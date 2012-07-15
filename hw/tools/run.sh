@@ -282,7 +282,7 @@ if [ $TEST_TYPE == 1 ]; then
 elif [ $TEST_TYPE == 2 ]; then
     # sw Stand-alone C test
     pushd ../../sw/${AMBER_TEST_NAME} > /dev/null
-    make
+    make CPPFLAGS=-DSIM_MODE
     MAKE_STATUS=$?
     popd > /dev/null
     BOOT_MEM_FILE="../../sw/${AMBER_TEST_NAME}/${AMBER_TEST_NAME}.mem"

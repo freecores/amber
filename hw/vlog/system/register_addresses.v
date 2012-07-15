@@ -55,6 +55,8 @@ localparam AMBER_TEST_UART_TXD      = 16'h0018;
 localparam AMBER_TEST_SIM_CTRL      = 16'h001c;
 localparam AMBER_TEST_MEM_CTRL      = 16'h0020;
 localparam AMBER_TEST_CYCLES        = 16'h0024;
+localparam AMBER_TEST_LED           = 16'h0028;
+localparam AMBER_TEST_PHY_RST       = 16'h002c;
 
 localparam AMBER_TEST_RANDOM_NUM    = 16'h0100;
 localparam AMBER_TEST_RANDOM_NUM00  = 16'h0100;
