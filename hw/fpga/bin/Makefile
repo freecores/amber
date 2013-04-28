@@ -64,7 +64,7 @@ else
         BOOT_LOADER_DEF         = 
 endif
 
-VERILOG_INCLUDE_PATH    = ../../vlog/lib $(BOOT_LOADER_DIR)
+VERILOG_INCLUDE_PATH    = ../../vlog/lib ../../vlog/tb $(BOOT_LOADER_DIR)
 
 # Name of top level verilog file (must be the same as its module name)
 RTL_TOP         = system

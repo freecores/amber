@@ -119,11 +119,12 @@ verilog work ../../vlog/lib/xs6_sram_512x128_byte_en.v
 verilog work ../../vlog/lib/xs6_sram_1024x128_byte_en.v
 
 # Xilinx Spartan-6 DDR3 I/F
-verilog work ../../vlog/xs6_ddr3/mcb_ddr3.v
+verilog work ../../vlog/xs6_ddr3/ddr3.v
 verilog work ../../vlog/xs6_ddr3/iodrp_controller.v
 verilog work ../../vlog/xs6_ddr3/iodrp_mcb_controller.v
 verilog work ../../vlog/xs6_ddr3/mcb_raw_wrapper.v
 verilog work ../../vlog/xs6_ddr3/mcb_soft_calibration_top.v
 verilog work ../../vlog/xs6_ddr3/mcb_soft_calibration.v
-verilog work ../../vlog/xs6_ddr3/memc3_infrastructure.v
-verilog work ../../vlog/xs6_ddr3/memc3_wrapper.v
+verilog work ../../vlog/xs6_ddr3/mcb_ui_top.v
+verilog work ../../vlog/xs6_ddr3/infrastructure.v
+verilog work ../../vlog/xs6_ddr3/memc_wrapper.v

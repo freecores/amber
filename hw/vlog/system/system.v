@@ -47,10 +47,6 @@ input                       brd_rst,
 input                       brd_clk_n,  
 input                       brd_clk_p,  
 
-`ifdef XILINX_VIRTEX6_FPGA  
-input                       sys_clk_p,
-input                       sys_clk_n,
-`endif
 
 // UART 0 Interface
 input                       i_uart0_rts,
@@ -73,12 +69,10 @@ inout  [1:0]                ddr3_dqs_p,
 inout  [1:0]                ddr3_dqs_n,
 output                      ddr3_ck_p,
 output                      ddr3_ck_n,
-`ifdef XILINX_VIRTEX6_FPGA  
-output                      ddr3_cs_n,
-`endif
+
 `ifdef XILINX_SPARTAN6_FPGA  
 inout                       mcb3_rzq,
-inout                       mcb3_zio,
+//inout                       mcb3_zio,
 `endif
 
 
@@ -126,24 +120,6 @@ wire            phy_init_done;
 wire            test_mem_ctrl;
 wire            system_rdy;
 
-// ======================================
-// Xilinx Virtex-6 DDR3 Controller connections
-// ======================================
-`ifdef XILINX_VIRTEX6_FPGA  
-wire            phy_init_done1;
-wire            xv6_cmd_en;
-wire  [2:0]     xv6_cmd_instr;
-wire  [26:0]    xv6_cmd_byte_addr;
-wire            xv6_cmd_full;       
-wire            xv6_wr_full;
-wire            xv6_wr_en;
-wire            xv6_wr_end;
-wire  [7:0]     xv6_wr_mask;
-wire  [63:0]    xv6_wr_data;
-wire  [63:0]    xv6_rd_data;
-wire            xv6_rd_data_valid;
-wire            xv6_ddr3_clk;
-`endif
 
 // ======================================
 // Ethmac MII
@@ -592,7 +568,7 @@ u_interrupt_controller (
     // -------------------------------------------------------------
     // Instantiate Xilinx Spartan-6 FPGA MCB-DDR3 Controller
     // -------------------------------------------------------------
-    mcb_ddr3 u_mcb_ddr3  (
+    ddr3 u_ddr3  (
 
                 // DDR3 signals
                .mcb3_dram_dq            ( ddr3_dq               ),
@@ -607,7 +583,7 @@ u_interrupt_controller (
                .mcb3_dram_udm           ( ddr3_dm[1]            ),
                .mcb3_dram_dm            ( ddr3_dm[0]            ),
                .mcb3_rzq                ( mcb3_rzq              ),
-               .mcb3_zio                ( mcb3_zio              ),
+//               .mcb3_zio                ( mcb3_zio              ),
                .mcb3_dram_udqs          ( ddr3_dqs_p[1]         ),
                .mcb3_dram_dqs           ( ddr3_dqs_p[0]         ),
                .mcb3_dram_udqs_n        ( ddr3_dqs_n[1]         ),
@@ -615,9 +591,10 @@ u_interrupt_controller (
                .mcb3_dram_ck            ( ddr3_ck_p             ),
                .mcb3_dram_ck_n          ( ddr3_ck_n             ),
        
-               .sys_clk_ibufg           ( clk_200               ), 
-               .c3_sys_rst_n            ( brd_rst               ),
-               
+               .c3_sys_clk              ( clk_200               ), 
+               .c3_sys_rst_i            ( brd_rst               ), // active-high
+               .c3_clk0                 (                       ),
+               .c3_rst0                 (                       ),
                .c3_calib_done           ( phy_init_done         ),
                
                .c3_p0_cmd_clk           ( sys_clk               ),
@@ -650,105 +627,6 @@ u_interrupt_controller (
                .c3_p0_rd_overflow       (                       ),
                .c3_p0_rd_error          (                       )
        );
-`endif
-
-
-`ifdef XILINX_VIRTEX6_FPGA  
-    // -------------------------------------------------------------
-    // Instantiate Wishbone to Xilinx Spartan-6 DDR3 Bridge
-    // -------------------------------------------------------------
-    // The clock crossing fifo for virtex-6 is insode the bridge
-    // module
-    wb_xv6_ddr3_bridge    #(
-        .WB_DWIDTH              ( WB_DWIDTH             ),
-        .WB_SWIDTH              ( WB_SWIDTH             )
-        )
-    u_wb_xv6_ddr3_bridge (
-        .i_sys_clk              ( sys_clk               ),
-        .i_ddr_clk              ( xv6_ddr3_clk          ),
-
-        .o_ddr_cmd_en           ( xv6_cmd_en            ),        
-        .o_ddr_cmd_instr        ( xv6_cmd_instr         ),        
-        .o_ddr_cmd_byte_addr    ( xv6_cmd_byte_addr     ),        
-        .i_ddr_cmd_full         ( xv6_cmd_full          ), 
-               
-        .i_ddr_wr_full          ( xv6_wr_full           ),        
-        .o_ddr_wr_en            ( xv6_wr_en             ),   
-        .o_ddr_wr_end           ( xv6_wr_end            ),
-        .o_ddr_wr_mask          ( xv6_wr_mask           ),        
-        .o_ddr_wr_data          ( xv6_wr_data           ),  
-              
-        .i_ddr_rd_data          ( xv6_rd_data           ),        
-        .i_ddr_rd_valid         ( xv6_rd_data_valid     ),
-        
-        .i_phy_init_done        ( phy_init_done1        ),        
-        .o_phy_init_done        ( phy_init_done         ),  // delayed version
-              
-        .i_mem_ctrl             ( test_mem_ctrl         ),
-        .i_wb_adr               ( s_wb_adr  [2]         ),        
-        .i_wb_sel               ( s_wb_sel  [2]         ),        
-        .i_wb_we                ( s_wb_we   [2]         ),        
-        .o_wb_dat               ( s_wb_dat_r[2]         ),        
-        .i_wb_dat               ( s_wb_dat_w[2]         ),        
-        .i_wb_cyc               ( s_wb_cyc  [2]         ),        
-        .i_wb_stb               ( s_wb_stb  [2]         ),        
-        .o_wb_ack               ( s_wb_ack  [2]         ),        
-        .o_wb_err               ( s_wb_err  [2]         )     
-    );
-
- 
-    // -------------------------------------------------------------
-    // Instantiate Xilinx Virtex-6 FPGA DDR3 Controller
-    // -------------------------------------------------------------
-    xv6_ddr3   
-    #(          // - Skip the memory initilization sequence,
-                .SIM_INIT_OPTION        ("SKIP_PU_DLY"              ), 
-                // - Skip the delay Calibration process
-                .SIM_CAL_OPTION         ("FAST_CAL"                 ),  
-                .RST_ACT_LOW            ( 0                         )
-                )
-    u_xv6_ddr3  (
-                // DDR3 signals
-                .ddr3_dq                ( ddr3_dq                   ),
-                .ddr3_addr              ( ddr3_addr                 ),
-                .ddr3_ba                ( ddr3_ba                   ),
-                .ddr3_ras_n             ( ddr3_ras_n                ),
-                .ddr3_cas_n             ( ddr3_cas_n                ),
-                .ddr3_we_n              ( ddr3_we_n                 ),
-                .ddr3_odt               ( ddr3_odt                  ),
-                .ddr3_reset_n           ( ddr3_reset_n              ),
-                .ddr3_cke               ( ddr3_cke                  ),
-                .ddr3_dm                ( ddr3_dm                   ),
-                .ddr3_dqs_p             ( ddr3_dqs_p                ),
-                .ddr3_dqs_n             ( ddr3_dqs_n                ),
-                .ddr3_ck_p              ( ddr3_ck_p                 ),
-                .ddr3_ck_n              ( ddr3_ck_n                 ),
-                .ddr3_cs_n              ( ddr3_cs_n                 ),
-                
-                // DDR clock
-                .sys_clk_p              ( sys_clk_p                 ),
-                .sys_clk_n              ( sys_clk_n                 ),
-                .clk_ref                ( clk_200                   ),
-                .sys_rst                ( brd_rst                   ),
-                .tb_rst                 (                           ),
-                .tb_clk                 ( xv6_ddr3_clk              ),
-                .phy_init_done          ( phy_init_done1             ),
-               
-                .app_en                 ( xv6_cmd_en                ),
-                .app_cmd                ( xv6_cmd_instr             ),
-                .tg_addr                ( xv6_cmd_byte_addr         ),
-                .app_full               ( xv6_cmd_full              ),
-
-                .app_wdf_wren           ( xv6_wr_en                 ),
-                .app_wdf_mask           ( xv6_wr_mask               ),
-                .app_wdf_data           ( xv6_wr_data               ),
-                .app_wdf_end            ( xv6_wr_end                ),
-                .app_wdf_full           ( xv6_wr_full               ),
-                
-                .app_rd_data            ( xv6_rd_data               ),
-                .app_rd_data_valid      ( xv6_rd_data_valid         )
-                );
-
 `endif
 
 

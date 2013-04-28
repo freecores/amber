@@ -59,10 +59,28 @@ NET "mrx_clk_pad_i" TNM_NET = "MRX_CLK";
 TIMESPEC "TS_MRX_CLK" = PERIOD "MRX_CLK"  40.0  ns HIGH 50 %;
 
 # False paths between clocks
-PIN "u_mcb_ddr3/memc3_infrastructure_inst/u_pll_adv.CLKOUT3" TNM = "DDR_CLK";
-PIN "u_clocks_resets/u_pll_adv.CLKOUT2" TNM = "SYS_CLK";
+PIN "u_ddr3/memc3_infrastructure_inst/u_pll_adv.CLKOUT3" TNM = "DDR_CLK";
+PIN "u_clocks_resets/u_pll_adv.CLKOUT2" TNM = "CLKOUT2";
+TIMESPEC "TS_false2"  = FROM "DDR_CLK" TO "CLKOUT2" TIG;
 
-TIMESPEC "TS_false1"  = FROM "DDR_CLK" TO "SYS_CLK" TIG;
+
+############################################################################
+# DDR2 requires the MCB to operate in Extended performance mode with higher Vccint
+# specification to achieve maximum frequency. Therefore, the following CONFIG constraint
+# follows the corresponding GUI option setting. However, DDR3 can operate at higher 
+# frequencies with any Vcciint value by operating MCB in extended mode. Please do not
+# remove/edit the below constraint to avoid false errors.
+############################################################################
+CONFIG MCB_PERFORMANCE= EXTENDED;
+
+
+##################################################################################
+# Timing Ignore constraints for paths crossing the clock domain 
+##################################################################################
+NET "u_ddr3/memc?_wrapper_inst/mcb_ui_top_inst/mcb_raw_wrapper_inst/selfrefresh_mcb_mode" TIG;
+NET "u_ddr3/c?_pll_lock" TIG;
+INST "u_ddr3/memc?_wrapper_inst/mcb_ui_top_inst/mcb_raw_wrapper_inst/gen_term_calib.mcb_soft_calibration_top_inst/mcb_soft_calibration_inst/DONE_SOFTANDHARD_CAL*" TIG;
+
 
 
 ############################################################################
@@ -91,7 +109,7 @@ NET  "ddr3_odt"                                  IOSTANDARD = SSTL15_II;
 NET  "ddr3_reset_n"                              IOSTANDARD = SSTL15_II;
 NET  "ddr3_dm[*]"                                IOSTANDARD = SSTL15_II;
 NET  "mcb3_rzq"                                  IOSTANDARD = SSTL15_II;
-NET  "mcb3_zio"                                  IOSTANDARD = SSTL15_II;
+#NET  "mcb3_zio"                                  IOSTANDARD = SSTL15_II;
 NET  "brd_clk_p"                                 IOSTANDARD = LVDS_25;
 NET  "brd_clk_n"                                 IOSTANDARD = LVDS_25;
 NET  "brd_rst"                                   IOSTANDARD = LVCMOS15;
@@ -181,7 +199,7 @@ NET  "ddr3_we_n"                                 LOC = "H2" ;
 
 # The following pins are available for used as RZQ or ZIO pins#
 NET  "mcb3_rzq"                                  LOC = "K7" ;
-NET  "mcb3_zio"                                  LOC = "R7" ;
+#NET  "mcb3_zio"                                  LOC = "R7" ;
 
 ############################################################################
 # Ethernet MII MAC to PHY interface
