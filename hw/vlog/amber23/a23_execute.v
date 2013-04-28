@@ -231,7 +231,7 @@ assign status_bits_mode_nxt      = i_status_bits_sel == 3'd0 ? i_status_bits_mod
 // In addition the signal is one-hot encoded to further speed up the logic
 // Raw version is also kept for ram-based register bank implementation.
 
-assign status_bits_mode_rds_nxt  = i_user_mode_regs_store_nxt ? OH_USR :
+assign status_bits_mode_rds_nxt  = i_user_mode_regs_store_nxt ? USR                  :
                                    status_bits_mode_update    ? status_bits_mode_nxt :
                                                                 status_bits_mode     ;
 
