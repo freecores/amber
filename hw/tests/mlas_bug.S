@@ -54,6 +54,7 @@ main:
         @ setup
         mov     r0, #0
         mov     r1, #4
+        mov     sp, #StackArea
         
         @ -------------------------------------
         @ Replicated code from Linux Kernel
@@ -130,3 +131,8 @@ testpass:
 /* Write 17 to this address to generate a Test Passed message */
 AdrTestStatus:              .word ADR_AMBER_TEST_STATUS
 
+        .word   0
+        .word   0
+        .word   0
+        .word   0
+StackArea:
