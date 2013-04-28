@@ -51,6 +51,9 @@
 //   8 ways -> 32KB cache
 `define A23_CACHE_WAYS 4
 
+// Use ram-based register bank implementation
+// `define A23_RAM_REGISTER_BANK
+
 // --------------------------------------------------------------------
 // Debug switches 
 // --------------------------------------------------------------------
