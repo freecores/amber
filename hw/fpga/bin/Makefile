@@ -60,7 +60,7 @@ ifdef BOOT_LOADER_ETHMAC
         BOOT_LOADER_DIR         = ../../../sw/boot-loader-ethmac
         BOOT_LOADER_DEF         = BOOT_LOADER_ETHMAC
 else
-        BOOT_LOADER_DIR         = ../../../sw/boot-loader
+        BOOT_LOADER_DIR         = ../../../sw/boot-loader-serial
         BOOT_LOADER_DEF         = 
 endif
 

@@ -2,7 +2,7 @@
 # Copy the run ID into an include file
 # thats compiled into the FPGA boot loader software
 
-FPGA_VERSION_FILE=../../../sw/boot-loader/fpga-version.h
+FPGA_VERSION_FILE=../../../sw/boot-loader-serial/fpga-version.h
 RUN_ID_FILE=$1
 
 VERSION=`cat ${RUN_ID_FILE}`

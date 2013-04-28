@@ -50,7 +50,6 @@ SET_G=0
 SET_M=0
 SET_T=0
 SET_S=0
-SET_A=0
 SET_5=0
 SET_L=0
 
@@ -60,7 +59,6 @@ show_usage() {
     echo "Usage:"
     echo "run <test_name> [-a] [-g] [-d] [-t] [-s] [-v]"
     echo " -h : Help"
-    echo " -a : Run hardware tests (all tests in \$AMBER_BASE/hw/tests)"
     echo " -g : Use ISIM GUI"
     echo " -l : Create dump of complete design"
     echo " -s : Use Xilinx Spatran6 Libraries (slower sim)"
@@ -99,8 +97,6 @@ do
     case $1 in
         -*)  true ;
             case $1 in
-                -a)     SET_A=1   # all tests
-                        shift ;;
                 -s)     SET_S=1   # Xilinx Spartan6 libs
                         shift ;;
                 -5)     SET_5=1   # Amber25 core (default is Amber23 core)
