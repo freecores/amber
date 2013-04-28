@@ -201,12 +201,12 @@ elif [ $TEST_TYPE == 2 ]; then
 
 elif [ $TEST_TYPE == 3 ] || [ $TEST_TYPE == 4 ]; then
     # sw test using boot loader
-    pushd ../../sw/boot-loader > /dev/null
+    pushd ../../sw/boot-loader-serial > /dev/null
     make
     MAKE_STATUS=$?
     popd > /dev/null
     if [ $MAKE_STATUS != 0 ]; then
-        echo "Error compiling boot-loader"
+        echo "Error compiling boot-loader-serial"
         exit 1
     fi
     
@@ -217,11 +217,11 @@ elif [ $TEST_TYPE == 3 ] || [ $TEST_TYPE == 4 ]; then
     MAKE_STATUS=$?
     popd > /dev/null
     
-    BOOT_MEM_FILE="../../sw/boot-loader/boot-loader.mem"
+    BOOT_MEM_FILE="../../sw/boot-loader-serial/boot-loader-serial.mem"
     if [ $SET_5 == 1 ]; then
-        BOOT_MEM_PARAMS_FILE="../../sw/boot-loader/boot-loader_memparams128.v"
+        BOOT_MEM_PARAMS_FILE="../../sw/boot-loader-serial/boot-loader-serial_memparams128.v"
     else
-        BOOT_MEM_PARAMS_FILE="../../sw/boot-loader/boot-loader_memparams32.v"
+        BOOT_MEM_PARAMS_FILE="../../sw/boot-loader-serial/boot-loader-serial_memparams32.v"
     fi
     MAIN_MEM_FILE="../../sw/${AMBER_TEST_NAME}/${AMBER_TEST_NAME}.mem"
     AMBER_LOAD_MAIN_MEM="-d AMBER_LOAD_MAIN_MEM"

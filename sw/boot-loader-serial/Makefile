@@ -40,9 +40,9 @@
 # ----------------------------------------------------------------
 # Assembly source files
 
-SRC = boot-loader.c start.S crc16.c xmodem.c elfsplitter.c
+SRC = boot-loader-serial.c start.S crc16.c xmodem.c elfsplitter.c
 DEP = boot-loader.h fpga-version.h
-TGT = boot-loader.elf
+TGT = boot-loader-serial.elf
 LDS = sections.lds
 
 USE_MINI_LIBC = 1

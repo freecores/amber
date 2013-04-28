@@ -42,7 +42,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "../boot-loader/boot-loader.h"
+#include "../boot-loader-serial/boot-loader.h"
 
 /* Function prototypes */
 int fsize(FILE *f);
