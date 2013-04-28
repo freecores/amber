@@ -79,6 +79,9 @@ output reg                  o_status_bits_firq_mask = 1'd1,
 output reg  [3:0]           o_rm_sel = 'd0,
 output reg  [3:0]           o_rds_sel = 'd0,
 output reg  [3:0]           o_rn_sel = 'd0,
+output      [3:0]           o_rm_sel_nxt,
+output      [3:0]           o_rds_sel_nxt,
+output      [3:0]           o_rn_sel_nxt,
 output reg  [1:0]           o_barrel_shift_amount_sel = 'd0,
 output reg  [1:0]           o_barrel_shift_data_sel = 'd0,
 output reg  [1:0]           o_barrel_shift_function = 'd0,
@@ -99,6 +102,7 @@ output reg                  o_base_address_wen = 'd0,       // save LDM base add
                                                             // in case of data abort
 output reg                  o_pc_wen = 1'd1,
 output reg  [14:0]          o_reg_bank_wen = 'd0,
+output reg  [3:0]           o_reg_bank_wsel = 'd0,
 output reg                  o_status_bits_flags_wen = 'd0,
 output reg                  o_status_bits_mode_wen = 'd0,
 output reg                  o_status_bits_irq_mask_wen = 'd0,
@@ -201,9 +205,6 @@ reg     [1:0]          status_bits_mode_nxt;
 reg                    status_bits_irq_mask_nxt;
 reg                    status_bits_firq_mask_nxt;
 
-wire    [3:0]          rm_sel_nxt;
-wire    [3:0]          rds_sel_nxt;
-wire    [3:0]          rn_sel_nxt;
 reg     [1:0]          barrel_shift_amount_sel_nxt;
 reg     [1:0]          barrel_shift_data_sel_nxt;
 reg     [3:0]          address_sel_nxt;
@@ -225,7 +226,7 @@ reg                    write_data_wen_nxt;
 reg                    copro_write_data_wen_nxt;
 reg                    base_address_wen_nxt;
 reg                    pc_wen_nxt;
-reg     [14:0]         reg_bank_wen_nxt;
+reg     [3:0]          reg_bank_wsel_nxt;
 reg                    status_bits_flags_wen_nxt;
 reg                    status_bits_mode_wen_nxt;
 reg                    status_bits_irq_mask_wen_nxt;
@@ -383,12 +384,12 @@ always @*
 assign opcode        = instruction[24:21];
 assign condition_nxt = instruction[31:28];
 
-assign rm_sel_nxt    = instruction[3:0];
+assign o_rm_sel_nxt    = instruction[3:0];
                                                       
-assign rn_sel_nxt    = branch  ? 4'd15             : // Use PC to calculate branch destination
+assign o_rn_sel_nxt    = branch  ? 4'd15             : // Use PC to calculate branch destination
                                  instruction[19:16] ;
 
-assign rds_sel_nxt   = control_state == SWAP_WRITE  ? instruction[3:0]   : // Rm gets written out to memory
+assign o_rds_sel_nxt   = control_state == SWAP_WRITE  ? instruction[3:0]   : // Rm gets written out to memory
                        type == MTRANS               ? mtrans_reg      :
                        branch                       ? 4'd15              : // Update the PC
                        rds_use_rs                   ? instruction[11:8]  : 
@@ -617,7 +618,7 @@ always @*
     byte_enable_sel_nxt             = 'd0;  
     status_bits_sel_nxt             = 'd0;  
     reg_write_sel_nxt               = 'd0;  
-    user_mode_regs_load_nxt         = 'd0;  
+    user_mode_regs_load_nxt         = 'd0;
     o_user_mode_regs_store_nxt      = 'd0;  
            
     // ALU Muxes
@@ -632,7 +633,7 @@ always @*
     copro_write_data_wen_nxt        = 'd0;
     base_address_wen_nxt            = 'd0;
     pc_wen_nxt                      = 'd1;
-    reg_bank_wen_nxt                = 'd0;  // Don't select any
+    reg_bank_wsel_nxt               = 'hF;  // Don't select any
     status_bits_flags_wen_nxt       = 'd0;
     status_bits_mode_wen_nxt        = 'd0;
     status_bits_irq_mask_wen_nxt    = 'd0;
@@ -651,7 +652,7 @@ always @*
                     address_sel_nxt = 4'd1; // alu_out
                     end
                 else                     
-                    reg_bank_wen_nxt = decode (instruction[15:12]);
+                    reg_bank_wsel_nxt = instruction[15:12];
                 end
                 
             if ( !immediate_shifter_operand )
@@ -775,10 +776,10 @@ always @*
             if ( mem_op_pre_indexed || mem_op_post_indexed )
                 begin
                 // Check is the load destination is the PC
-                if ( rn_sel_nxt  == 4'd15 )
+                if ( o_rn_sel_nxt  == 4'd15 )
                     pc_sel_nxt = 2'd1; 
                 else                     
-                    reg_bank_wen_nxt = decode ( rn_sel_nxt );
+                    reg_bank_wsel_nxt = o_rn_sel_nxt;
                 end
                 
                 // if post-indexed, then use Rn rather than ALU output, as address
@@ -805,7 +806,7 @@ always @*
             
             if ( instruction[24] ) // Link
                 begin
-                reg_bank_wen_nxt  = decode (4'd14);  // Save PC to LR
+                reg_bank_wsel_nxt  = 4'd14;  // Save PC to LR
                 reg_write_sel_nxt = 3'd1;            // pc - 32'd4
                 end
             end
@@ -861,7 +862,7 @@ always @*
                                 
             // update the base register ?
             if ( instruction[21] )  // the W bit
-                reg_bank_wen_nxt  = decode (rn_sel_nxt);
+                reg_bank_wsel_nxt  = o_rn_sel_nxt;
             end
             
             
@@ -914,7 +915,7 @@ always @*
             begin
             // save address of next instruction to Supervisor Mode LR
             reg_write_sel_nxt               = 3'd1;            // pc -4
-            reg_bank_wen_nxt                = decode (4'd14);  // LR
+            reg_bank_wsel_nxt               = 4'd14;  // LR
         
             address_sel_nxt                 = 4'd2;            // interrupt_vector
             pc_sel_nxt                      = 2'd2;            // interrupt_vector
@@ -970,7 +971,7 @@ always @*
         else
             reg_write_sel_nxt               = 3'd1;            // pc -4
             
-        reg_bank_wen_nxt                = decode (4'd14);  // LR
+        reg_bank_wsel_nxt               = 4'd14;           // LR
         
         address_sel_nxt                 = 4'd2;            // interrupt_vector
         pc_sel_nxt                      = 2'd2;            // interrupt_vector
@@ -1030,7 +1031,7 @@ always @*
                 address_sel_nxt = 4'd1; // alu_out
                 end
             else                     
-                reg_bank_wen_nxt = decode (instruction[15:12]);
+                reg_bank_wsel_nxt = instruction[15:12];
             end
         end
         
@@ -1078,7 +1079,7 @@ always @*
             // Can never be loading the PC in this state, as the PC is always
             // the last register in the set to be loaded
             if ( !dabt )
-                reg_bank_wen_nxt = decode (mtrans_reg_d2);
+                reg_bank_wsel_nxt = mtrans_reg_d2;
             end
         else // Store
             write_data_wen_nxt = 1'd1;
@@ -1103,7 +1104,7 @@ always @*
         // Can never be loading the PC in this state, as the PC is always
         // the last register in the set to be loaded
         if ( instruction[20] && !dabt ) // Load
-            reg_bank_wen_nxt = decode (mtrans_reg_d2);
+            reg_bank_wsel_nxt = mtrans_reg_d2;
             
         // LDM: load into user mode registers, when in priviledged mode     
         if ( {instruction[22:20],mtrans_r15} == 4'b1010 )
@@ -1167,7 +1168,7 @@ always @*
                     end
                 else
                     begin
-                    reg_bank_wen_nxt = decode (mtrans_reg_d2);
+                    reg_bank_wsel_nxt = mtrans_reg_d2;
                     end
                 end
             end
@@ -1196,7 +1197,7 @@ always @*
         if (restore_base_address) // LDM with base address in register list
             begin
             reg_write_sel_nxt = 3'd6;                        // write base_register
-            reg_bank_wen_nxt  = decode ( instruction[19:16] ); // to Rn
+            reg_bank_wsel_nxt  = instruction[19:16];         // to Rn
             end
         end
         
@@ -1233,9 +1234,9 @@ always @*
         multiply_function_nxt = o_multiply_function;
         
         if ( type == MULT ) // 32-bit
-            reg_bank_wen_nxt      = decode (instruction[19:16]); // Rd
+            reg_bank_wsel_nxt      = instruction[19:16]; // Rd
         else  // 64-bit / Long
-            reg_bank_wen_nxt      = decode (instruction[15:12]); // RdLo
+            reg_bank_wsel_nxt      = instruction[15:12]; // RdLo
             
         if ( instruction[20] )  // the 'S' bit
             begin
@@ -1303,7 +1304,7 @@ always @*
                 address_sel_nxt = 4'd1; // alu_out
                 end
             else                     
-                reg_bank_wen_nxt = decode (instruction[15:12]);
+                reg_bank_wsel_nxt = instruction[15:12];
             end
         end
         
@@ -1331,7 +1332,7 @@ always @*
                    end
                 end
             else                     
-                reg_bank_wen_nxt = decode (instruction[15:12]);
+                reg_bank_wsel_nxt = instruction[15:12];
                         
             reg_write_sel_nxt = 3'd5;     // i_copro_data
             end
@@ -1529,9 +1530,9 @@ always @ ( posedge i_clk )
         o_exclusive_exec            <= exclusive_exec_nxt;
         o_data_access_exec          <= data_access_exec_nxt;
         
-        o_rm_sel                    <= rm_sel_nxt;
-        o_rds_sel                   <= rds_sel_nxt;
-        o_rn_sel                    <= rn_sel_nxt;
+        o_rm_sel                    <= o_rm_sel_nxt;
+        o_rds_sel                   <= o_rds_sel_nxt;
+        o_rn_sel                    <= o_rn_sel_nxt;
         o_barrel_shift_amount_sel   <= barrel_shift_amount_sel_nxt;
         o_barrel_shift_data_sel     <= barrel_shift_data_sel_nxt;
         o_barrel_shift_function     <= barrel_shift_function_nxt;
@@ -1548,7 +1549,8 @@ always @ ( posedge i_clk )
         o_write_data_wen            <= write_data_wen_nxt;
         o_base_address_wen          <= base_address_wen_nxt;
         o_pc_wen                    <= pc_wen_nxt;
-        o_reg_bank_wen              <= reg_bank_wen_nxt;
+        o_reg_bank_wsel             <= reg_bank_wsel_nxt;
+        o_reg_bank_wen              <= decode ( reg_bank_wsel_nxt );
         o_status_bits_flags_wen     <= status_bits_flags_wen_nxt;
         o_status_bits_mode_wen      <= status_bits_mode_wen_nxt;
         o_status_bits_irq_mask_wen  <= status_bits_irq_mask_wen_nxt;

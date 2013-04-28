@@ -88,6 +88,9 @@ input                       i_exclusive_exec,       // swap access
 input      [3:0]            i_rm_sel,
 input      [3:0]            i_rds_sel,
 input      [3:0]            i_rn_sel,
+input      [3:0]            i_rm_sel_nxt,
+input      [3:0]            i_rds_sel_nxt,
+input      [3:0]            i_rn_sel_nxt,
 input      [1:0]            i_barrel_shift_amount_sel,
 input      [1:0]            i_barrel_shift_data_sel,
 input      [1:0]            i_barrel_shift_function,
@@ -102,12 +105,14 @@ input      [2:0]            i_reg_write_sel,
 input                       i_user_mode_regs_load,
 input                       i_user_mode_regs_store_nxt,
 input                       i_firq_not_user_mode,
+input                       i_firq_not_user_mode_nxt,
 
 input                       i_write_data_wen,
 input                       i_base_address_wen,     // save LDM base address register, 
                                                     // in case of data abort
 input                       i_pc_wen,
 input      [14:0]           i_reg_bank_wen,
+input      [3:0]            i_reg_bank_wsel,
 input                       i_status_bits_flags_wen,
 input                       i_status_bits_mode_wen,
 input                       i_status_bits_irq_mask_wen,
@@ -147,7 +152,12 @@ wire                barrel_shift_carry;
 wire [3:0]          status_bits_flags_nxt;
 reg  [3:0]          status_bits_flags = 'd0;
 wire [1:0]          status_bits_mode_nxt;
+wire [1:0]          status_bits_mode_nr;
 reg  [1:0]          status_bits_mode = SVC;
+                    // raw rs select
+wire [1:0]          status_bits_mode_rds_nxt;
+wire [1:0]          status_bits_mode_rds_nr;
+reg  [1:0]          status_bits_mode_rds;
                     // one-hot encoded rs select
 wire [3:0]          status_bits_mode_rds_oh_nxt;
 reg  [3:0]          status_bits_mode_rds_oh = 1'd1 << OH_SVC;
@@ -161,6 +171,7 @@ wire                execute;           // high when condition execution is true
 wire [31:0]         reg_write_nxt;
 wire                pc_wen;
 wire [14:0]         reg_bank_wen;
+wire [3:0]          reg_bank_wsel;
 wire [31:0]         multiply_out;
 wire [1:0]          multiply_flags;
 reg  [31:0]         base_address = 'd0;    // Saves base address during LDM instruction in 
@@ -218,11 +229,14 @@ assign status_bits_mode_nxt      = i_status_bits_sel == 3'd0 ? i_status_bits_mod
 // i_user_mode_regs_store_nxt signal back into the previous stage -
 // so its really part of the decode stage even though the logic is right here
 // In addition the signal is one-hot encoded to further speed up the logic
+// Raw version is also kept for ram-based register bank implementation.
 
-assign status_bits_mode_rds_oh_nxt    = i_user_mode_regs_store_nxt ? 1'd1 << OH_USR                            :
-                                        status_bits_mode_update    ? oh_status_bits_mode(status_bits_mode_nxt) :
-                                                                     oh_status_bits_mode(status_bits_mode)     ;
-    
+assign status_bits_mode_rds_nxt  = i_user_mode_regs_store_nxt ? OH_USR :
+                                   status_bits_mode_update    ? status_bits_mode_nxt :
+                                                                status_bits_mode     ;
+
+assign status_bits_mode_rds_oh_nxt    = oh_status_bits_mode(status_bits_mode_rds_nxt);
+
 
 assign status_bits_irq_mask_nxt  = i_status_bits_sel == 3'd0 ? i_status_bits_irq_mask      :
                                    i_status_bits_sel == 3'd1 ? alu_out                [27] :
@@ -380,6 +394,8 @@ assign pc_wen       = i_pc_wen || !execute;
 // only update register bank if current instruction executes
 assign reg_bank_wen = {{15{execute}} & i_reg_bank_wen};
 
+assign reg_bank_wsel = {{4{~execute}} | i_reg_bank_wsel};
+
 
 // ========================================================
 // Priviledged output flag
@@ -416,6 +432,11 @@ assign status_bits_mode_rds_oh_update  = !i_fetch_stall;
 assign status_bits_irq_mask_update     = !i_fetch_stall && execute && i_status_bits_irq_mask_wen;
 assign status_bits_firq_mask_update    = !i_fetch_stall && execute && i_status_bits_firq_mask_wen;
 
+assign status_bits_mode_rds_nr         =  status_bits_mode_rds_oh_update ? status_bits_mode_rds_nxt :
+                                                                           status_bits_mode_rds     ;
+
+assign status_bits_mode_nr             =  status_bits_mode_update        ? status_bits_mode_nxt     :
+                                                                           status_bits_mode         ;
 
 always @( posedge i_clk )
     begin                                                                                                             
@@ -433,8 +454,9 @@ always @( posedge i_clk )
     base_address            <= base_address_update            ? rn                           : base_address;    
 
     status_bits_flags       <= status_bits_flags_update       ? status_bits_flags_nxt        : status_bits_flags;
-    status_bits_mode        <= status_bits_mode_update        ? status_bits_mode_nxt         : status_bits_mode;
+    status_bits_mode        <=  status_bits_mode_nr;
     status_bits_mode_rds_oh <= status_bits_mode_rds_oh_update ? status_bits_mode_rds_oh_nxt  : status_bits_mode_rds_oh;
+    status_bits_mode_rds    <= status_bits_mode_rds_nr;
     status_bits_irq_mask    <= status_bits_irq_mask_update    ? status_bits_irq_mask_nxt     : status_bits_irq_mask;
     status_bits_firq_mask   <= status_bits_firq_mask_update   ? status_bits_firq_mask_nxt    : status_bits_firq_mask;
     end

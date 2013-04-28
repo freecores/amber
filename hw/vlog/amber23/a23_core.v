@@ -100,6 +100,9 @@ wire     [4:0]            read_data_alignment;
 wire     [3:0]            rm_sel;                  
 wire     [3:0]            rds_sel;                 
 wire     [3:0]            rn_sel;                  
+wire     [3:0]            rm_sel_nxt;
+wire     [3:0]            rds_sel_nxt;
+wire     [3:0]            rn_sel_nxt;
 wire     [1:0]            barrel_shift_amount_sel; 
 wire     [1:0]            barrel_shift_data_sel;   
 wire     [1:0]            barrel_shift_function;   
@@ -120,6 +123,7 @@ wire                      copro_write_data_wen;
 wire                      base_address_wen;        
 wire                      pc_wen;                  
 wire     [14:0]           reg_bank_wen;            
+wire     [3:0]            reg_bank_wsel;            
 
 wire     [2:0]            copro_opcode1;
 wire     [2:0]            copro_opcode2;
@@ -204,7 +208,7 @@ a23_decode u_decode (
     .i_execute_status_bits              ( execute_status_bits               ),                                          
     .i_multiply_done                    ( multiply_done                     ),                                          
     
-    .o_status_bits_mode                 ( status_bits_mode                  ),  
+    .o_status_bits_mode                 ( status_bits_mode                  ),
     .o_status_bits_irq_mask             ( status_bits_irq_mask              ),  
     .o_status_bits_firq_mask            ( status_bits_firq_mask             ),  
     .o_imm32                            ( imm32                             ),
@@ -216,6 +220,9 @@ a23_decode u_decode (
     .o_rm_sel                           ( rm_sel                            ),
     .o_rds_sel                          ( rds_sel                           ),
     .o_rn_sel                           ( rn_sel                            ),
+    .o_rm_sel_nxt                       ( rm_sel_nxt                        ),
+    .o_rds_sel_nxt                      ( rds_sel_nxt                       ),
+    .o_rn_sel_nxt                       ( rn_sel_nxt                        ),
     .o_barrel_shift_amount_sel          ( barrel_shift_amount_sel           ),
     .o_barrel_shift_data_sel            ( barrel_shift_data_sel             ),
     .o_barrel_shift_function            ( barrel_shift_function             ),
@@ -234,6 +241,7 @@ a23_decode u_decode (
     .o_base_address_wen                 ( base_address_wen                  ),
     .o_pc_wen                           ( pc_wen                            ),
     .o_reg_bank_wen                     ( reg_bank_wen                      ),
+    .o_reg_bank_wsel                    ( reg_bank_wsel                     ),
     .o_status_bits_flags_wen            ( status_bits_flags_wen             ),
     .o_status_bits_mode_wen             ( status_bits_mode_wen              ),
     .o_status_bits_irq_mask_wen         ( status_bits_irq_mask_wen          ),
@@ -291,6 +299,9 @@ a23_execute u_execute (
     .i_rm_sel                           ( rm_sel                            ),   
     .i_rds_sel                          ( rds_sel                           ),   
     .i_rn_sel                           ( rn_sel                            ),   
+    .i_rm_sel_nxt                       ( rm_sel_nxt                        ),
+    .i_rds_sel_nxt                      ( rds_sel_nxt                       ),
+    .i_rn_sel_nxt                       ( rn_sel_nxt                        ),
     .i_barrel_shift_amount_sel          ( barrel_shift_amount_sel           ),   
     .i_barrel_shift_data_sel            ( barrel_shift_data_sel             ),   
     .i_barrel_shift_function            ( barrel_shift_function             ),   
@@ -309,6 +320,7 @@ a23_execute u_execute (
     .i_base_address_wen                 ( base_address_wen                  ),   
     .i_pc_wen                           ( pc_wen                            ),   
     .i_reg_bank_wen                     ( reg_bank_wen                      ),   
+    .i_reg_bank_wsel                    ( reg_bank_wsel                     ),
     .i_status_bits_flags_wen            ( status_bits_flags_wen             ),   
     .i_status_bits_mode_wen             ( status_bits_mode_wen              ),   
     .i_status_bits_irq_mask_wen         ( status_bits_irq_mask_wen          ),   
