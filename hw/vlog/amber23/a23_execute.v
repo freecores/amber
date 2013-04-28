@@ -466,7 +466,11 @@ always @( posedge i_clk )
 // ========================================================
 // Instantiate Barrel Shift
 // ========================================================
+`ifndef ALTERA_FPGA
 a23_barrel_shift u_barrel_shift  (
+`else
+a23_barrel_shift_fpga u_barrel_shift  (
+`endif
     .i_in             ( barrel_shift_in           ),
     .i_carry_in       ( status_bits_flags[1]      ),
     .i_shift_amount   ( shift_amount              ),
