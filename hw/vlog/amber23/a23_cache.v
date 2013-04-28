@@ -42,7 +42,7 @@
 // from http://www.opencores.org/lgpl.shtml                     //
 //                                                              //
 //////////////////////////////////////////////////////////////////
-
+`include "global_defines.v"
 `include "a23_config_defines.v"
 
 module a23_cache 

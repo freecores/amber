@@ -39,6 +39,9 @@
 //////////////////////////////////////////////////////////////////
 
 `timescale  1 ps / 1 ps
+`include "system_config_defines.v"
+`include "global_defines.v"
+
 
 module tb_uart (
 input                       i_uart_cts_n,          // Clear To Send

@@ -52,6 +52,7 @@
 //////////////////////////////////////////////////////////////////
 
 `include "system_config_defines.v"
+`include "global_defines.v"
 
 // Normally AMBER_UART_BAUD is defined in the system_config_defines.v file.
 `ifndef AMBER_UART_BAUD

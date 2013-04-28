@@ -38,7 +38,7 @@
 // from http://www.opencores.org/lgpl.shtml                     //
 //                                                              //
 //////////////////////////////////////////////////////////////////
-
+`include "global_defines.v"
 
 module timer_module  #(
 parameter WB_DWIDTH  = 32,

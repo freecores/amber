@@ -47,7 +47,6 @@ verilog work ../../vlog/system/test_module.v
 verilog work ../../vlog/system/timer_module.v
 verilog work ../../vlog/system/uart.v
 verilog work ../../vlog/system/wb_xs6_ddr3_bridge.v
-verilog work ../../vlog/system/wb_xv6_ddr3_bridge.v
 verilog work ../../vlog/system/wishbone_arbiter.v
 verilog work ../../vlog/system/afifo.v
 verilog work ../../vlog/system/ddr3_afifo.v

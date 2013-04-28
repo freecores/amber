@@ -66,14 +66,14 @@ TEST_LIST="
            mlas_bug inflate_bug swp_lock_bug \
            cache_swap_bug \
            "
-LOG_FILE=tests.log
+LOG_FILE=all.log
 
 echo "----------------------------------" >> ${LOG_FILE}
 date >> ${LOG_FILE}
 
 for i in $TEST_LIST; do
     echo "Run test $i"
-    ../tools/run.sh ${i} $1 $2 $3
+    ./run.sh ${i} $2 $3
 done
 
 echo "----------------------------------" >> ${LOG_FILE}

@@ -163,11 +163,12 @@ endfunction
 function [31:0] log2;
 input    [31:0] num;
 integer i;
-
+integer out;
 begin
-  log2 = 32'd0;
+  out = 32'd0;
   for (i=0; i<30; i=i+1)
-    if ((2**i > num) && (log2 == 0))
-      log2 = i-1;
+    if ((2**i > num) && (out == 0))
+      out = i-1;
+  log2 = out;
 end
 endfunction

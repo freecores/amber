@@ -41,7 +41,7 @@
 // from http://www.opencores.org/lgpl.shtml                     //
 //                                                              //
 //////////////////////////////////////////////////////////////////
-
+`include "global_defines.v"
 
 module wb_xs6_ddr3_bridge #(
 parameter WB_DWIDTH   = 32,

@@ -90,24 +90,15 @@ else
 endif
 
 
-## FPGA type
-ifdef VIRTEX6
-    # Virtex-6 device
-    XILINX_FPGA     = xc6vlx75tff784-3
-    XST_DEFINES     = XILINX_FPGA XILINX_VIRTEX6_FPGA  $(AMBER_CORE) AMBER_CLK_DIVIDER=15 $(BOOT_LOADER_DEF)
-    # Xilinx placement and timing constraints
-    XST_CONST_FILE  = xv6_constraints.ucf
-    # List of verilog source files for Xilinx Virtex-6 device
-    XST_PROJ_FILE   = xv6_source_files.prj
-else
-    # The spartan6 device used on SP605 Development board
-    XILINX_FPGA     = xc6slx45tfgg484-3
-    XST_DEFINES     = XILINX_FPGA XILINX_SPARTAN6_FPGA $(AMBER_CORE) AMBER_CLK_DIVIDER=20 $(BOOT_LOADER_DEF)
-    # Xilinx placement and timing constraints
-    XST_CONST_FILE  = xs6_constraints.ucf
-    # List of verilog source files for Xilinx Spartan-6 device
-    XST_PROJ_FILE   = xs6_source_files.prj
-endif
+
+# The spartan6 device used on SP605 Development board
+XILINX_FPGA     = xc6slx45tfgg484-3
+XST_DEFINES     = XILINX_FPGA XILINX_SPARTAN6_FPGA $(AMBER_CORE) AMBER_CLK_DIVIDER=20 $(BOOT_LOADER_DEF)
+# Xilinx placement and timing constraints
+XST_CONST_FILE  = xs6_constraints.ucf
+# List of verilog source files for Xilinx Spartan-6 device
+XST_PROJ_FILE   = xs6_source_files.prj
+
 
 
 # ----------------------------------------------------                
@@ -189,8 +180,8 @@ help :
 	@echo "              trce       Running timing analysis. Don't run buitgen"
 	@echo "              help       Print this message"
 	@echo ""
-	@echo "Optional switches: VIRTEX6=1 A25=1 WORK=<work directory name>"
-	@echo "e.g. > make VIRTEX6=1 WORK=work1 map"
+	@echo "Optional switches: A25=1 WORK=<work directory name>"
+	@echo "e.g. > make A25=1 WORK=work1 map"
 
 clean :
 	rm -Rf   $(WORK_FOLDER)/*

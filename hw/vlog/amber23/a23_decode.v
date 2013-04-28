@@ -39,7 +39,7 @@
 // from http://www.opencores.org/lgpl.shtml                     //
 //                                                              //
 //////////////////////////////////////////////////////////////////
-
+`include "global_defines.v"
 
 module a23_decode
 (
