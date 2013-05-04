@@ -81,6 +81,7 @@ verilog work ../../vlog/ethmac/xilinx_dist_ram_16x32.v
 # Amber 23
 verilog work ../../vlog/amber23/a23_alu.v
 verilog work ../../vlog/amber23/a23_barrel_shift.v
+verilog work ../../vlog/amber23/a23_barrel_shift_fpga.v
 verilog work ../../vlog/amber23/a23_cache.v
 verilog work ../../vlog/amber23/a23_coprocessor.v
 verilog work ../../vlog/amber23/a23_core.v
@@ -89,6 +90,7 @@ verilog work ../../vlog/amber23/a23_execute.v
 verilog work ../../vlog/amber23/a23_fetch.v
 verilog work ../../vlog/amber23/a23_multiply.v
 verilog work ../../vlog/amber23/a23_register_bank.v
+verilog work ../../vlog/amber23/a23_ram_register_bank.v
 verilog work ../../vlog/amber23/a23_wishbone.v
 
 # Amber 25
