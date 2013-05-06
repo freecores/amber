@@ -59,8 +59,7 @@ int elfsplitter (char* inbuf, socket_t* socket)
    unsigned int outP;
    int interrupt_table_written = 0;
    int interrupt_table_zero_written = 0;
-   
-   
+
    /* Create buffer to hold interrupt vector memory values
       Can't copy these into mem0 locations until ready to pass control
       t new program
@@ -68,68 +67,62 @@ int elfsplitter (char* inbuf, socket_t* socket)
    elf_mem0_g = malloc(sizeof(mem_buf_t));
    for(i=0;i<MEM_BUF_ENTRIES;i++)
       elf_mem0_g->entry[i].valid = 0;
-      
-   
+
+
    elfHeader=(ElfHeader*)inbuf;
 
 
    if (strncmp((char*)elfHeader->e_ident+1,"ELF",3)) {
       return(1);
    }
-   
+
    if (elfHeader->e_machine != 40) {
-      telnet_broadcast ("%s ERROR: ELF file not targetting correct processor type.\r\n",
-            __func__);
+      print_serial ("%s:L%d ERROR: ELF file not targetting correct processor type.\r\n",
+            __FILE__, __LINE__);
       return(1);
    }
-   
 
-   for (i=0;i<elfHeader->e_shnum;++i) {                                                                   
-      elfSection=(Elf32_Shdr*)(inbuf+elfHeader->e_shoff+elfHeader->e_shentsize*i);                        
 
-      /* section with non-zero bits, can be either text or data */                                        
-      if (elfSection->sh_type == SHT_PROGBITS && elfSection->sh_size != 0) {                              
-         for (j=0; j<elfSection->sh_size; j++) {                                                          
-            k = j + elfSection->sh_offset;                                                                
-            outP         = elfSection->sh_addr + j;                                                       
-                                                                                                          
-            /* debug */                                                                                   
-            if (outP >= ADR_EXEC_BASE)                                                         
-               telnet_broadcast("%s ERROR: 1 outP value 0x%08x\r\n",__func__, outP);       
-            else if (outP > MEM_BUF_ENTRIES)                                                                                          
-               outbuf[outP] = inbuf[k];                                                                   
-            else {        
-               elf_mem0_g->entry[outP].valid = 1;                                                                
-               elf_mem0_g->entry[outP].data  = inbuf[k];                                                                
+   for (i=0;i<elfHeader->e_shnum;++i) {
+      elfSection=(Elf32_Shdr*)(inbuf+elfHeader->e_shoff+elfHeader->e_shentsize*i);
+
+      /* section with non-zero bits, can be either text or data */
+      if (elfSection->sh_type == SHT_PROGBITS && elfSection->sh_size != 0) {
+         for (j=0; j<elfSection->sh_size; j++) {
+            k = j + elfSection->sh_offset;
+            outP         = elfSection->sh_addr + j;
+
+            /* debug */
+            if (outP >= ADR_EXEC_BASE)
+               print_serial("%s:L%d ERROR: 1 outP value 0x%08x\r\n",__FILE__, __LINE__, outP);
+            else if (outP > MEM_BUF_ENTRIES)
+               outbuf[outP] = inbuf[k];
+            else {
+               elf_mem0_g->entry[outP].valid = 1;
+               elf_mem0_g->entry[outP].data  = inbuf[k];
                interrupt_table_written = 1;
                }
-         }                                                                                                
-      }                                                                                                   
-                                                                                                          
-      if (elfSection->sh_type == SHT_NOBITS && elfSection->sh_size != 0) {                                
-         for (j=0; j<elfSection->sh_size; j++) {                                                          
-            outP         = j + elfSection->sh_addr;                                                       
-                                                                                                          
-            /* debug */                                                                                   
-            if (outP >= ADR_EXEC_BASE)                        
-               telnet_broadcast("%s ERROR: 2 outP value 0x%08x\r\n",__func__, outP);       
-            else if (outP > MEM_BUF_ENTRIES)                                                                                           
-               outbuf[outP] = 0;                                                                          
-            else {                                                                       
-               elf_mem0_g->entry[outP].valid = 1;                                                                
-               elf_mem0_g->entry[outP].data  = 0;                                                                
+         }
+      }
+
+      if (elfSection->sh_type == SHT_NOBITS && elfSection->sh_size != 0) {
+         for (j=0; j<elfSection->sh_size; j++) {
+            outP         = j + elfSection->sh_addr;
+
+            /* debug */
+            if (outP >= ADR_EXEC_BASE)
+               print_serial("%s:L%d ERROR: 2 outP value 0x%08x\r\n",__FILE__, __LINE__, outP);
+            else if (outP > MEM_BUF_ENTRIES)
+               outbuf[outP] = 0;
+            else {
+               elf_mem0_g->entry[outP].valid = 1;
+               elf_mem0_g->entry[outP].data  = 0;
                interrupt_table_zero_written = 1;
                }
-         }                                                                                                
-      }                                                                                                   
-   }                                                                                                      
-   
-/*   
-   if (interrupt_table_written)
-      telnet_broadcast ("%s WARNING: Interrupt table writes\r\n",__func__);          
-   if (interrupt_table_zero_written)
-      telnet_broadcast ("%s WARNING: Interrupt table ZERO writes\r\n",__func__);          
-*/
+         }
+      }
+   }
+
    return 0;
 }
 

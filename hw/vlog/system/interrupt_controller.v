@@ -116,13 +116,13 @@ assign o_wb_err = 1'd0;
 assign o_wb_ack = i_wb_stb && ( wb_start_write || wb_start_read_d1 );
 
 generate
-if (WB_DWIDTH == 128) 
+if (WB_DWIDTH == 128)
     begin : wb128
     assign wb_wdata32   = i_wb_adr[3:2] == 2'd3 ? i_wb_dat[127:96] :
                           i_wb_adr[3:2] == 2'd2 ? i_wb_dat[ 95:64] :
                           i_wb_adr[3:2] == 2'd1 ? i_wb_dat[ 63:32] :
                                                   i_wb_dat[ 31: 0] ;
-                                                                                                                                            
+
     assign o_wb_dat    = {4{wb_rdata32}};
     end
 else
@@ -136,34 +136,35 @@ endgenerate
 // ======================================
 // Interrupts
 // ======================================
-assign raw_interrupts =  {23'd0,   
+assign raw_interrupts =  {23'd0,
                           i_ethmac_int,             // 8: Ethernet MAC interrupt
-                          
+
                           i_tm_timer_int[2],        // 7: Timer Module Interrupt 2
                           i_tm_timer_int[1],        // 6: Timer Module Interrupt 1
                           i_tm_timer_int[0],        // 5: Timer Module Interrupt 0
                           1'd0,
-                          
+
                           1'd0,
                           i_uart1_int,              // 2: Uart 1 interrupt
                           i_uart0_int,              // 1: Uart 0 interrupt
-                          1'd0                      // 0: Software interrupt not 
+                          1'd0                      // 0: Software interrupt not
                          };                         // here because its not maskable
 
 assign irq0_interrupts  = {raw_interrupts[31:1], softint_0_reg} & irq0_enable_reg;
-assign firq0_interrupts = raw_interrupts & firq0_enable_reg;
+assign firq0_interrupts =  raw_interrupts                       & firq0_enable_reg;
 assign irq1_interrupts  = {raw_interrupts[31:1], softint_1_reg} & irq1_enable_reg;
-assign firq1_interrupts  = raw_interrupts & firq1_enable_reg;
+assign firq1_interrupts  = raw_interrupts                       & firq1_enable_reg;
 
 // The interrupts from the test registers module are not masked,
 // just to keep their usage really simple
-assign irq_0  = |{irq0_interrupts, i_test_reg_irq};
+assign irq_0  = |{irq0_interrupts,  i_test_reg_irq};
 assign firq_0 = |{firq0_interrupts, i_test_reg_firq};
 assign irq_1  = |irq1_interrupts;
 assign firq_1 = |firq1_interrupts;
 
 assign o_irq  = irq_0  | irq_1;
 assign o_firq = firq_0 | firq_1;
+
 
 // ========================================================
 // Register Writes
@@ -175,15 +176,15 @@ always @( posedge i_clk )
             AMBER_IC_IRQ0_ENABLECLR:  irq0_enable_reg  <=  irq0_enable_reg  & (~i_wb_dat);
             AMBER_IC_FIRQ0_ENABLESET: firq0_enable_reg <=  firq0_enable_reg | ( i_wb_dat);
             AMBER_IC_FIRQ0_ENABLECLR: firq0_enable_reg <=  firq0_enable_reg & (~i_wb_dat);
-            
+
             AMBER_IC_INT_SOFTSET_0:   softint_0_reg    <=  softint_0_reg   | ( i_wb_dat[0]);
             AMBER_IC_INT_SOFTCLEAR_0: softint_0_reg    <=  softint_0_reg   & (~i_wb_dat[0]);
-            
+
             AMBER_IC_IRQ1_ENABLESET:  irq1_enable_reg  <=  irq1_enable_reg  | ( i_wb_dat);
             AMBER_IC_IRQ1_ENABLECLR:  irq1_enable_reg  <=  irq1_enable_reg  & (~i_wb_dat);
             AMBER_IC_FIRQ1_ENABLESET: firq1_enable_reg <=  firq1_enable_reg | ( i_wb_dat);
             AMBER_IC_FIRQ1_ENABLECLR: firq1_enable_reg <=  firq1_enable_reg & (~i_wb_dat);
-            
+
             AMBER_IC_INT_SOFTSET_1:   softint_1_reg    <=  softint_1_reg   | ( i_wb_dat[0]);
             AMBER_IC_INT_SOFTCLEAR_1: softint_1_reg    <=  softint_1_reg   & (~i_wb_dat[0]);
         endcase
@@ -195,29 +196,29 @@ always @( posedge i_clk )
 always @( posedge i_clk )
     if ( wb_start_read )
         case ( i_wb_adr[15:0] )
-        
-            AMBER_IC_IRQ0_ENABLESET:    wb_rdata32 <= irq0_enable_reg; 
-            AMBER_IC_FIRQ0_ENABLESET:   wb_rdata32 <= firq0_enable_reg; 
+
+            AMBER_IC_IRQ0_ENABLESET:    wb_rdata32 <= irq0_enable_reg;
+            AMBER_IC_FIRQ0_ENABLESET:   wb_rdata32 <= firq0_enable_reg;
             AMBER_IC_IRQ0_RAWSTAT:      wb_rdata32 <= raw_interrupts;
             AMBER_IC_IRQ0_STATUS:       wb_rdata32 <= irq0_interrupts;
             AMBER_IC_FIRQ0_RAWSTAT:     wb_rdata32 <= raw_interrupts;
             AMBER_IC_FIRQ0_STATUS:      wb_rdata32 <= firq0_interrupts;
 
             AMBER_IC_INT_SOFTSET_0:     wb_rdata32 <= {31'd0, softint_0_reg};
-            AMBER_IC_INT_SOFTCLEAR_0:   wb_rdata32 <= {31'd0, softint_0_reg};         
+            AMBER_IC_INT_SOFTCLEAR_0:   wb_rdata32 <= {31'd0, softint_0_reg};
 
-            AMBER_IC_IRQ1_ENABLESET:    wb_rdata32 <= irq1_enable_reg; 
-            AMBER_IC_FIRQ1_ENABLESET:   wb_rdata32 <= firq1_enable_reg; 
+            AMBER_IC_IRQ1_ENABLESET:    wb_rdata32 <= irq1_enable_reg;
+            AMBER_IC_FIRQ1_ENABLESET:   wb_rdata32 <= firq1_enable_reg;
             AMBER_IC_IRQ1_RAWSTAT:      wb_rdata32 <= raw_interrupts;
             AMBER_IC_IRQ1_STATUS:       wb_rdata32 <= irq1_interrupts;
             AMBER_IC_FIRQ1_RAWSTAT:     wb_rdata32 <= raw_interrupts;
             AMBER_IC_FIRQ1_STATUS:      wb_rdata32 <= firq1_interrupts;
 
             AMBER_IC_INT_SOFTSET_1:     wb_rdata32 <= {31'd0, softint_1_reg};
-            AMBER_IC_INT_SOFTCLEAR_1:   wb_rdata32 <= {31'd0, softint_1_reg};         
-                                            
+            AMBER_IC_INT_SOFTCLEAR_1:   wb_rdata32 <= {31'd0, softint_1_reg};
+
             default:                    wb_rdata32 <= 32'h22334455;
-            
+
         endcase
 
 
@@ -230,74 +231,74 @@ always @( posedge i_clk )
 
 
 //synopsys translate_off
-`ifdef AMBER_IC_DEBUG            
+`ifdef AMBER_IC_DEBUG
 
 wire wb_read_ack = i_wb_stb && ( wb_start_write || wb_start_read_d1 );
 
 // -----------------------------------------------
 // Report Interrupt Controller Register accesses
-// -----------------------------------------------  
+// -----------------------------------------------
 always @(posedge i_clk)
     if ( wb_read_ack || wb_start_write )
         begin
         `TB_DEBUG_MESSAGE
-        
+
         if ( wb_start_write )
             $write("Write 0x%08x to   ", i_wb_dat);
         else
             $write("Read  0x%08x from ", o_wb_dat);
-            
+
         case ( i_wb_adr[15:0] )
             AMBER_IC_IRQ0_STATUS:
-                $write(" Interrupt Controller module IRQ0 Status"); 
+                $write(" Interrupt Controller module IRQ0 Status");
             AMBER_IC_IRQ0_RAWSTAT:
-                $write(" Interrupt Controller module IRQ0 Raw Status"); 
+                $write(" Interrupt Controller module IRQ0 Raw Status");
             AMBER_IC_IRQ0_ENABLESET:
-                $write(" Interrupt Controller module IRQ0 Enable Set"); 
+                $write(" Interrupt Controller module IRQ0 Enable Set");
             AMBER_IC_IRQ0_ENABLECLR:
-                $write(" Interrupt Controller module IRQ0 Enable Clear"); 
+                $write(" Interrupt Controller module IRQ0 Enable Clear");
             AMBER_IC_FIRQ0_STATUS:
-                $write(" Interrupt Controller module FIRQ0 Status"); 
+                $write(" Interrupt Controller module FIRQ0 Status");
             AMBER_IC_FIRQ0_RAWSTAT:
-                $write(" Interrupt Controller module FIRQ0 Raw Status"); 
+                $write(" Interrupt Controller module FIRQ0 Raw Status");
             AMBER_IC_FIRQ0_ENABLESET:
-                $write(" Interrupt Controller module FIRQ0 Enable set"); 
+                $write(" Interrupt Controller module FIRQ0 Enable set");
             AMBER_IC_FIRQ0_ENABLECLR:
-                $write(" Interrupt Controller module FIRQ0 Enable Clear"); 
-            AMBER_IC_INT_SOFTSET_0:   
-                $write(" Interrupt Controller module SoftInt 0 Set"); 
+                $write(" Interrupt Controller module FIRQ0 Enable Clear");
+            AMBER_IC_INT_SOFTSET_0:
+                $write(" Interrupt Controller module SoftInt 0 Set");
             AMBER_IC_INT_SOFTCLEAR_0:
-                $write(" Interrupt Controller module SoftInt 0 Clear"); 
+                $write(" Interrupt Controller module SoftInt 0 Clear");
             AMBER_IC_IRQ1_STATUS:
-                $write(" Interrupt Controller module IRQ1 Status"); 
+                $write(" Interrupt Controller module IRQ1 Status");
             AMBER_IC_IRQ1_RAWSTAT:
-                $write(" Interrupt Controller module IRQ1 Raw Status"); 
+                $write(" Interrupt Controller module IRQ1 Raw Status");
             AMBER_IC_IRQ1_ENABLESET:
-                $write(" Interrupt Controller module IRQ1 Enable Set"); 
+                $write(" Interrupt Controller module IRQ1 Enable Set");
             AMBER_IC_IRQ1_ENABLECLR:
-                $write(" Interrupt Controller module IRQ1 Enable Clear"); 
+                $write(" Interrupt Controller module IRQ1 Enable Clear");
             AMBER_IC_FIRQ1_STATUS:
-                $write(" Interrupt Controller module FIRQ1 Status"); 
+                $write(" Interrupt Controller module FIRQ1 Status");
             AMBER_IC_FIRQ1_RAWSTAT:
-                $write(" Interrupt Controller module FIRQ1 Raw Status"); 
+                $write(" Interrupt Controller module FIRQ1 Raw Status");
             AMBER_IC_FIRQ1_ENABLESET:
-                $write(" Interrupt Controller module FIRQ1 Enable set"); 
+                $write(" Interrupt Controller module FIRQ1 Enable set");
             AMBER_IC_FIRQ1_ENABLECLR:
-                $write(" Interrupt Controller module FIRQ1 Enable Clear"); 
-            AMBER_IC_INT_SOFTSET_1:   
-                $write(" Interrupt Controller module SoftInt 1 Set"); 
+                $write(" Interrupt Controller module FIRQ1 Enable Clear");
+            AMBER_IC_INT_SOFTSET_1:
+                $write(" Interrupt Controller module SoftInt 1 Set");
             AMBER_IC_INT_SOFTCLEAR_1:
-                $write(" Interrupt Controller module SoftInt 1 Clear"); 
+                $write(" Interrupt Controller module SoftInt 1 Clear");
 
             default:
                 begin
                 $write(" unknown Amber IC Register region");
-                $write(", Address 0x%08h\n", i_wb_adr); 
+                $write(", Address 0x%08h\n", i_wb_adr);
                 `TB_ERROR_MESSAGE
                 end
         endcase
-        
-        $write(", Address 0x%08h\n", i_wb_adr); 
+
+        $write(", Address 0x%08h\n", i_wb_adr);
         end
 `endif
 

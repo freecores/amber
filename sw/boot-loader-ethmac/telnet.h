@@ -42,11 +42,6 @@
 #define MAX_TELNET_TX       1024
 
 
-#define telnet_broadcast(args ...) \
-   do { put_line (socket0_g->telnet_txbuf, args); \
-        put_line (socket1_g->telnet_txbuf, args); } while (0)
-
-
 void            parse_telnet_options    (char *, socket_t*);
 void            parse_telnet_payload    (char *, socket_t*);
 void            telnet_options          (socket_t*);

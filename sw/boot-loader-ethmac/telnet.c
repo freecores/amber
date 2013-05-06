@@ -7,7 +7,7 @@
 //                                                              //
 //  Description                                                 //
 //  The main functions for the boot loader application. This    //
-//  application is embedded in the FPGA's SRAM and is used      // 
+//  application is embedded in the FPGA's SRAM and is used      //
 //  to load larger applications into the DDR3 memory on         //
 //  the development board.                                      //
 //                                                              //
@@ -53,22 +53,22 @@ void parse_telnet_options(char* buf, socket_t* socket)
     int     i;
     int     stage = 0;
     char    stage1;
-        
+
     for (i=0;i<socket->rx_packet->tcp_payload_len;i++) {
-    
+
         if (stage == 0) {
             switch (buf[i]) {
                 case 241: stage = 0; break;  // NOP
-                case 255: stage = 1; 
+                case 255: stage = 1;
                                  if (socket->telnet_connection_state == TELNET_CLOSED) {
                                      socket->telnet_connection_state = TELNET_OPEN;
                                     }
                          break;  // IAC
-                
-                default:  if (buf[i] < 128) 
+
+                default:  if (buf[i] < 128)
                     goto telnet_payload;
             }
-            
+
         } else if (stage == 1) {
             stage1 = buf[i];
             switch (buf[i]) {
@@ -80,9 +80,9 @@ void parse_telnet_options(char* buf, socket_t* socket)
                 case TELNET_DONT: stage = 2; break;  // 0xfe DONT
                 default         : stage = 2; break;
             }
-            
+
         } else {  // stage = 2
-            stage = 0; 
+            stage = 0;
             switch (buf[i]) {
                 case 1:   // echo
                     /* Client request that server echos stuff back to client */
@@ -92,7 +92,7 @@ void parse_telnet_options(char* buf, socket_t* socket)
                     else if (stage1 == TELNET_DONT)
                         socket->telnet_echo_mode = 0;
                     break;
-                    
+
                 case 3:   break;  // suppress go ahead
                 case 5:   break;  // status
                 case 6:   break;  // time mark
@@ -108,8 +108,8 @@ void parse_telnet_options(char* buf, socket_t* socket)
             }
         }
 
-    return;        
-        
+    return;
+
     telnet_payload:
         socket->rx_packet->telnet_payload_len = socket->rx_packet->tcp_payload_len - i;
         parse_telnet_payload(&buf[i], socket);
@@ -122,7 +122,7 @@ void parse_telnet_payload(char * buf, socket_t* socket)
     int cr = 0;
     int windows = 0;
     for (i=0;i<socket->rx_packet->telnet_payload_len;i++) {
-        if (buf[i] == '\n') 
+        if (buf[i] == '\n')
             windows = 1;
         else if (buf[i] < 128 && buf[i] != 0) {
             /* end of a line */
@@ -130,13 +130,13 @@ void parse_telnet_payload(char * buf, socket_t* socket)
             if (buf[i] == '\r') {
                 cr=1;
                 put_byte(socket->telnet_rxbuf, buf[i], 1); /* last byte of line */
-                } 
+                }
             else {
                 put_byte(socket->telnet_rxbuf, buf[i], 0); /* not last byte of line */
-                } 
+                }
             }
         }
-        
+
     if (socket->telnet_echo_mode) {
         if (cr && !windows) {
             buf[socket->rx_packet->telnet_payload_len] = '\n';
@@ -153,7 +153,7 @@ void telnet_options(socket_t* socket)
 
     // telnet options
     // Will echo - advertise that I have the ability to echo back commands to the client
-    buf[0] = 0xff; buf[1] = TELNET_WILL; buf[2] = 0x01;  
+    buf[0] = 0xff; buf[1] = TELNET_WILL; buf[2] = 0x01;
     tcp_reply(socket, buf, 3);
 
 }
@@ -165,27 +165,17 @@ void telnet_tx(socket_t* socket, line_buf_t* txbuf)
     int total_line_len;
     char* line;
     char* first_line;
-    
-    /* Parse telnet tx buffer                                                      
-       Grab as many lines as possible to stuff into a packet to transmit */        
-    line_len = get_line(txbuf, &first_line);                                       
-    if (line_len) {                                                                
-        total_line_len = line_len;                                                 
-        while (total_line_len < MAX_TELNET_TX && line_len) {                       
-            line_len = get_line(txbuf, &line);                                     
-            total_line_len += line_len;                                            
-            }                                                                      
-        tcp_tx(socket, first_line, total_line_len);                                
-        }                                                                          
-}                                                                              
 
-/*
-void telnet_broadcast (const char *fmt, ...)
-{
-    register unsigned long *varg = (unsigned long *)(&fmt);
-    *varg++;
-    
-    put_line (socket0_g->telnet_txbuf, fmt, varg);
-    put_line (socket1_g->telnet_txbuf, fmt, varg);
+    /* Parse telnet tx buffer
+       Grab as many lines as possible to stuff into a packet to transmit */
+    line_len = get_line(txbuf, &first_line);
+    if (line_len) {
+        total_line_len = line_len;
+        while (total_line_len < MAX_TELNET_TX && line_len) {
+            line_len = get_line(txbuf, &line);
+            total_line_len += line_len;
+            }
+        tcp_tx(socket, first_line, total_line_len);
+        }
 }
-*/
+

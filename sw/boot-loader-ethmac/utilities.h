@@ -44,6 +44,7 @@ void *          malloc                  (unsigned int);
 int             get_hex                 (char*, unsigned int*);
 int             next_string             (char*);
 int             strcmp                  (char*, char*);
+int     		serial_putchar_         (char *);
 
 void            led_clear               (void);
 void            led_flip                (int);

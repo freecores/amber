@@ -66,31 +66,31 @@
 
 
 	.section .text
-	.globl	start 
-start:               
+	.globl	start
+start:
         /* 0x00 Reset Interrupt vector address */
         b       startup
 
         /* 0x04 Undefined Instruction Interrupt vector address */
         b       _testfail
-        
+
         /* 0x08 SWI Interrupt vector address */
         b       _testfail
-        
+
         /* 0x0c Prefetch abort Interrupt vector address */
         b       _testfail
-        
+
         /* 0x10 Data abort Interrupt vector address */
         b       _testfail
         b       _testfail
-        
+
         /* 0x18 IRQ vector address */
         b       service_irq
-        
+
         /* 0x1c FIRQ vector address */
         b       _testfail
 
-        
+
         .global _restart
 _restart:
         @ jump to address 0 in irq mode
@@ -105,23 +105,23 @@ startup:
         mov     r0, #0
         ldr     r1, AdrExecBase
 1:      ldm     r0!, {r2-r9}
-        stm     r1!, {r2-r9} 
+        stm     r1!, {r2-r9}
         cmp     r0, #0x4000
         bne     1b
 
         /* Fix the interrupt jump pointers */
-        ldr     r0, AdrExecBase 
+        ldr     r0, AdrExecBase
         mov     r1, r0, lsr #2
         mov     r2, #0
-        
+
 2:      ldr     r3, [r2]
         orr     r3, r3, r1
         str     r3, [r2], #4
         cmp     r2, #0x1c
         bne     2b
-        
+
         /* Jump to 2f but offset from ExecBase not current location */
-3:      ldr     r0, AdrExecBase 
+3:      ldr     r0, AdrExecBase
         ldr     r1, AdrJumpPoint
         orr     r0, r0, r1
         mov     pc, r0
@@ -130,21 +130,21 @@ _jump_point:
 
         /* Switch to IRQ Mode */
         mov     r0, #0x00000002
-        teqp    pc, r0  
+        teqp    pc, r0
         /* Set IRQ Mode stack pointer */
         ldr     sp, AdrIRQStack
 
         /* Switch to SVC mode and Unset interrupt mask bits */
         mov     r0, #0x00000003
-        teqp    pc, r0 
- 
+        teqp    pc, r0
+
         @ Enable the cache
         @ set region 24 to be uncached. Used for packet buffers
         mov     r0, #0xfeffffff
-	mcr	15, 0, r0, cr3, cr0, 0   @ cacheable area
+        mcr	15, 0, r0, cr3, cr0, 0   @ cacheable area
         mov     r0, #1
-	mcr	15, 0, r0, cr2, cr0, 0   @ cache enable
-        
+        mcr	15, 0, r0, cr2, cr0, 0   @ cache enable
+
         @ init SP
         ldr     sp, AdrStack
 
@@ -152,67 +152,69 @@ _jump_point:
         ldr     r0, AdrMemCtrl
         mov     r1, #1
         str     r1, [r0]
-        
+
         .extern main
         bl      main
-                
+
         @ jump to program at r0
-	.globl _jump_to_program
+        .globl _jump_to_program
 _jump_to_program:
 
-        
+
         @ ----------------------------------------------
         @ Copy ATAG structure to AdrBootParams
         @ ----------------------------------------------
         ldr     r1, AdrBootParams
         ldr     r2, AdrATAGBase
         ldr     r3, AdeEndATAG
-        
+
 1:      cmp     r2, r3
         beq     2f
         ldr     r4, [r2], #4
         str     r4, [r1], #4
         b       1b
-        
+
         @ Set memc page tables
-2:      ldr     r2, AdrPageTabes        
+2:      ldr     r2, AdrPageTabes
         mov     r3, #0
         mov     r4, #40
 3:      str     r3,[r2],#4
         subs    r4, r4, #1
         bne     3b
-           
+
         @ ----------------------------------------------
         @ jump to start of program in svc mode with interrupts disabled
         @ ----------------------------------------------
         mov     r4, r0
         orr     r4, #0x0c000003
-        mov     r0, #0  
+        mov     r0, #0
         mov     pc, r4
-        
+
 
 service_irq:
-        @ Save all registers to the stack
-        stmfd   sp!, {r0-r12, lr}   
+        @ As this is an interrupt, need tp save all registers to the stack
+        stmfd   sp!, {r0-r3, lr}
 
         @ is it a timer interrupt ?
         ldr     r0, AdrInterruptStatus
-        ldr     r1, [r0]
-        ands    r2, r1, #0x20
+        ldr     r3, [r0]
+        ands    r2, r3, #0x20
         beq     1f  @ not timer int, jump
+        @ Remember that registers r0 to r2 can be changed by this function
         .extern timer_interrupt
-        bl timer_interrupt       
-        
+        bl timer_interrupt
+
         @ is it an ethernet interrupt ?
-1:      ands    r2, r1, #0x100
-        beq     2f  @ not ethmac int, jump    
+1:      ands    r2, r3, #0x100
+        beq     2f  @ not ethmac int, jump
         .extern ethmac_interrupt
+        @ Remember that registers r0 to r2 can be changed by this function
         bl ethmac_interrupt
 
-                
+
 2:      @ Restore all registers from the stack
-        ldmfd   sp!, {r0-r12, lr}   
-        
+        ldmfd   sp!, {r0-r3, lr}
+
         @ Jump straight back to normal execution
         subs    pc, lr, #4
 
@@ -220,24 +222,24 @@ service_irq:
 
 /* _testfail: Used to terminate execution in Verilog simulations */
 /* On the board just puts the processor into an infinite loop    */
-	.globl _testfail      
+        .globl _testfail
 _testfail:
         ldr     r11, AdrTestStatus
         str     r0, [r11]
         b       _testfail
 
-        
+
 /* _testpass: Used to terminate execution in Verilog simulations */
 /* On the board just puts the processor into an infinite loop    */
-	.globl _testpass      
-_testpass:             
+        .globl _testpass
+_testpass:
         ldr     r11, AdrTestStatus
         mov     r10, #17
         str     r10, [r11]
         b       _testpass
 
 
-        
+
 
 /* _div: Integer division function */
         @ Divide r0 by r1
@@ -256,22 +258,22 @@ _div:
         @ Invert negative numbers
         tst     r0, #0x80000000
         mvnne   r0, r0
-        addne   r0, r0, #1 
+        addne   r0, r0, #1
 
         tst     r1, #0x80000000
         mvnne   r1, r1
-        addne   r1, r1, #1 
+        addne   r1, r1, #1
 
         @ divide r1 by r2, also use registers r0 and r4
         mov     r2, r1
         mov     r1, r0
-        
+
         cmp      r2, #0
         beq      3f
 
-        @ In order to divide r1 by r2, the first thing we need to do is to shift r2 
-        @ left by the necessary number of places. The easiest method of doing this 
-        @ is simply by trial and error - shift until we discover that r2 has become 
+        @ In order to divide r1 by r2, the first thing we need to do is to shift r2
+        @ left by the necessary number of places. The easiest method of doing this
+        @ is simply by trial and error - shift until we discover that r2 has become
         @ too big, then stop.
         mov      r0,#0     @ clear r0 to accumulate result
         mov      r3,#1     @ set bit 0 in r3, which will be
@@ -288,14 +290,14 @@ _div:
         @ shift r3 left in parallel in order to flag how far we have to go
 
         @ r0 will be used to hold the result. The role of r3 is more complicated.
-        @ In effect, we are using r3 to mark where the right-hand end of r2 has got to 
-        @ - if we shift r2 three places left, this will be indicated by a value of %1000 
-        @ in r3. However, we also add it to r0 every time we manage a successful subtraction, 
-        @ since it marks the position of the digit currently being calculated in the answer. 
-        @ In the binary example (50 ÷ 10) above, we shifted the '10' two places left, 
-        @ so at the time of the first subtraction, r3 would have been %100, at the time 
-        @ of the second (which failed) it would have been %10, and at the time of the 
-        @ third %1. Adding it to r0 after each successful subtraction would have 
+        @ In effect, we are using r3 to mark where the right-hand end of r2 has got to
+        @ - if we shift r2 three places left, this will be indicated by a value of %1000
+        @ in r3. However, we also add it to r0 every time we manage a successful subtraction,
+        @ since it marks the position of the digit currently being calculated in the answer.
+        @ In the binary example (50 ÷ 10) above, we shifted the '10' two places left,
+        @ so at the time of the first subtraction, r3 would have been %100, at the time
+        @ of the second (which failed) it would have been %10, and at the time of the
+        @ third %1. Adding it to r0 after each successful subtraction would have
         @ given us, once again, the answer of %101!
 
         @ Now for the loop that actually does the work:
@@ -305,39 +307,39 @@ _div:
         addcs     r0,r0,r3   @ and add the current bit in r3 to
                              @ the accumulating answer in r0
 
-        @ In subtraction (a cmp instruction simulates a subtraction in 
-        @ order to set the flags), if r1 - r2 gives a positive answer and no 'borrow' 
-        @ is required, the carry flag is set. This is required in order to make SBC 
-        @ (Subtract with Carry) work properly when used to carry out a 64-bit subtraction, 
+        @ In subtraction (a cmp instruction simulates a subtraction in
+        @ order to set the flags), if r1 - r2 gives a positive answer and no 'borrow'
+        @ is required, the carry flag is set. This is required in order to make SBC
+        @ (Subtract with Carry) work properly when used to carry out a 64-bit subtraction,
         @ but it is confusing!
-        
-        @ In this case, we are turning it to our advantage. The carry flag is set to 
-        @ indicate that a successful subtraction is possible, i.e. one that doesn't 
-        @ generate a negative result, and the two following instructions are carried 
-        @ out only when the condition Carry Set applies. Note that the 'S' on the end 
-        @ of these instructions is part of the 'CS' condition code and does not mean 
+
+        @ In this case, we are turning it to our advantage. The carry flag is set to
+        @ indicate that a successful subtraction is possible, i.e. one that doesn't
+        @ generate a negative result, and the two following instructions are carried
+        @ out only when the condition Carry Set applies. Note that the 'S' on the end
+        @ of these instructions is part of the 'CS' condition code and does not mean
         @ that they set the flags!
-        
+
         movs      r3,r3,lsr #1    @ Shift r3 right into carry flag
         movcc     r2,r2,lsr #1    @ and if bit 0 of r3 was zero, also
                                   @ shift r2 right
         bcc       2b              @ If carry not clear, r3 has shifted
                                   @ back to where it started, and we
                                   @ can end
-                                  
-        @ if one of the inputs is negetive then return a negative result                          
+
+        @ if one of the inputs is negetive then return a negative result
         tst     r4, #0x80000000
         mvnne   r0, r0
-        addne   r0, r0, #1 
+        addne   r0, r0, #1
 3:      ldmia	sp!, {r4, pc}^
 
 
-/* strcpy: String copy function 
+/* strcpy: String copy function
     char * strcpy ( char * destination, const char * source );
     destination is returned
-*/    
+*/
         @ r0 points to destination
-        @ r1 points to source string which terminates with a 0    
+        @ r1 points to source string which terminates with a 0
         .globl strcpy
 strcpy:
         stmdb   sp!, {r4-r6, lr}
@@ -351,22 +353,22 @@ strcpy_main:
         strb    r3, [r6], #1
         cmp     r3, #0
         ldmeqia	sp!, {r4-r6, pc}^
-        
+
         ldrb    r3, [r1], #1
         strb    r3, [r6], #1
         cmp     r3, #0
         ldmeqia	sp!, {r4-r6, pc}^
-        
+
         ldrb    r3, [r1], #1
         strb    r3, [r6], #1
         cmp     r3, #0
         ldmeqia	sp!, {r4-r6, pc}^
-        
+
         ldrb    r3, [r1], #1
         strb    r3, [r6], #1
         cmp     r3, #0
         ldmeqia	sp!, {r4-r6, pc}^
-        
+
         b       strcpy_main
 
 
@@ -376,7 +378,7 @@ strcpy_main:
         @ r1 points to source string
         @ r2 is the number of bytes to copy
         .globl strncpy
-strncpy: 
+strncpy:
         stmdb	sp!, {r4, lr}
         cmp     r2, #0
         beq     2f
@@ -397,26 +399,26 @@ strncpy:
         .globl strncmp
 strncmp:
         stmdb	sp!, {r4, r5, r6, lr}
-        
+
         @ check for 0 length
         cmp     r2, #0
         moveq   r0, #1
         beq     2f
-        
+
         mov     r3, #0
-        
+
 1:      add     r3, r3,   #1
         ldrb    r4, [r0], #1
         ldrb    r5, [r1], #1
-        
+
         subs    r6, r4, r5
         movne   r0, r6
         bne     2f
-        
+
         cmp     r3, r2
         moveq   r0, #0
         beq     2f
-        
+
         b       1b
 2:      ldmia	sp!, {r4, r5, r6, pc}^
 
@@ -427,12 +429,12 @@ init_malloc:
         ldr     r0, AdrMallocBase
         ldr     r1, AdrMallocPointer
         str     r0, [r1]
-        
+
         @ initialize the counter to 0
         ldr     r1, AdrMallocCount
         mov     r2, #0
         str     r2, [r1]
-        
+
         mov     pc, lr
 
 
@@ -443,23 +445,36 @@ malloc:
         ldr     r1, AdrMallocPointer
         ldr     r2, [r1]    /* r2 now containts the starting address of the next memory block to use */
         add     r3, r0, r2  /* r3 contains the address after the end of the new object */
-        
+
         /* Round r3 up to the nearest 0x100 to keep memory aligned */
         tst     r3, #0xff
         beq     1f
         bic     r3, r3, #0xff
         add     r3, r3, #0x100
-           
+
 1:      str     r3, [r1]    /* Update the malloc pointer */
         mov     r0, r2      /* Return the address from before the pointer was updated */
-        
+
         @ Update the block count
         ldr     r1, AdrMallocCount
         ldr     r2, [r1]
         add     r2, r2, #1
         str     r2, [r1]
-        
+
         mov     pc, lr
+
+
+        .global serial_putchar_
+serial_putchar_:
+        ldr     r1, AdrUARTDR
+        ldr     r3, AdrUARTFR
+        @ Check the tx_full flag
+1:      ldr     r2, [r3]
+        and     r2, r2, #0x20
+        cmp     r2, #0
+        streqb  r0, [r1]
+        moveqs  pc, lr          @ return
+        bne     1b
 
 
 /* stack at top of ddr3 memory space */
@@ -475,6 +490,9 @@ AdrMemCtrl:                 .word ADR_AMBER_TEST_MEM_CTRL
 AdrTestStatus:              .word ADR_AMBER_TEST_STATUS
 AdrInterruptStatus:         .word ADR_AMBER_IC_IRQ0_STATUS
 
+AdrUARTDR:                  .word ADR_AMBER_UART0_DR
+AdrUARTFR:                  .word ADR_AMBER_UART0_FR
+
                             .align 2
 AdrATAGBase:                .word ATAGBase
 AdeEndATAG:                 .word EndATAG
@@ -484,7 +502,7 @@ ATAGBase:                   .word ATAG_CORE_SIZE
                             .word FLAG_READONLY     @ flags
                             .word 4096              @ page size
                             .word 0x0               @ rootdev
-                
+
                             .word ATAG_MEM_SIZE
                             .word ATAG_MEM
                             .word 32*1024*1024      @ size - 32MB
@@ -500,7 +518,7 @@ ATAGBase:                   .word ATAG_CORE_SIZE
                             .word ATAG_INITRD
                             .word 0x02800000        @ virtual address of start of initrd image
                             .word 0x00032000        @ size = 200k
-                
+
                             .word ATAG_NONE
                             .word 0x0
 EndATAG:                    .word 0x0

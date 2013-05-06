@@ -16,7 +16,7 @@
 //                                                              //
 //////////////////////////////////////////////////////////////////
 //                                                              //
-// Copyright (C) 2011 Authors and OPENCORES.ORG                 //
+// Copyright (C) 2010-2013 Authors and OPENCORES.ORG            //
 //                                                              //
 // This source file may be used and distributed without         //
 // restriction provided that this copyright statement is not    //
@@ -40,102 +40,27 @@
 // from http://www.opencores.org/lgpl.shtml                     //
 //                                                              //
 ----------------------------------------------------------------*/
-
 #include "amber_registers.h"
-#include "utilities.h"
-#include "timer.h"
 
 
-/* Global variable for the current time */
-time_t* current_time_g;
-
-
-time_t* init_timer()
+void init_serial()
 {
-    time_t* timer;
-    timer= malloc(sizeof(time_t));
-    timer->milliseconds = 0;
-    timer->seconds      = 0;
-    return timer;
+    /* Enable UART 0 */
+    *(unsigned int *) ADR_AMBER_UART0_LCRH = 0x10;
 }
 
 
-
-/*Initialize a global variable that keeps
-  track of the current up time. Timers are
-  compared against this running value.
-*/
-void init_current_time()
+/* Add a line to the line buffer */
+void print_serial(const char *fmt, ...)
 {
-    /* Configure timer 0 */
-    /* Counts down from this value and generates an interrupt every 1/100 seconds */
-    *(unsigned int *) ( ADR_AMBER_TM_TIMER0_LOAD ) = 1562; // 16-bit, x 256
-    *(unsigned int *) ( ADR_AMBER_TM_TIMER0_CTRL ) = 0xc8;  // enable[7], periodic[6],
+    int len;
+    register unsigned long *varg = (unsigned long *)(&fmt);
+    *varg++;
 
-    /* Enable timer 0 interrupt */
-    *(unsigned int *) ( ADR_AMBER_IC_IRQ0_ENABLESET ) = 0x020;
-
-    current_time_g = malloc(sizeof(time_t));
-    current_time_g->milliseconds = 0;
-    current_time_g->seconds = 0;
-}
-
-
-
-void timer_interrupt()
-{
-    /* Clear timer 0 interrupt in timer */
-    *(unsigned int *) ( ADR_AMBER_TM_TIMER0_CLR ) = 1;
-
-    /* Disable timer 0 interrupt in interrupt controller */
-    *(unsigned int *) ( ADR_AMBER_IC_IRQ0_ENABLECLR ) = 0x020;
-
-    /* Update the global current_time variable */
-    if (current_time_g->milliseconds == 990) {
-        current_time_g->milliseconds = 0;
-        current_time_g->seconds++;
-        }
-    else {
-        current_time_g->milliseconds+=10;
-        }
-
-    /* Enable timer 0 interrupt in interrupt controller */
-    *(unsigned int *) ( ADR_AMBER_IC_IRQ0_ENABLESET ) = 0x020;
-}
-
-
-/* Return true if timer has expired */
-int timer_expired(time_t * expiry_time)
-{
-    if (!expiry_time->seconds && !expiry_time->milliseconds)
-        /* timer is not set */
-        return 0;
-    else if (expiry_time->seconds < current_time_g->seconds)
-        return 1;
-    else if ((expiry_time->seconds      == current_time_g->seconds) &&
-             (expiry_time->milliseconds < current_time_g->milliseconds))
-        return 1;
-    else
-        return 0;
-}
-
-
-/* Set the timer to current time plus 5 seconds */
-void set_timer (time_t* timer, int milliseconds)
-{
-    int seconds = _div(milliseconds, 1000);
-    int mseconds = milliseconds - seconds*1000;  /* milliseconds % 1000  */
-
-
-    if (current_time_g->milliseconds >= (1000 - mseconds)) {
-        timer->seconds      = current_time_g->seconds + 1;
-        timer->milliseconds = current_time_g->milliseconds + mseconds - 1000;
-        }
-    else {
-        timer->seconds      = current_time_g->seconds;
-        timer->milliseconds = current_time_g->milliseconds + mseconds;
-        }
-
-   timer->seconds += seconds;
+    /* Need to pass a pointer to a pointer to the location to
+       write the character, to that the pointer to the location
+       can be incremented by the final output function
+    */
+    len = print(0, fmt, varg);
 }
 

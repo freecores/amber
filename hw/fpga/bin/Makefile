@@ -38,9 +38,9 @@
 #                                                               //
 # ----------------------------------------------------------------
 
-# ----------------------------------------------------                
+# ----------------------------------------------------
 # Environment Configuration
-# ----------------------------------------------------                
+# ----------------------------------------------------
 
 # Directories
 BIN_FOLDER              = ../bin
@@ -61,7 +61,7 @@ ifdef BOOT_LOADER_ETHMAC
         BOOT_LOADER_DEF         = BOOT_LOADER_ETHMAC
 else
         BOOT_LOADER_DIR         = ../../../sw/boot-loader-serial
-        BOOT_LOADER_DEF         = 
+        BOOT_LOADER_DEF         =
 endif
 
 VERILOG_INCLUDE_PATH    = ../../vlog/lib ../../vlog/tb $(BOOT_LOADER_DIR)
@@ -71,9 +71,9 @@ RTL_TOP         = system
 
 
 
-# ----------------------------------------------------                
+# ----------------------------------------------------
 # Build Configuration
-# ----------------------------------------------------                
+# ----------------------------------------------------
 
 # AMBER_CLK_DIVIDER
 # Sets the system clock frequency
@@ -86,14 +86,14 @@ RTL_TOP         = system
 ifdef A25
     AMBER_CORE = AMBER_A25_CORE
 else
-    AMBER_CORE = AMBER_A23_CORE 
+    AMBER_CORE = AMBER_A23_CORE
 endif
 
 
 
 # The spartan6 device used on SP605 Development board
 XILINX_FPGA     = xc6slx45tfgg484-3
-XST_DEFINES     = XILINX_FPGA XILINX_SPARTAN6_FPGA $(AMBER_CORE) AMBER_CLK_DIVIDER=20 $(BOOT_LOADER_DEF)
+XST_DEFINES     = XILINX_FPGA XILINX_SPARTAN6_FPGA $(AMBER_CORE) AMBER_CLK_DIVIDER=21 $(BOOT_LOADER_DEF)
 # Xilinx placement and timing constraints
 XST_CONST_FILE  = xs6_constraints.ucf
 # List of verilog source files for Xilinx Spartan-6 device
@@ -101,14 +101,14 @@ XST_PROJ_FILE   = xs6_source_files.prj
 
 
 
-# ----------------------------------------------------                
-# Focus on speed or area 
-# ----------------------------------------------------                
+# ----------------------------------------------------
+# Focus on speed or area
+# ----------------------------------------------------
 #OPT = area
 OPT = speed
 
 
-# ----------------------------------------------------                
+# ----------------------------------------------------
 # Xilinx XST Compile Options
 # ----------------------------------------------------
 
@@ -203,10 +203,10 @@ $(WORK_FOLDER)/$(RTL_TOP).trc.twr : $(WORK_FOLDER)/$(RTL_TOP).ncd
 	cd $(WORK_FOLDER); \
 	trce -v 5 -l 5 -n 5 -xml $(RTL_TOP) $(RTL_TOP).ncd \
           -o $(WORK_FOLDER)/$(RTL_TOP).trc.twr \
-          $(RTL_TOP).pcf 
+          $(RTL_TOP).pcf
 	cp $(WORK_FOLDER)/$(RTL_TOP).trc.twr $(LOG_FOLDER)/$(RTL_TOP).trc.$(RUN_ID).twr
 
-  
+
 # ----------------------------------------------------
 # bitgen
 # ----------------------------------------------------
@@ -252,7 +252,7 @@ $(WORK_FOLDER)/$(RTL_TOP).map.ncd : $(WORK_FOLDER)/$(RTL_TOP).ngd
           $(RTL_TOP).ngd           \
           $(RTL_TOP).pcf
 	cp $(WORK_FOLDER)/$(RTL_TOP).map.mrp $(LOG_FOLDER)/$(RTL_TOP).map.$(RUN_ID).mrp
-  
+
 
 # ----------------------------------------------------
 # ngdbuild
@@ -261,7 +261,7 @@ $(WORK_FOLDER)/$(RTL_TOP).ngd : $(WORK_FOLDER)/$(RTL_TOP).ngc $(BIN_FOLDER)/$(XS
 	cd $(WORK_FOLDER); \
 	ngdbuild -intstyle xflow -verbose -p $(XILINX_FPGA) \
           -dd _ngo  -nt on \
-          -uc $(BIN_FOLDER)/$(XST_CONST_FILE) $(RTL_TOP).ngc $(RTL_TOP).ngd 
+          -uc $(BIN_FOLDER)/$(XST_CONST_FILE) $(RTL_TOP).ngc $(RTL_TOP).ngd
 
 
 # ----------------------------------------------------

@@ -48,13 +48,16 @@
 #define PRINT_BUF_LEN 16
 
 
-
+/* format and print a string, inserting variables, to dst char buffer,
+   return the number of characters printed. If dst is 0, the string is
+   sent to the serial output
+*/
 int print(char** dst, const char *format, unsigned long *varg)
 {
     register int width, pad;
     register int pc = 0;
     char scr[2];
-     
+
     for (; *format != 0; ++format) {
        if (*format == '%') {
           ++format;
@@ -104,8 +107,10 @@ int print(char** dst, const char *format, unsigned long *varg)
        }
        else {
        out:
-          //outbyte (dst, *format);
-          *(*dst)++ = *format;
+          if (dst)
+              *(*dst)++ = *format;
+          else
+              serial_putchar_(*format);
           ++pc;
        }
     }
@@ -119,33 +124,39 @@ int prints(char** dst, const char *string, int width, int pad)
 {
     register int pc = 0, padchar = ' ';
 
-    if (width > 0) {                          
-       register int len = 0;                  
-       register const char *ptr;              
-       for (ptr = string; *ptr; ++ptr) ++len; 
-       if (len >= width) width = 0;           
-       else width -= len;                     
-       if (pad & PAD_ZERO) padchar = '0';     
-    }                                         
-    if (!(pad & PAD_RIGHT)) {                 
-       for ( ; width > 0; --width) {          
-          //outbyte(dst, padchar);              
+    if (width > 0) {
+       register int len = 0;
+       register const char *ptr;
+       for (ptr = string; *ptr; ++ptr) ++len;
+       if (len >= width) width = 0;
+       else width -= len;
+       if (pad & PAD_ZERO) padchar = '0';
+    }
+    if (!(pad & PAD_RIGHT)) {
+       for ( ; width > 0; --width) {
+          if (dst)
+              *(*dst)++ = padchar;
+          else
+              serial_putchar_(padchar);
+          ++pc;
+       }
+    }
+    for ( ; *string ; ++string) {
+       if (dst)
+          *(*dst)++ = *string;
+       else
+          serial_putchar_(*string);
+       ++pc;
+    }
+    for ( ; width > 0; --width) {
+       if (dst)
           *(*dst)++ = padchar;
-          ++pc;                               
-       }                                      
-    }                                         
-    for ( ; *string ; ++string) {             
-       //outbyte(dst, *string);                 
-       *(*dst)++ = *string;
-       ++pc;                                  
-    }                                         
-    for ( ; width > 0; --width) {             
-       //outbyte(dst, padchar);                 
-       *(*dst)++ = padchar;
-       ++pc;                                  
-    }                                         
+       else
+          serial_putchar_(padchar);
+       ++pc;
+    }
 
-    return pc;                                
+    return pc;
 }
 
 
@@ -174,11 +185,11 @@ int printi(char** dst, int i, int b, int sg, int width, int pad, int letbase)
     while (u) {
        if ( b == 16 )    t = u & 0xf;                  /* hex modulous */
        else              t = u - ( _div (u, b) * b );  /* Modulous */
-       
+
        if( t >= 10 )
           t += letbase - '0' - 10;
        *--s = t + '0';
-       
+
     /*   u /= b;  */
        if ( b == 16)  u = u >> 4;    /* divide by 16 */
        else           u = _div(u, b);
@@ -186,8 +197,10 @@ int printi(char** dst, int i, int b, int sg, int width, int pad, int letbase)
 
     if (neg) {
        if( width && (pad & PAD_ZERO) ) {
-          //outbyte(dst,'-'); 
-          *(*dst)++ = '-';
+          if (dst)
+              *(*dst)++ = '-';
+          else
+              serial_putchar_('-');
           ++pc;
           --width;
        }
