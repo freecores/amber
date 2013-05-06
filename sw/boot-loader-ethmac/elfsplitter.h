@@ -43,11 +43,11 @@
 
 /*
 ELF File Structure
-A single segment usually consist of several sections. E.g., a loadable 
-read-only segment could contain sections for executable code, read-only 
-data, and symbols for the dynamic linker. Relocatable files have section 
-header tables. Executable files have program header tables. Shared object 
-files have both. Sections are intended for further processing by a linker, 
+A single segment usually consist of several sections. E.g., a loadable
+read-only segment could contain sections for executable code, read-only
+data, and symbols for the dynamic linker. Relocatable files have section
+header tables. Executable files have program header tables. Shared object
+files have both. Sections are intended for further processing by a linker,
 while the segments are intended to be mapped into memory.
 */
 
@@ -90,10 +90,10 @@ typedef struct {
 } Elf32_Shdr;
 
 
-/* Buffer to hold interrupt vector memory values                      
-   Can't copy these into mem0 locations until ready to pass control   
-   t new program                                                      
-*/                                                                    
+/* Buffer to hold interrupt vector memory values
+   Can't copy these into mem0 locations until ready to pass control
+   t new program
+*/
 typedef struct {
     char  data;
     int   valid;
@@ -109,4 +109,4 @@ typedef struct {
 mem_buf_t*      elf_mem0_g;
 
 /* function prototypes */
-int elfsplitter (char*, socket_t*);
+int elfsplitter (char*);

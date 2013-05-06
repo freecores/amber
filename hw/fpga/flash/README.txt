@@ -39,6 +39,9 @@ SW1 (the 2-switch block box near the red on/off power switch in the upper right 
  M0=on, M1=off
 Then press the PROG button just below it to load that bitfile from the SPI flash into the FPGA.
 
+To use the Parallel flash
+ M0=off, M1=off
+
 
 Online tutorial for instructions with pictures -
 http://www.digilentinc.com/Data/Documents/Tutorials/MCS%20File%20Creation%20with%20Xilinx%20ISE%20Tutorial.pdf

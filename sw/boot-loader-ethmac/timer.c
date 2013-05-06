@@ -50,7 +50,8 @@
 time_t* current_time_g;
 
 
-time_t* init_timer()
+/* Create a timer object */
+time_t* new_timer()
 {
     time_t* timer;
     timer= malloc(sizeof(time_t));
@@ -65,8 +66,11 @@ time_t* init_timer()
   track of the current up time. Timers are
   compared against this running value.
 */
-void init_current_time()
+void init_timer()
 {
+    /* Initialize the current time object */
+    current_time_g = new_timer();
+
     /* Configure timer 0 */
     /* Counts down from this value and generates an interrupt every 1/100 seconds */
     *(unsigned int *) ( ADR_AMBER_TM_TIMER0_LOAD ) = 1562; // 16-bit, x 256
@@ -74,12 +78,26 @@ void init_current_time()
 
     /* Enable timer 0 interrupt */
     *(unsigned int *) ( ADR_AMBER_IC_IRQ0_ENABLESET ) = 0x020;
-
-    current_time_g = malloc(sizeof(time_t));
-    current_time_g->milliseconds = 0;
-    current_time_g->seconds = 0;
 }
 
+
+/* Set the timer to current time plus a number of milliseconds */
+void set_timer (time_t* timer, int milliseconds)
+{
+    int seconds = _div(milliseconds, 1000);
+    int mseconds = milliseconds - seconds*1000;  /* milliseconds % 1000  */
+
+    if (current_time_g->milliseconds >= (1000 - mseconds)) {
+        timer->seconds      = current_time_g->seconds + 1;
+        timer->milliseconds = current_time_g->milliseconds + mseconds - 1000;
+        }
+    else {
+        timer->seconds      = current_time_g->seconds;
+        timer->milliseconds = current_time_g->milliseconds + mseconds;
+        }
+
+   timer->seconds += seconds;
+}
 
 
 void timer_interrupt()
@@ -120,22 +138,4 @@ int timer_expired(time_t * expiry_time)
 }
 
 
-/* Set the timer to current time plus 5 seconds */
-void set_timer (time_t* timer, int milliseconds)
-{
-    int seconds = _div(milliseconds, 1000);
-    int mseconds = milliseconds - seconds*1000;  /* milliseconds % 1000  */
-
-
-    if (current_time_g->milliseconds >= (1000 - mseconds)) {
-        timer->seconds      = current_time_g->seconds + 1;
-        timer->milliseconds = current_time_g->milliseconds + mseconds - 1000;
-        }
-    else {
-        timer->seconds      = current_time_g->seconds;
-        timer->milliseconds = current_time_g->milliseconds + mseconds;
-        }
-
-   timer->seconds += seconds;
-}
 

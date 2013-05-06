@@ -38,11 +38,14 @@
 //                                                              //
 ----------------------------------------------------------------*/
 
+/* Global variables */
+extern packet_t*   rx_packet_g;
 
 /* Function prototypes */
+void            init_ethmac             (void);
 int             open_link               (void);
 void            close_link              (void);
-int             config_phy              (void);
+int             init_phy                (void);
 
 void            mdio_ready              ();
 int             mdio_read               (int addr, int reg);

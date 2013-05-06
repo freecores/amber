@@ -7,7 +7,7 @@
 //                                                              //
 //  Description                                                 //
 //  The main functions for the boot loader application. This    //
-//  application is embedded in the FPGA's SRAM and is used      // 
+//  application is embedded in the FPGA's SRAM and is used      //
 //  to load larger applications into the DDR3 memory on         //
 //  the development board.                                      //
 //                                                              //
@@ -57,7 +57,7 @@ int strcmp(char* str1, char*str2)
 {
     int pos = 0;
     int equal=1;
-    
+
     while (*str1!=0 && *str2!=0 && pos<256 && equal) {
         equal = *str1==*str2;
         str1++;
@@ -74,7 +74,7 @@ int get_hex (char * buf, unsigned int *num)
     int cpos = 0, done = 0;
     *num = 0;
 
-    while (!done) {    
+    while (!done) {
         if ( buf[cpos] >= '0' && buf[cpos] <= '9' ) {
            *num = *num<<4;
            *num = *num + buf[cpos] - '0';
@@ -89,16 +89,16 @@ int get_hex (char * buf, unsigned int *num)
            }
         else
             done = 1;
-                    
+
         // Don't increment cops if the first character is not part of an ascii-hex string
         // oo that a 0 is returned to indicate failure.
-        if (!done) 
+        if (!done)
             cpos++;
-            
+
         if (cpos >= 8)
             done = 1;
         }
-            
+
     /* Return length of acsii-hex string */
     return cpos;
 }
@@ -116,47 +116,3 @@ void phy_rst(int value)
     *(unsigned int *) ADR_AMBER_TEST_PHY_RST = value;
 }
 
-
-/* turn off all leds */
-void led_clear()
-{
-    *(unsigned int *) ADR_AMBER_TEST_LED = 0;
-}
-
-
-/* led is either 0,1,2 or 3 */
-void led_flip(int led)
-{
-    int current_value;
-    current_value = *(unsigned int *) ADR_AMBER_TEST_LED;
-    *(unsigned int *) ADR_AMBER_TEST_LED = current_value ^ (1<<led);
-}
-
-
-
-/* led is either 0,1,2 or 3 */
-void led_on(int led)
-{
-    int current_value;
-    current_value = *(unsigned int *) ADR_AMBER_TEST_LED;
-    *(unsigned int *) ADR_AMBER_TEST_LED = current_value | (1<<led);
-}
-
-
-
-/* led is either 0,1,2 or 3 */
-void led_off(int led)
-{
-    int current_value;
-    current_value = *(unsigned int *) ADR_AMBER_TEST_LED;
-    *(unsigned int *) ADR_AMBER_TEST_LED = current_value & ~(1<<led);
-}
-
-
-/* led is either 0,1,2 or 3 */
-void led_123(int value)
-{
-    int current_value;
-    current_value = *(unsigned int *) ADR_AMBER_TEST_LED;
-    *(unsigned int *) ADR_AMBER_TEST_LED = (current_value & 1) | value<<1;
-}

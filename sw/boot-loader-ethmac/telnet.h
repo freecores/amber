@@ -46,4 +46,6 @@ void            parse_telnet_options    (char *, socket_t*);
 void            parse_telnet_payload    (char *, socket_t*);
 void            telnet_options          (socket_t*);
 void            telnet_tx               (socket_t*, line_buf_t*);
+void            process_telnet          (socket_t*);
+int             parse_command           (socket_t*, char*);
 

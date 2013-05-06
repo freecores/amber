@@ -134,15 +134,15 @@ typedef struct {
     unsigned char   src_mac[6];
     unsigned char   dst_mac[6];
     unsigned int    eth_type;
-    
+
     /* IPv4 */
     unsigned char   src_ip[4];
     unsigned char   dst_ip[4];
     unsigned int    ip_len;        // IP; in bytres
     unsigned int    ip_header_len; // IP; in 32-bit words
     unsigned int    ip_proto;
-    
-    /* TCP */       
+
+    /* TCP */
     unsigned int    tcp_src_port;
     unsigned int    tcp_dst_port;
     unsigned int    tcp_hdr_len;
@@ -153,42 +153,10 @@ typedef struct {
     unsigned int    tcp_len;
     unsigned int    tcp_payload_len;
     unsigned int    tcp_src_time_stamp;
-    
+
     /* Telnet */
     unsigned int    telnet_payload_len;
 } packet_t;
-
-
-
-typedef struct {
-
-    packet_buffer_t** tcp_buf;
-    int          tcp_current_buf;
-
-    /* Telnet rx and tx line buffers */
-    line_buf_t*  telnet_rxbuf;
-    line_buf_t*  telnet_txbuf;
-
-    int          telnet_sent_opening_message;
-    int          telnet_echo_mode;
-    int          telnet_connection_state;
-    int          telnet_options_sent;
-    
-    int          packets_sent;
-    int          packets_received;
-    int          packets_resent;
-    
-    int          tcp_connection_state;
-    int          tcp_reset;
-    int          tcp_disconnect;
-    int          tcp_seq;            /* should be random initial seq number for tcp */
-    int          tcp_last_seq; 
-    unsigned int tcp_last_ack;
-    
-    int          id; 
-    
-    packet_t*    rx_packet;  /* Header info from last packet received */
-} socket_t;
 
 
 
@@ -209,13 +177,10 @@ enum telnet_state {
 
 /* Global Variables */
 extern mac_ip_t    self_g;
-extern packet_t*   rx_packet_g;
-extern socket_t*   socket0_g;
-extern socket_t*   socket1_g;
 
 
 /* Functions */
-void            init_packet_buffers     (socket_t*);
+void            init_packet             ();
 unsigned short  header_checksum16       (unsigned char *buf, unsigned short len, unsigned int sum);
 
 void            arp_reply               (char *buf, mac_ip_t*);
@@ -228,8 +193,6 @@ void            parse_rx_packet         (char*, packet_t*);
 void            parse_arp_packet        (char*);
 void            parse_ip_packet         (char*, packet_t*);
 void            parse_ping_packet       (char*, packet_t*);
-
-socket_t*       init_socket             (int);
 
 
 

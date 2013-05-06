@@ -37,12 +37,33 @@
 // from http://www.opencores.org/lgpl.shtml                     //
 //                                                              //
 ----------------------------------------------------------------*/
-
 #define LINUX_JUMP_ADR  0x00080000
 
 
+typedef struct {
+    char *          buf512;
+    void *          next;
+    unsigned int    bytes;
+    unsigned int    last_block;
+    unsigned int    total_bytes;
+    unsigned int    total_blocks;
+    unsigned int    ready;
+    unsigned int    linux_boot;
+    char*           filename;
+} block_t;
+
+
+/* Global variables */
+extern time_t*  reboot_timer_g;
+extern int      reboot_stage_g;
+
 /* Function prototypes */
-int             parse_command           (socket_t*, char*);
-int             process_file            (socket_t*);
-void            reboot                  ();
+void        process_tftp ();
+void        init_tftp ();
+block_t*    init_buffer_512 ();
+int         process_file ();
+void        reboot ();
+void        parse_tftp_packet(char*, packet_t*, int, unsigned int, unsigned int);
+
+
 

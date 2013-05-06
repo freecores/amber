@@ -53,6 +53,49 @@ enum tcp_options {
 };
 
 
+typedef struct {
+
+    packet_buffer_t** tcp_buf;
+    int          tcp_current_buf;
+
+    /* Telnet rx and tx line buffers */
+    line_buf_t*  telnet_rxbuf;
+    line_buf_t*  telnet_txbuf;
+
+    int          telnet_sent_opening_message;
+    int          telnet_echo_mode;
+    int          telnet_connection_state;
+    int          telnet_options_sent;
+
+    int          packets_sent;
+    int          packets_received;
+    int          packets_resent;
+
+    int          tcp_connection_state;
+    int          tcp_reset;
+    int          tcp_disconnect;
+    int          tcp_seq;            /* should be random initial seq number for tcp */
+    int          tcp_last_seq;
+    unsigned int tcp_last_ack;
+
+    int          id;
+
+    packet_t*    rx_packet;  /* Header info from last packet received */
+
+    /* pointers to the next socket in the chain and the first socket in the chain */
+    void*        next;
+    void*        first;
+} socket_t;
+
+
+/* Global Variables */
+extern socket_t*    first_socket_g;
+extern int          tcp_checksum_errors_g;
+
+
+/* Function prototypes */
+socket_t*       new_socket              (socket_t* prev);
+
 unsigned short  tcp_checksum            (unsigned char *, packet_t*, unsigned short);
 unsigned int    tcp_header              (char *, socket_t*, int, int);
 void            tcp_reply               (socket_t*, char*, int);
@@ -64,7 +107,6 @@ void            tcp_disconnect          (socket_t*);
 void            tcp_tx                  (socket_t*, char*, int);
 void            parse_tcp_options       (char*, packet_t*);
 void            parse_tcp_packet        (char*, packet_t*);
-
-extern int      tcp_checksum_errors_g;
+void            process_tcp             (socket_t*);
 
 

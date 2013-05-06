@@ -41,7 +41,7 @@
 //                                                              //
 ----------------------------------------------------------------*/
 
-
+#include "address_map.h"
 #include "timer.h"
 #include "line-buffer.h"
 #include "packet.h"
@@ -179,3 +179,114 @@ void telnet_tx(socket_t* socket, line_buf_t* txbuf)
         }
 }
 
+
+void process_telnet(socket_t* socket)
+{
+    char* line;
+
+    if (!socket->telnet_options_sent){
+        telnet_options(socket);
+        socket->telnet_options_sent = 1;
+        }
+
+    else {
+        /* Send telnet greeting */
+        if (!socket->telnet_sent_opening_message){
+            put_line (socket->telnet_txbuf, "Amber Processor Boot Loader\r\n> ");
+            socket->telnet_sent_opening_message = 1;
+            }
+
+        /* Parse telnet rx buffer */
+        if (get_line(socket->telnet_rxbuf, &line))
+            parse_command (socket, line);
+
+        /* Transmit text from telnet tx buffer */
+        telnet_tx(socket, socket->telnet_txbuf);
+        }
+}
+
+
+
+/* Parse a command line passed from main and execute the command */
+/* returns the length of the reply string */
+int parse_command (socket_t* socket, char* line)
+{
+    unsigned int start_addr;
+    unsigned int address;
+    unsigned int range;
+    int len, error = 0;
+
+    /* All commands are just a single character.
+       Just ignore anything else  */
+    switch (line[0]) {
+        /* Disconnect */
+        case 'e':
+        case 'x':
+        case 'q':
+            socket->tcp_disconnect = 1;
+            return 0;
+
+        case 'r': /* Read mem */
+            {
+            if (len = get_hex (&line[2], &start_addr)) {
+                if (len = get_hex (&line[3+len], &range)) {
+                    for (address=start_addr; address<start_addr+range; address+=4) {
+                        put_line (socket->telnet_txbuf, "0x%08x 0x%08x\r\n",
+                                    address, *(unsigned int *)address);
+                        }
+                    }
+                else {
+                    put_line (socket->telnet_txbuf, "0x%08x 0x%08x\r\n",
+                                    start_addr, *(unsigned int *)start_addr);
+                    }
+                }
+            else
+                error=1;
+            break;
+            }
+
+
+        case 'h': {/* Help */
+            put_line (socket->telnet_txbuf, "You need help alright\r\n");
+            break;
+            }
+
+
+        case 's': {/* Status */
+            put_line (socket->telnet_txbuf, "Socket ID           %d\r\n", socket->id);
+            put_line (socket->telnet_txbuf, "Packets received    %d\r\n", socket->packets_received);
+            put_line (socket->telnet_txbuf, "Packets transmitted %d\r\n", socket->packets_sent);
+            put_line (socket->telnet_txbuf, "Packets resent      %d\r\n", socket->packets_resent);
+            put_line (socket->telnet_txbuf, "TCP checksum errors %d\r\n", tcp_checksum_errors_g);
+
+            put_line (socket->telnet_txbuf, "Counterparty IP %d.%d.%d.%d\r\n",
+                socket->rx_packet->src_ip[0],
+                socket->rx_packet->src_ip[1],
+                socket->rx_packet->src_ip[2],
+                socket->rx_packet->src_ip[3]);
+
+            put_line (socket->telnet_txbuf, "Counterparty Port %d\r\n",
+                socket->rx_packet->tcp_src_port);
+
+            put_line (socket->telnet_txbuf, "Malloc pointer 0x%08x\r\n",
+                *(unsigned int *)(ADR_MALLOC_POINTER));
+            put_line (socket->telnet_txbuf, "Malloc count %d\r\n",
+                *(unsigned int *)(ADR_MALLOC_COUNT));
+            put_line (socket->telnet_txbuf, "Uptime %d seconds\r\n", current_time_g->seconds);
+            break;
+            }
+
+
+        default: {
+            error=1; break;
+            }
+        }
+
+
+    if (error)
+            put_line (socket->telnet_txbuf, "You're not making any sense\r\n",
+                        line[0], line[1], line[2]);
+
+    put_line (socket->telnet_txbuf, "> ");
+    return 0;
+}

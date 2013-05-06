@@ -40,10 +40,10 @@
 # ----------------------------------------------------------------
 # Assembly source files
 
-SRC = boot-loader-ethmac.c line-buffer.c timer.c print.c elfsplitter.c utilities.c \
-      serial.c ethmac.c packet.c tcp.c udp.c telnet.c start.S ../mini-libc/memcpy.c
-DEP = address_map.h  boot-loader-ethmac.h  line-buffer.h  timer.h  utilities.h \
-      serial.h ethmac.h tcp.h udp.h telnet.h packet.h elfsplitter.h
+SRC = boot-loader-ethmac.c line-buffer.c timer.c print.c elfsplitter.c utilities.c led.c \
+      serial.c ethmac.c packet.c tcp.c udp.c tftp.c telnet.c start.S ../mini-libc/memcpy.c
+DEP = address_map.h line-buffer.h  timer.h  utilities.h led.h \
+      serial.h ethmac.h tcp.h udp.h telnet.h tftp.h packet.h elfsplitter.h
 TGT = boot-loader-ethmac.elf
 LDS = sections.lds
 

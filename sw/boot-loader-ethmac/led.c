@@ -1,19 +1,22 @@
 /*----------------------------------------------------------------
 //                                                              //
-//  boot-loader.h                                               //
+//  boot-loader-ethmac.c                                        //
 //                                                              //
 //  This file is part of the Amber project                      //
 //  http://www.opencores.org/project,amber                      //
 //                                                              //
 //  Description                                                 //
-//  Defines for the boot-loader application.                    //
+//  The main functions for the boot loader application. This    //
+//  application is embedded in the FPGA's SRAM and is used      //
+//  to load larger applications into the DDR3 memory on         //
+//  the development board.                                      //
 //                                                              //
 //  Author(s):                                                  //
 //      - Conor Santifort, csantifort.amber@gmail.com           //
 //                                                              //
 //////////////////////////////////////////////////////////////////
 //                                                              //
-// Copyright (C) 2010 Authors and OPENCORES.ORG                 //
+// Copyright (C) 2011 Authors and OPENCORES.ORG                 //
 //                                                              //
 // This source file may be used and distributed without         //
 // restriction provided that this copyright statement is not    //
@@ -38,12 +41,76 @@
 //                                                              //
 ----------------------------------------------------------------*/
 
-
-/* Global variables */
-extern int      udp_checksum_errors_g;
-
-/* Function prototypes */
-void            parse_udp_packet        (char*, packet_t*);
-void            udp_reply               (packet_t*, int, int, int, int);
+#include "amber_registers.h"
+#include "timer.h"
+#include "led.h"
 
 
+/* global variables */
+time_t* led_flash_timer_g;
+
+
+void init_led()
+{
+    /* Turn off all LEDs */
+    led_clear();
+
+    /* create some timers */
+    led_flash_timer_g = new_timer();
+    set_timer(led_flash_timer_g, 500);
+}
+
+
+void process_led()
+{
+    /* Flash a heartbeat LED */
+    if (timer_expired(led_flash_timer_g)) {
+        led_flip(0);
+        set_timer(led_flash_timer_g, 500);
+        }
+}
+
+
+/* turn off all leds */
+void led_clear()
+{
+    *(unsigned int *) ADR_AMBER_TEST_LED = 0;
+}
+
+
+/* led is either 0,1,2 or 3 */
+void led_flip(int led)
+{
+    int current_value;
+    current_value = *(unsigned int *) ADR_AMBER_TEST_LED;
+    *(unsigned int *) ADR_AMBER_TEST_LED = current_value ^ (1<<led);
+}
+
+
+
+/* led is either 0,1,2 or 3 */
+void led_on(int led)
+{
+    int current_value;
+    current_value = *(unsigned int *) ADR_AMBER_TEST_LED;
+    *(unsigned int *) ADR_AMBER_TEST_LED = current_value | (1<<led);
+}
+
+
+
+/* led is either 0,1,2 or 3 */
+void led_off(int led)
+{
+    int current_value;
+    current_value = *(unsigned int *) ADR_AMBER_TEST_LED;
+    *(unsigned int *) ADR_AMBER_TEST_LED = current_value & ~(1<<led);
+}
+
+
+/* led is either 0,1,2 or 3 */
+void led_123(int value)
+{
+    int current_value;
+    current_value = *(unsigned int *) ADR_AMBER_TEST_LED;
+    *(unsigned int *) ADR_AMBER_TEST_LED = (current_value & 1) | value<<1;
+}

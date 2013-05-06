@@ -51,28 +51,17 @@
 #include "ethmac.h"
 
 
-void close_link (void)
+/* open a link */
+void init_ethmac()
 {
-    /* Disable EthMac interrupts in Ethmac core */
-    *(unsigned int *) ( ADR_ETHMAC_INT_MASK ) = 0x0;
+    /* initialize the packet rx buffer */
+    init_packet();
 
-    /* Disable Ethmac interrupt in interrupt controller */
-    *(unsigned int *) ( ADR_AMBER_IC_IRQ0_ENABLECLR ) = 0x100;
-
-    /* Disable Rx & Tx - MODER Register
-     [15] = Add pads to short frames
-     [13] = CRCEN
-     [10] = Enable full duplex
-     [7]  = loopback
-     [5]  = 1 for promiscuous, 0 rx only frames that match mac address
-     [1]  = txen
-     [0]  = rxen  */
-    *(unsigned int *) ( ADR_ETHMAC_MODER ) = 0xa420;
-
-    /* Put the PHY into reset */
-    phy_rst(0);  /* reset is active low */
-
+    /* open ethernet port and wait for connection requests
+       keep trying forever */
+    while (!open_link());
 }
+
 
 
 /* return 1 if link comes up */
@@ -92,7 +81,8 @@ int open_link (void)
     d32 = self_g.mac[0]<<8|self_g.mac[1];
     *(unsigned int *) ( ADR_ETHMAC_MAC_ADDR1 ) = d32;
 
-    if (!config_phy()) return 0;
+    if (!init_phy())
+        return 0;
 
     /* Write the Receive Packet Buffer Descriptor */
     /* Buffer Pointer */
@@ -141,6 +131,31 @@ int open_link (void)
 }
 
 
+
+void close_link (void)
+{
+    /* Disable EthMac interrupts in Ethmac core */
+    *(unsigned int *) ( ADR_ETHMAC_INT_MASK ) = 0x0;
+
+    /* Disable Ethmac interrupt in interrupt controller */
+    *(unsigned int *) ( ADR_AMBER_IC_IRQ0_ENABLECLR ) = 0x100;
+
+    /* Disable Rx & Tx - MODER Register
+     [15] = Add pads to short frames
+     [13] = CRCEN
+     [10] = Enable full duplex
+     [7]  = loopback
+     [5]  = 1 for promiscuous, 0 rx only frames that match mac address
+     [1]  = txen
+     [0]  = rxen  */
+    *(unsigned int *) ( ADR_ETHMAC_MODER ) = 0xa420;
+
+    /* Put the PHY into reset */
+    phy_rst(0);  /* reset is active low */
+
+}
+
+
 void tx_packet(int len)
 {
     unsigned int status = 0;
@@ -170,7 +185,7 @@ void tx_packet(int len)
 
 
 /* returns 1 if link comes up */
-int config_phy (void)
+int init_phy (void)
 {
     int addr;
     int bmcr;
@@ -179,7 +194,7 @@ int config_phy (void)
     int link_up = 1;
     time_t* link_timer;
 
-    link_timer = init_timer();
+    link_timer = new_timer();
 
     /* Bring PHY out of reset */
     phy_rst(1);  /* reset is active low */
@@ -303,7 +318,6 @@ void ethmac_interrupt(void)
            rx_buf_status = *(volatile unsigned int *) ( ADR_ETHMAC_BDBASE + 0x200 + buffer*8 );
 
            if ((rx_buf_status & 0x8000) == 0) {
-
                 parse_rx_packet((char*)(ETHMAC_RX_BUFFER+buffer*0x1000), rx_packet_g);
 
                 /* set empty flag again */

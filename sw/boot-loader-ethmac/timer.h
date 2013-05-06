@@ -42,14 +42,15 @@
 typedef struct {
     volatile unsigned int seconds;
     volatile unsigned int milliseconds;
+    void * expired;
 } time_t;
 
 
-void     init_current_time  ();
-time_t*  init_timer         ();
+time_t*  new_timer          ();
+void     init_timer         ();
 void     timer_interrupt    ();
 void     set_timer          (time_t*, int);
 int      timer_expired      (time_t*);
 
 /* Global variables */
-extern   time_t*                 current_time_g;
+extern   time_t*            current_time_g;

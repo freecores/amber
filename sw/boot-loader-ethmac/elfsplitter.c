@@ -45,12 +45,13 @@
 #include "line-buffer.h"
 #include "timer.h"
 #include "packet.h"
+#include "tcp.h"
 #include "telnet.h"
 #include "elfsplitter.h"
 
 
 
-int elfsplitter (char* inbuf, socket_t* socket)
+int elfsplitter (char* inbuf)
 {
    unsigned int i, j, k;
    ElfHeader*  elfHeader;

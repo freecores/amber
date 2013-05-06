@@ -39,17 +39,11 @@
 ----------------------------------------------------------------*/
 #define NULL 0
 
+/* function prototypes */
 void            udelay20                (void);
 void *          malloc                  (unsigned int);
 int             get_hex                 (char*, unsigned int*);
 int             next_string             (char*);
 int             strcmp                  (char*, char*);
 int     		serial_putchar_         (char *);
-
-void            led_clear               (void);
-void            led_flip                (int);
-void            led_on                  (int);
-void            led_off                 (int);
-void            led_123                 (int);
-
 void            phy_rst                 (int);

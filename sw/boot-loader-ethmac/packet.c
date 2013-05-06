@@ -7,7 +7,7 @@
 //                                                              //
 //  Description                                                 //
 //  The main functions for the boot loader application. This    //
-//  application is embedded in the FPGA's SRAM and is used      // 
+//  application is embedded in the FPGA's SRAM and is used      //
 //  to load larger applications into the DDR3 memory on         //
 //  the development board.                                      //
 //                                                              //
@@ -56,64 +56,15 @@ mac_ip_t self_g = { {0x00, 0x0e, 0x70, 0x70, 0x70, 0x70},  /* MAC Address  */
                     {192, 168, 0, 17}                      /* IPv4 address */
                   };
 
-
 packet_t*   rx_packet_g;
-socket_t*   socket0_g;
-socket_t*   socket1_g;
 
 
-
-socket_t* init_socket(int socket_id)
+void init_packet()
 {
-    socket_t* socket;
-    
-    socket = (socket_t*) malloc(sizeof(socket_t));
-    socket->rx_packet =(packet_t*) malloc(sizeof(packet_t));
-    init_packet_buffers(socket);
-    
-    socket->telnet_txbuf = init_line_buffer(0x80000);
-    socket->telnet_rxbuf = init_line_buffer(0x1000);
-    
-    socket->id = socket_id;  
-      
-    socket->packets_sent = 0;
-    socket->packets_received = 0;
-    socket->packets_resent = 0;
-    
-    socket->telnet_sent_opening_message = 0;
-    socket->telnet_echo_mode = 0;
-    socket->telnet_connection_state = TELNET_CLOSED;
-    socket->telnet_options_sent = 0;
-       
-    socket->tcp_current_buf = 0;
-    socket->tcp_reset = 0;
-    socket->tcp_connection_state = TCP_CLOSED;
-    socket->tcp_disconnect = 0;
-    socket->tcp_seq = 0x100;  /* should be random initial seq number for tcp */
-    socket->tcp_last_seq = socket->tcp_seq; 
-    socket->tcp_last_ack = 0;
-
-    return socket;
+    /* receive packet buffer */
+    rx_packet_g = malloc(sizeof(packet_t));
 }
 
-
-void init_packet_buffers (socket_t* socket)
-{
-    int i;
-    
-    /* Create space for an array of pointers */
-    socket->tcp_buf = malloc (TCP_TX_BUFFERS * sizeof (void *));
-    
-    /* Create space for a set of buffers, each pointed to by an element of the array */
-    for (i=0;i<TCP_TX_BUFFERS;i=i+1) {
-        socket->tcp_buf[i] = (packet_buffer_t*) malloc (sizeof (packet_buffer_t));
-        socket->tcp_buf[i]->payload_valid = 0;
-        socket->tcp_buf[i]->starting_seq = 0;
-        socket->tcp_buf[i]->ending_seq   = 0;
-        socket->tcp_buf[i]->len_bytes    = 0;
-        socket->tcp_buf[i]->ack_received = 0;
-        }
-}
 
 
 void ethernet_header(char *buf, mac_ip_t* target, unsigned short type)
@@ -126,7 +77,7 @@ void ethernet_header(char *buf, mac_ip_t* target, unsigned short type)
     buf[ 3] = target->mac[3];
     buf[ 4] = target->mac[4];
     buf[ 5] = target->mac[5];
-    
+
     /* SA */
     buf[ 6] = self_g.mac[0];
     buf[ 7] = self_g.mac[1];
@@ -134,7 +85,7 @@ void ethernet_header(char *buf, mac_ip_t* target, unsigned short type)
     buf[ 9] = self_g.mac[3];
     buf[10] = self_g.mac[4];
     buf[11] = self_g.mac[5];
-    
+
     /* type */
     buf[12] = type>>8;
     buf[13] = type&0xff;
@@ -147,46 +98,46 @@ void ip_header(char *buf, mac_ip_t* target, unsigned short ip_len, char ip_proto
     static unsigned short ip_id = 0;
 
     /* Version, Header length */
-    buf[0] = 0x45; 
-    
+    buf[0] = 0x45;
+
     /* dscp */
     buf[1] = 0;
-        
+
     /* ip len */
-    buf[2] = ip_len>>8; 
+    buf[2] = ip_len>>8;
     buf[3] = ip_len&0xff;
-    
+
     /* ID */
     buf[4] = (ip_id>>8)&0xff;
-    buf[5] = ip_id&0xff; 
+    buf[5] = ip_id&0xff;
     //ip_id++;
-    
+
     /* Fragment */
     buf[6] = 0;
     buf[7] = 0;
-    
+
     /* ttl */
     buf[8] = 64;
-    
+
     /* Protocol */
     buf[9] = ip_proto;
-    
+
     /* header checksum */
     buf[10] = 0;
     buf[11] = 0;
-    
+
     /* Source IP */
     buf[12] = self_g.ip[0];
     buf[13] = self_g.ip[1];
     buf[14] = self_g.ip[2];
     buf[15] = self_g.ip[3];
-    
+
     /* Destination IP */
     buf[16] = target->ip[0];
     buf[17] = target->ip[1];
     buf[18] = target->ip[2];
     buf[19] = target->ip[3];
-    
+
     /* header checksum */
     header_checksum = header_checksum16(buf, 20, 0);
     buf[10] = (header_checksum>>8)&0xff;
@@ -198,7 +149,7 @@ void arp_reply(char *buf, mac_ip_t* arp_sender)
 {
 
     ethernet_header(buf, arp_sender, 0x0806);
-    
+
     /* Hardware Type */
     buf[14] = 0x00;
     buf[15] = 0x01;
@@ -209,11 +160,11 @@ void arp_reply(char *buf, mac_ip_t* arp_sender)
     buf[18] = 0x06;
     /* PLEN */
     buf[19] = 0x04;
-    
+
     /* Operation = Reply */
     buf[20] = 0x00;
     buf[21] = 0x02;
-    
+
     /* Sender MAC */
     buf[22] = self_g.mac[0];
     buf[23] = self_g.mac[1];
@@ -221,13 +172,13 @@ void arp_reply(char *buf, mac_ip_t* arp_sender)
     buf[25] = self_g.mac[3];
     buf[26] = self_g.mac[4];
     buf[27] = self_g.mac[5];
-    
+
     /* Sender IP */
     buf[28] = self_g.ip[0];
     buf[29] = self_g.ip[1];
     buf[30] = self_g.ip[2];
     buf[31] = self_g.ip[3];
-    
+
     /* Target MAC */
     buf[32] = arp_sender->mac[0];
     buf[33] = arp_sender->mac[1];
@@ -235,7 +186,7 @@ void arp_reply(char *buf, mac_ip_t* arp_sender)
     buf[35] = arp_sender->mac[3];
     buf[36] = arp_sender->mac[4];
     buf[37] = arp_sender->mac[5];
-    
+
     /* Target IP */
     buf[38] = arp_sender->ip[0];
     buf[39] = arp_sender->ip[1];
@@ -252,14 +203,14 @@ void ping_reply(packet_t* rx_packet, int ping_id, int ping_seq, char * rxbuf)
     unsigned short header_checksum;
     mac_ip_t target;
     char * buf = (char*)ETHMAC_TX_BUFFER;
-         
+
     target.mac[0] = rx_packet->src_mac[0];
     target.mac[1] = rx_packet->src_mac[1];
     target.mac[2] = rx_packet->src_mac[2];
     target.mac[3] = rx_packet->src_mac[3];
     target.mac[4] = rx_packet->src_mac[4];
     target.mac[5] = rx_packet->src_mac[5];
-    
+
     target.ip[0]  = rx_packet->src_ip[0];
     target.ip[1]  = rx_packet->src_ip[1];
     target.ip[2]  = rx_packet->src_ip[2];
@@ -267,22 +218,22 @@ void ping_reply(packet_t* rx_packet, int ping_id, int ping_seq, char * rxbuf)
 
     ethernet_header(buf, &target, 0x0800);  /*bytes 0 to 13*/
     ip_header(&buf[14], &target, rx_packet->ip_len, 1); /* bytes 14 to 33, ip_proto = 1, ICMP*/
-    
+
     /* ICMP */
     /* Type = reply */
     buf[34] = 0;
-    
+
     /* Code = 0 */
     buf[35] = 0;
-    
+
     /* checksum */
     buf[36] = 0;
     buf[37] = 0;
-    
+
     /* ID */
     buf[38] = ping_id>>8;
     buf[39] = ping_id&0xff;
-    
+
     /* SEQ */
     buf[40] = ping_seq>>8;
     buf[41] = ping_seq&0xff;
@@ -301,7 +252,7 @@ void ping_reply(packet_t* rx_packet, int ping_id, int ping_seq, char * rxbuf)
 void parse_rx_packet(char * buf, packet_t* rx_packet)
 {
     int i;
-            
+
     rx_packet->dst_mac[0] = buf[0];
     rx_packet->dst_mac[1] = buf[1];
     rx_packet->dst_mac[1] = buf[2];
@@ -314,10 +265,10 @@ void parse_rx_packet(char * buf, packet_t* rx_packet)
     rx_packet->src_mac[2] = buf[8];
     rx_packet->src_mac[3] = buf[9];
     rx_packet->src_mac[4] = buf[10];
-    rx_packet->src_mac[5] = buf[11];    
+    rx_packet->src_mac[5] = buf[11];
     rx_packet->eth_type   = (buf[12]<<8) + buf[13];
-    
-    
+
+
     /* ARP */
     if (rx_packet->eth_type == 0x0806) {
         parse_arp_packet(&buf[14]);
@@ -338,7 +289,7 @@ void parse_arp_packet(char * buf)
     */
     int arp_op;
     mac_ip_t arp_sender, arp_target;
-    
+
     arp_op = buf[6]<<8 | buf[7];
 
     arp_sender.mac[0] = buf[8];
@@ -347,31 +298,31 @@ void parse_arp_packet(char * buf)
     arp_sender.mac[3] = buf[11];
     arp_sender.mac[4] = buf[12];
     arp_sender.mac[5] = buf[13];
-    
+
     arp_sender.ip [0] = buf[14];
     arp_sender.ip [1] = buf[15];
     arp_sender.ip [2] = buf[16];
     arp_sender.ip [3] = buf[17];
-    
+
     arp_target.mac[0] = buf[18];
     arp_target.mac[1] = buf[19];
     arp_target.mac[2] = buf[20];
     arp_target.mac[3] = buf[21];
     arp_target.mac[4] = buf[22];
     arp_target.mac[5] = buf[23];
-    
+
     arp_target.ip [0] = buf[24];
     arp_target.ip [1] = buf[25];
     arp_target.ip [2] = buf[26];
     arp_target.ip [3] = buf[27];
-                
+
     /* Send a reply ? */
-    if (arp_op==1 && 
-        arp_target.ip[0]==self_g.ip[0] && 
-        arp_target.ip[1]==self_g.ip[1] && 
-        arp_target.ip[2]==self_g.ip[2] && 
+    if (arp_op==1 &&
+        arp_target.ip[0]==self_g.ip[0] &&
+        arp_target.ip[1]==self_g.ip[1] &&
+        arp_target.ip[2]==self_g.ip[2] &&
         arp_target.ip[3]==self_g.ip[3]) {
-        
+
         // ARP reply
         arp_reply((char*)ETHMAC_TX_BUFFER, &arp_sender);
         }
@@ -382,13 +333,13 @@ void parse_arp_packet(char * buf)
 void parse_ip_packet(char * buf, packet_t* rx_packet)
 {
     unsigned int ip_version;
-    
+
     ip_version = buf[0]>>4;
     if (ip_version != 4) {
         //printf("%s: IP version %d not supported\n", __func__, ip_version);
         return;
         }
-    
+
     /* Get destination IP address */
     rx_packet->dst_ip[0] = buf[16];
     rx_packet->dst_ip[1] = buf[17];
@@ -396,13 +347,13 @@ void parse_ip_packet(char * buf, packet_t* rx_packet)
     rx_packet->dst_ip[3] = buf[19];
 
     /* If its not my address then ignore the packet */
-    if (rx_packet->dst_ip[0] != self_g.ip[0] || 
-        rx_packet->dst_ip[1] != self_g.ip[1] || 
-        rx_packet->dst_ip[2] != self_g.ip[2] || 
+    if (rx_packet->dst_ip[0] != self_g.ip[0] ||
+        rx_packet->dst_ip[1] != self_g.ip[1] ||
+        rx_packet->dst_ip[2] != self_g.ip[2] ||
         rx_packet->dst_ip[3] != self_g.ip[3] ) {
         return;
         }
-        
+
     rx_packet->ip_len         = buf[ 2]<<8|buf[ 3];
     rx_packet->ip_header_len  = buf[0] & 0xf;
     rx_packet->ip_proto       = buf[9];
@@ -411,17 +362,17 @@ void parse_ip_packet(char * buf, packet_t* rx_packet)
     rx_packet->src_ip[2]      = buf[14];
     rx_packet->src_ip[3]      = buf[15];
 
-    
-    /* Ping packets */    
+
+    /* Ping packets */
     if (rx_packet->ip_proto == 1){
         parse_ping_packet(&buf[(rx_packet->ip_header_len)*4], rx_packet);
         }
-        
+
     /* TCP packets */
     else if (rx_packet->ip_proto == 6){
         parse_tcp_packet(&buf[(rx_packet->ip_header_len)*4], rx_packet);
         }
-        
+
     /* UDP packets */
     else if (rx_packet->ip_proto == 17){
         parse_udp_packet(&buf[(rx_packet->ip_header_len)*4], rx_packet);
@@ -436,7 +387,7 @@ void parse_ping_packet(char * buf, packet_t* rx_packet)
 
     ping_id     = buf[4]<<8|buf[5];
     ping_seq    = buf[6]<<8|buf[7];
-    
+
     ping_reply(rx_packet, ping_id, ping_seq, buf);
 }
 
@@ -458,7 +409,7 @@ unsigned short header_checksum16(unsigned char *buf, unsigned short len, unsigne
      while (sum>>16) {
          sum = (sum & 0xFFFF)+(sum >> 16);
          }
-     
+
      // build 1's complement:
      return( (unsigned short ) sum ^ 0xFFFF);
 }

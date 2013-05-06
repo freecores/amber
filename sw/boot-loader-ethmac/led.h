@@ -13,7 +13,7 @@
 //                                                              //
 //////////////////////////////////////////////////////////////////
 //                                                              //
-// Copyright (C) 2010 Authors and OPENCORES.ORG                 //
+// Copyright (C) 2010-2013 Authors and OPENCORES.ORG            //
 //                                                              //
 // This source file may be used and distributed without         //
 // restriction provided that this copyright statement is not    //
@@ -38,12 +38,13 @@
 //                                                              //
 ----------------------------------------------------------------*/
 
-
 /* Global variables */
-extern int      udp_checksum_errors_g;
+extern time_t* led_flash_timer_g;
 
-/* Function prototypes */
-void            parse_udp_packet        (char*, packet_t*);
-void            udp_reply               (packet_t*, int, int, int, int);
-
+/* Function Prototypes */
+void            led_clear               (void);
+void            led_flip                (int);
+void            led_on                  (int);
+void            led_off                 (int);
+void            led_123                 (int);
 
