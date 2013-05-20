@@ -42,10 +42,38 @@
 #define MAX_TELNET_TX       1024
 
 
+/* Telnet connection */
+typedef struct {
+
+    /* Telnet rx and tx line buffers */
+    line_buf_t*         rxbuf;
+    line_buf_t*         txbuf;
+
+    int                 sent_opening_message;
+    int                 echo_mode;
+    int                 connection_state;
+    int                 options_sent;
+
+    /* socket associated with this telnet connection */
+    //socket_t*           socket;
+
+    int                 id;
+
+    /* pointers to the next telnet object in the chain and the first telnet object in the chain */
+    void*               next;
+    void*               first;
+
+    /* pointer to application (telnet) object */
+    app_t*              app;
+} telnet_t;
+
+
+
 void            parse_telnet_options    (char *, socket_t*);
 void            parse_telnet_payload    (char *, socket_t*);
 void            telnet_options          (socket_t*);
 void            telnet_tx               (socket_t*, line_buf_t*);
 void            process_telnet          (socket_t*);
-int             parse_command           (socket_t*, char*);
+int             parse_command           (telnet_t*, char*);
+void            telnet_disconnect       (app_t *);
 

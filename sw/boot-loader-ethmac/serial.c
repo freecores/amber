@@ -43,11 +43,22 @@
 #include "amber_registers.h"
 
 
+#define DEBUG 1
+
+#ifdef DEBUG
+    #define trace(fmt, args...) print_serial("%s:%s:%d: "fmt"\n\r", __FILE__, __FUNCTION__, __LINE__, args)
+#else
+    #define trace(fmt, args...)
+#endif
+
+
+
 void init_serial()
 {
     /* Enable UART 0 */
     *(unsigned int *) ADR_AMBER_UART0_LCRH = 0x10;
 }
+
 
 
 /* Add a line to the line buffer */

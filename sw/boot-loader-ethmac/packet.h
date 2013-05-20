@@ -118,6 +118,18 @@ typedef struct {
 } mac_ip_t;
 
 
+
+typedef struct {
+    unsigned char ip[4];
+} ip_t;
+
+
+typedef struct {
+    unsigned char mac[6];
+    unsigned char stuffing[2]; /* word aligned */
+} mac_t;
+
+
 typedef struct {
     unsigned int payload_valid;
     unsigned int starting_seq;
@@ -150,6 +162,12 @@ typedef struct {
     unsigned int    tcp_ack;
     unsigned int    tcp_flags;
     unsigned int    tcp_window_size;
+
+    /* the TCP that sent this option will right-shift its true
+       receive-window values by 'shift.cnt' bits for transmission in
+       SEG.WND. */
+    unsigned int    tcp_window_scale;
+
     unsigned int    tcp_len;
     unsigned int    tcp_payload_len;
     unsigned int    tcp_src_time_stamp;
@@ -183,11 +201,11 @@ extern mac_ip_t    self_g;
 void            init_packet             ();
 unsigned short  header_checksum16       (unsigned char *buf, unsigned short len, unsigned int sum);
 
-void            arp_reply               (char *buf, mac_ip_t*);
+void            arp_reply               (mac_t*, ip_t*);
 void            ping_reply              (packet_t* packet0, int ping_id, int ping_seq, char * rx_buf);
 
-void            ethernet_header         (char *buf, mac_ip_t* target, unsigned short type);
-void            ip_header               (char *buf, mac_ip_t* target, unsigned short ip_len, char ip_proto);
+void            ethernet_header         (char*, mac_t*, unsigned short);
+void            ip_header               (char*, ip_t*, unsigned short, char);
 
 void            parse_rx_packet         (char*, packet_t*);
 void            parse_arp_packet        (char*);

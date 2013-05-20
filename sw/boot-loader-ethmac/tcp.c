@@ -50,12 +50,13 @@
 #include "packet.h"
 #include "tcp.h"
 #include "telnet.h"
+#include "serial.h"
 
 
 /* Global variables */
 int         tcp_checksum_errors_g = 0;
-socket_t*   first_socket_g;
-socket_t*   socket1_g;
+socket_t*   first_socket_g = NULL;
+
 
 /* input argument is a pointer to the previous socket,
    if this is the first socket object, then it is NULL */
@@ -80,26 +81,18 @@ socket_t* new_socket(socket_t* prev)
         socket->tcp_buf[i]->ack_received = 0;
         }
 
-    socket->telnet_txbuf = init_line_buffer(0x80000);
-    socket->telnet_rxbuf = init_line_buffer(0x1000);
-
     socket->packets_sent = 0;
     socket->packets_received = 0;
     socket->packets_resent = 0;
-
-    socket->telnet_sent_opening_message = 0;
-    socket->telnet_echo_mode = 0;
-    socket->telnet_connection_state = TELNET_CLOSED;
-    socket->telnet_options_sent = 0;
 
     socket->tcp_current_buf = 0;
     socket->tcp_reset = 0;
     socket->tcp_connection_state = TCP_CLOSED;
     socket->tcp_disconnect = 0;
-    socket->tcp_seq = 0x100;  /* should be random initial seq number for tcp */
-    socket->tcp_last_seq = socket->tcp_seq;
-    socket->tcp_last_ack = 0;
-
+    socket->tcp_tx_seq = 0x100;  /* should be random initial seq number for tcp */
+    socket->tcp_rx_ack = 0;
+    socket->tcp_bytes_received = 0;
+    socket->tcp_bytes_acked = 0;
 
     /* Chain the socket objects together */
     if (prev == NULL){
@@ -115,6 +108,44 @@ socket_t* new_socket(socket_t* prev)
 
     return socket;
 }
+
+
+
+/* returns the socket id */
+int listen_socket (unsigned int listen_port, app_t* app)
+{
+    socket_t* socket;
+
+    /* Add a new socket to the end of the list */
+    if (first_socket_g == NULL) {
+        trace("first_socket_g == NULL");
+        first_socket_g = new_socket(NULL);
+        socket = first_socket_g;
+    }
+    else {
+        socket = first_socket_g;
+        for(;;){
+            if (socket->next!=NULL)
+                socket=socket->next;
+            else
+                break;
+            }
+        socket = new_socket(socket);
+    }
+
+    socket->listen_port = listen_port;
+    socket->tcp_connection_state = TCP_LISTENING;
+
+    /* Assign the telnet object */
+    socket->app = app;
+    /* cross link, so can find the socket object when have pointer to the telnet object */
+    socket->app->socket = socket;
+
+    trace("new socket %d listening", socket->id);
+
+    return socket->id;
+}
+
 
 
 /* All received tcp packets with dset ip == me arrive here */
@@ -149,11 +180,9 @@ void parse_tcp_packet(char * buf, packet_t* rx_packet)
     rx_packet->tcp_flags       = buf[13];
     rx_packet->tcp_window_size = buf[14]<<8|buf[15];
 
+    // trace("client tcp rx window %d bytes",
+    //     (rx_packet->tcp_window_size)<<rx_packet->tcp_window_scale);
 
-    /* only interested in telnet packet to dest port xx */
-    if (rx_packet->tcp_dst_port != 23) {
-        return;
-    }
 
     if (rx_packet->tcp_hdr_len > 20) {
         /* Get the source time stamp */
@@ -161,13 +190,27 @@ void parse_tcp_packet(char * buf, packet_t* rx_packet)
         }
 
 
+    /* only interested in telnet packet to dest port xx */
+    //if (rx_packet->tcp_dst_port != 23) {
+    //    return;
+    //}
+
+
     /*  --------------------------------------------------
         Assign the received packet to a socket
         -------------------------------------------------- */
     /*  seach for an open socket that matches the tcp connection */
     socket = first_socket_g;
+    if (socket == NULL) {
+        trace("first socket is null");
+        return;
+    }
+
+
+    /* Search for an already open socket */
     for(;;){
-        if (socket->tcp_connection_state != TCP_CLOSED &&
+        if ((socket->tcp_connection_state == TCP_PENDING ||
+             socket->tcp_connection_state == TCP_OPEN)      &&
             socket->rx_packet->tcp_src_port == rx_packet->tcp_src_port) {
             found=1;
             break;
@@ -179,13 +222,17 @@ void parse_tcp_packet(char * buf, packet_t* rx_packet)
         }
 
 
-    /* Search for an available closed soeckt to reuse */
+    /* Search for a listening socket */
     if (!found){
         socket = first_socket_g;
+        trace("search for listening socket");
+
         for(;;){
-            if (socket->tcp_connection_state == TCP_CLOSED) {
-                found=1;
-                break;
+            if (socket->tcp_connection_state == TCP_LISTENING) {
+                if (socket->listen_port == rx_packet->tcp_dst_port)  {
+                    found=1;
+                    break;
+                    }
                 }
             if (socket->next!=NULL)
                 socket=socket->next;
@@ -197,9 +244,9 @@ void parse_tcp_packet(char * buf, packet_t* rx_packet)
 
     /* All available sockets being used. Add a new one to the end of the chain */
     if (!found) {
-        socket = new_socket(socket);
-    }
-
+        trace("not found");
+        return;
+     }
 
     /* Copy the rx_packet structure into the socket */
     memcpy(socket->rx_packet, rx_packet, sizeof(packet_t));
@@ -219,7 +266,13 @@ void parse_tcp_options(char * buf, packet_t* rx_packet)
             case 0:  ptr=rx_packet->tcp_hdr_len; break; // end of options
             case 1:  ptr++; break;
             case 2:  ptr = ptr + buf[ptr+1]; break;  // max segment size
-            case 3:  ptr = ptr + buf[ptr+1]; break;  // Window Scale
+            case 3:
+                // Window Scale
+                trace("%s:L%d window scale bytes %d, 0x%x", buf[ptr+1], buf[ptr+2]);
+                rx_packet->tcp_window_scale = buf[ptr+2];
+                ptr = ptr + buf[ptr+1];
+                break;
+
             case 4:  ptr = ptr + buf[ptr+1]; break;  // SACK Permitted
             case 5:  ptr = ptr + buf[ptr+1]; break;  // SACK
             case 8:
@@ -241,6 +294,7 @@ void parse_tcp_options(char * buf, packet_t* rx_packet)
 void tcp_response(char * buf, socket_t* socket)
 {
     socket->packets_received++;
+    trace("tcp_response");
 
     /* Mark the ack in the tcp tx packet buffer so the tx packet does not get resent */
     if (socket->rx_packet->tcp_flags & 0x10) // ack flag set ?
@@ -254,9 +308,10 @@ void tcp_response(char * buf, socket_t* socket)
         }
 
     // open a connection
-    else if (socket->tcp_connection_state == TCP_CLOSED) {
+    else if (socket->tcp_connection_state == TCP_LISTENING) {
 
         if (socket->rx_packet->tcp_flags & 0x02) { // SYN
+            trace("tcp_open");
             // Open connection
             tcp_open(socket);
             socket->tcp_connection_state = TCP_PENDING;
@@ -273,7 +328,7 @@ void tcp_response(char * buf, socket_t* socket)
     else if (socket->tcp_connection_state == TCP_PENDING) {
         /* Add 1 to the sequence number as a special case to open
            the connection */
-        socket->tcp_seq++;
+        socket->tcp_tx_seq++;
         socket->tcp_connection_state = TCP_OPEN;
         }
 
@@ -283,6 +338,10 @@ void tcp_response(char * buf, socket_t* socket)
 
         /* contains tcp payload */
         if (socket->rx_packet->tcp_payload_len != 0) {
+
+            socket->tcp_bytes_received += socket->rx_packet->tcp_payload_len;
+            trace("socket %d received total %d bytes", socket->id, socket->tcp_bytes_received);
+
             /* Ack the packet only if the payload length is non-zero */
             tcp_reply(socket, NULL, 0);
 
@@ -297,14 +356,20 @@ void tcp_response(char * buf, socket_t* socket)
 
 void tcp_disconnect(socket_t * socket)
 {
+    telnet_t* telnet;
+
     if (socket->tcp_connection_state != TCP_CLOSED) {
         socket->tcp_connection_state = TCP_CLOSED;
-        socket->telnet_connection_state = TELNET_CLOSED;
-        socket->telnet_options_sent = 0;
-        socket->telnet_sent_opening_message = 0;
         tcp_reply(socket, NULL, 0);
+
+        /* app level disconnect function */
+        switch(socket->app->type) {
+            case APP_TELNET: telnet_disconnect(socket->app);
+                              break;
+            default:
+                trace("Unknown app type");
+        }
         socket->tcp_disconnect = 0;
-        socket->telnet_echo_mode = 0;  // reset this setting
     }
 }
 
@@ -331,43 +396,32 @@ void tcp_open(socket_t* socket)
 
     int i, j;
     unsigned short header_checksum;
-    mac_ip_t target;
     int ip_length;
     char * buf;
 
-
     buf = socket->tcp_buf[socket->tcp_current_buf]->buf;
 
-
-    target.mac[0] = socket->rx_packet->src_mac[0];
-    target.mac[1] = socket->rx_packet->src_mac[1];
-    target.mac[2] = socket->rx_packet->src_mac[2];
-    target.mac[3] = socket->rx_packet->src_mac[3];
-    target.mac[4] = socket->rx_packet->src_mac[4];
-    target.mac[5] = socket->rx_packet->src_mac[5];
-    target.ip[0]  = socket->rx_packet->src_ip[0];
-    target.ip[1]  = socket->rx_packet->src_ip[1];
-    target.ip[2]  = socket->rx_packet->src_ip[2];
-    target.ip[3]  = socket->rx_packet->src_ip[3];
-
+    strncpy(&socket->dest_ip,  socket->rx_packet->src_ip, 4);
+    strncpy(&socket->dest_mac, socket->rx_packet->src_mac, 6);
 
     /* Include 20 bytes of tcp options */
     ip_length = 20+20+20; /* 20 bytes ip header, 20 bytes tcp header, 20 bytes tcp options */
 
+    /* fill in the information about the packet about to be sent */
     socket->tcp_buf[socket->tcp_current_buf]->payload_valid = 1;
     socket->tcp_buf[socket->tcp_current_buf]->ack_received = 0;
     socket->tcp_buf[socket->tcp_current_buf]->starting_seq = tcp_header(&buf[34], socket, 0, TCP_NEW);
     socket->tcp_buf[socket->tcp_current_buf]->ending_seq   = socket->tcp_buf[socket->tcp_current_buf]->starting_seq + 1;
+    socket->tcp_buf[socket->tcp_current_buf]->len_bytes = 14+ip_length;
     set_timer(&socket->tcp_buf[socket->tcp_current_buf]->resend_time, 500);
 
-    ip_header(&buf[14], &target, ip_length, 6); /* 20 byes of tcp  options, bytes 14 to 33, ip_proto = 6, TCP*/
-    ethernet_header(buf, &target, 0x0800);  /* bytes 0 to 13*/
+    ip_header(&buf[14], &socket->dest_ip, ip_length, 6); /* 20 byes of tcp  options, bytes 14 to 33, ip_proto = 6, TCP*/
+    ethernet_header(buf, &socket->dest_mac, 0x0800);  /* bytes 0 to 13*/
 
-    socket->tcp_buf[socket->tcp_current_buf]->len_bytes = 14+ip_length;
-
-    strncpy((char*)ETHMAC_TX_BUFFER, buf, socket->tcp_buf[socket->tcp_current_buf]->len_bytes);
-
-    tx_packet(socket->tcp_buf[socket->tcp_current_buf]->len_bytes);  // MAC header, IP header, TCP header, TCP options
+    /* transmit an ethernet frame */
+    //trace("tx_packet buf 0x%d, len %d",
+    //    (unsigned int)buf, socket->tcp_buf[socket->tcp_current_buf]->len_bytes);
+    ethmac_tx_packet(buf, socket->tcp_buf[socket->tcp_current_buf]->len_bytes);
     socket->packets_sent++;
 
 
@@ -384,23 +438,10 @@ void tcp_reply(socket_t* socket, char* telnet_payload, int telnet_payload_length
 {
 
     int i, j;
-    mac_ip_t target;
     int ip_length;
     char * buf;
 
-
     buf = socket->tcp_buf[socket->tcp_current_buf]->buf;
-
-    target.mac[0] = socket->rx_packet->src_mac[0];
-    target.mac[1] = socket->rx_packet->src_mac[1];
-    target.mac[2] = socket->rx_packet->src_mac[2];
-    target.mac[3] = socket->rx_packet->src_mac[3];
-    target.mac[4] = socket->rx_packet->src_mac[4];
-    target.mac[5] = socket->rx_packet->src_mac[5];
-    target.ip[0]  = socket->rx_packet->src_ip[0];
-    target.ip[1]  = socket->rx_packet->src_ip[1];
-    target.ip[2]  = socket->rx_packet->src_ip[2];
-    target.ip[3]  = socket->rx_packet->src_ip[3];
 
     ip_length = 20+20 + telnet_payload_length;
 
@@ -416,19 +457,20 @@ void tcp_reply(socket_t* socket, char* telnet_payload, int telnet_payload_length
     else
         socket->tcp_buf[socket->tcp_current_buf]->payload_valid = 0;
 
+    /* fill in the information about the packet about to be sent */
     socket->tcp_buf[socket->tcp_current_buf]->ack_received = 0;
     socket->tcp_buf[socket->tcp_current_buf]->starting_seq = tcp_header(&buf[34], socket, telnet_payload_length, TCP_NORMAL);
     socket->tcp_buf[socket->tcp_current_buf]->ending_seq   = socket->tcp_buf[socket->tcp_current_buf]->starting_seq + telnet_payload_length;
+    socket->tcp_buf[socket->tcp_current_buf]->len_bytes = 14+ip_length;
     set_timer(&socket->tcp_buf[socket->tcp_current_buf]->resend_time, 500);
 
-    ip_header(&buf[14], &target, ip_length, 6); /* 20 byes of tcp  options, bytes 14 to 33, ip_proto = 6, TCP*/
-    ethernet_header(buf, &target, 0x0800);  /*bytes 0 to 13*/
+    /* Create the IP header */
+    /* 20 byes of tcp  options, bytes 14 to 33, ip_proto = 6, TCP*/
+    ip_header(&buf[14], &socket->dest_ip, ip_length, 6); /* 20 byes of tcp  options, bytes 14 to 33, ip_proto = 6, TCP*/
+    ethernet_header(buf, &socket->dest_mac, 0x0800);  /* bytes 0 to 13*/
 
-    socket->tcp_buf[socket->tcp_current_buf]->len_bytes = 14+ip_length;
-
-    strncpy((char*)ETHMAC_TX_BUFFER, buf, socket->tcp_buf[socket->tcp_current_buf]->len_bytes);
-
-    tx_packet(socket->tcp_buf[socket->tcp_current_buf]->len_bytes);  // MAC header, IP header, TCP header, TCP options
+    /* transmit an ethernet frame */
+    ethmac_tx_packet(buf, socket->tcp_buf[socket->tcp_current_buf]->len_bytes);
     socket->packets_sent++;
 
 
@@ -441,13 +483,12 @@ void tcp_reply(socket_t* socket, char* telnet_payload, int telnet_payload_length
 
 
 
-
 /* Find the packets lower than or equal to seq and mark them as acked */
 void tcp_ack(socket_t* socket)
 {
     int i, ack_valid;
     unsigned int ack      = socket->rx_packet->tcp_ack;
-    unsigned int last_ack = socket->tcp_last_ack;
+    unsigned int last_ack = socket->tcp_rx_ack;
 
     for (i=0;i<TCP_TX_BUFFERS;i=i+1) {
         if (socket->tcp_buf[i]->payload_valid) {
@@ -471,7 +512,7 @@ void tcp_ack(socket_t* socket)
             }
         }
 
-   socket->tcp_last_ack = ack;
+   socket->tcp_rx_ack = ack;
 }
 
 
@@ -493,8 +534,8 @@ void tcp_retransmit(socket_t* socket)
                 /* Disable ethmac_int interrupt */
                 *(unsigned int *) ( ADR_AMBER_IC_IRQ0_ENABLECLR ) = 0x100;
 
-                strncpy((char*)ETHMAC_TX_BUFFER, socket->tcp_buf[i]->buf, socket->tcp_buf[i]->len_bytes);
-                tx_packet(socket->tcp_buf[i]->len_bytes);  // MAC header, IP header, TCP header, TCP options
+                /* transmit an ethernet frame */
+                ethmac_tx_packet(socket->tcp_buf[i]->buf, socket->tcp_buf[i]->len_bytes);
                 socket->packets_sent++;
 
 
@@ -527,9 +568,8 @@ unsigned int tcp_header(char *buf, socket_t* socket, int payload_length, int opt
 
     /* Sequence Number */
     /* Increment the sequence number for the next packet */
-    starting_seq = socket->tcp_seq;
-    socket->tcp_last_seq = socket->tcp_seq;
-    socket->tcp_seq += payload_length;
+    starting_seq = socket->tcp_tx_seq;
+    socket->tcp_tx_seq += payload_length;
 
 
     buf[4] =  starting_seq>>24;
@@ -539,13 +579,20 @@ unsigned int tcp_header(char *buf, socket_t* socket, int payload_length, int opt
 
 
     /* Ack Number */
-    if (options == TCP_NEW)
+    if (options == TCP_NEW) {
         ack_num = socket->rx_packet->tcp_seq + 1;
+        socket->tcp_rx_init_seq = socket->rx_packet->tcp_seq;
+    }
     else if (socket->rx_packet->tcp_flags & 0x01) // FIN
         // +1 to the final ack
         ack_num = socket->rx_packet->tcp_seq + 1;
     else
         ack_num = socket->rx_packet->tcp_seq + socket->rx_packet->tcp_payload_len;
+
+    socket->tcp_rx_seq= ack_num;
+    //trace("socket %d received seq %d",
+    //    socket->id, socket->tcp_rx_seq - socket->tcp_rx_init_seq);
+
 
     buf[8]  =  ack_num>>24;
     buf[9]  = (ack_num>>16)&0xff;
@@ -667,26 +714,57 @@ unsigned short tcp_checksum(unsigned char *buf, packet_t* rx_packet, unsigned sh
    Poll all sockets in turn for activity */
 void process_tcp(socket_t* socket)
 {
+    telnet_t* telnet;
+
     /* Check if any tcp packets need to be re-transmitted */
     tcp_retransmit(socket);
 
     /* Handle exit command */
     if (socket->tcp_disconnect && socket->tcp_connection_state == TCP_OPEN) {
+        trace("calling tcp disconnect %d",
+            socket->tcp_rx_seq - socket->tcp_rx_init_seq);
         tcp_disconnect(socket);
         }
 
     /* Reset connection */
     else if (socket->tcp_reset) {
         socket->tcp_connection_state = TCP_CLOSED;
-        socket->telnet_connection_state = TELNET_CLOSED;
-        socket->telnet_options_sent = 0;
+
+        telnet = (telnet_t*) socket->app->telnet;
+        telnet->connection_state = TELNET_CLOSED;
+        telnet->options_sent = 0;
+
         tcp_reply(socket, NULL, 0);
         socket->tcp_reset = 0;
         }
 
     /* handle telnet messages */
     else if (socket->tcp_connection_state == TCP_OPEN){
-        process_telnet(socket);
+
+        /* app level process function */
+        switch(socket->app->type) {
+            case APP_TELNET: process_telnet(socket);
+                             break;
+            default:
+                trace("Unknown app type");
+        }
     }
 }
 
+
+
+void process_sockets()
+{
+    socket_t* socket;
+
+    /* handle tcp connections and process buffers */
+    /* Poll all sockets in turn for activity */
+    socket = first_socket_g;
+    for(;;){
+        process_tcp(socket);
+        if (socket->next!=NULL)
+            socket=socket->next;
+        else
+            break;
+        }
+}

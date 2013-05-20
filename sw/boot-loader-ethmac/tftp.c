@@ -182,12 +182,14 @@ void process_tftp ()
             set_timer(reboot_timer_g, 1000);
             reboot_stage_g = 1;
             socket = first_socket_g;
-            for(;;){
-                socket->tcp_disconnect = 1;
-                if (socket->next!=NULL)
-                    socket=socket->next;
-                else
-                    break;
+            if (socket != NULL){
+                for(;;){
+                    socket->tcp_disconnect = 1;
+                    if (socket->next!=NULL)
+                        socket=socket->next;
+                    else
+                        break;
+                    }
                 }
             }
         else {

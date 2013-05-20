@@ -53,3 +53,4 @@ void            mdio_write              (int addr, int reg, int data);
 unsigned short  mdio_ctrl               (unsigned int addr, unsigned int dir, unsigned int reg, unsigned short data);
 
 void            ethmac_interrupt        (void);
+void            ethmac_tx_packet        (char*, int);

@@ -95,25 +95,13 @@ void parse_udp_packet(char * buf, packet_t* rx_packet)
 
 void udp_reply(packet_t* rx_packet, int udp_src_port, int udp_dst_port, int block, int reply_type)
 {
-    char* buf = (char*)ETHMAC_TX_BUFFER;
+    char buf[96];
     unsigned short checksum;
     unsigned short prot_udp=17;
     unsigned short udp_len;
     unsigned short word16;
     unsigned long  sum = 0;
     int i;
-    mac_ip_t target;
-
-    target.mac[0] = rx_packet->src_mac[0];
-    target.mac[1] = rx_packet->src_mac[1];
-    target.mac[2] = rx_packet->src_mac[2];
-    target.mac[3] = rx_packet->src_mac[3];
-    target.mac[4] = rx_packet->src_mac[4];
-    target.mac[5] = rx_packet->src_mac[5];
-    target.ip[0]  = rx_packet->src_ip[0];
-    target.ip[1]  = rx_packet->src_ip[1];
-    target.ip[2]  = rx_packet->src_ip[2];
-    target.ip[3]  = rx_packet->src_ip[3];
 
     /* udp header */
     buf[34] = (udp_src_port & 0xff00)>>8;
@@ -172,8 +160,9 @@ void udp_reply(packet_t* rx_packet, int udp_src_port, int udp_dst_port, int bloc
     buf[40] = (checksum & 0xff00)>>8;  // checksum
     buf[41] =  checksum & 0xff;        // checksum
 
-    ip_header(&buf[14], &target, 20+udp_len, 17); /* 20 byes of tcp  options, bytes 14 to 33, ip_proto = 17, UDP */
-    ethernet_header(buf, &target, 0x0800);  /*bytes 0 to 13*/
-    tx_packet(34+udp_len);  // packet length in bytes
+    ip_header(&buf[14], (ip_t*) rx_packet->src_ip, 20+udp_len, 17); /* 20 byes of tcp  options, bytes 14 to 33, ip_proto = 17, UDP */
+    ethernet_header(buf, (mac_t*) rx_packet->src_mac, 0x0800);  /*bytes 0 to 13*/
+
+    ethmac_tx_packet(buf, 34+udp_len);  // packet length in bytes
 }
 

@@ -41,6 +41,15 @@
 //                                                              //
 ----------------------------------------------------------------*/
 
+//#define DEBUG 1
+
+#ifdef DEBUG
+    #define trace(fmt, ...) print_serial("%s:%s:%d: "fmt"\n\r", __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__)
+#else
+    #define trace(fmt, ...)
+#endif
+
+
 /* Function prototypes */
 void init_serial();
 void print_serial(const char *fmt, ...);

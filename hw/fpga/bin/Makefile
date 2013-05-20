@@ -75,25 +75,25 @@ RTL_TOP         = system
 # Build Configuration
 # ----------------------------------------------------
 
-# AMBER_CLK_DIVIDER
-# Sets the system clock frequency
-# For Spartan-6 divide 800MHz by this number to get the frequency
-#   e.g. AMBER_CLK_DIVIDER=24
-#   800 MHz / 24 = 33.33 MHz
-# For Virtex-6 divide 1200MHz by this number to get the frequency
-
 # Select either the A23 or A25 core
 ifdef A25
     AMBER_CORE = AMBER_A25_CORE
+    AMBER_CORE_NAME = a25
 else
     AMBER_CORE = AMBER_A23_CORE
+    AMBER_CORE_NAME = a23
 endif
 
 
+# AMBER_CLK_DIVIDER
+# Sets the system clock frequency
+# Divide 800MHz by this number to get the frequency
+#   e.g. AMBER_CLK_DIVIDER=24
+#   800 MHz / 24 = 33.33 MHz
 
 # The spartan6 device used on SP605 Development board
 XILINX_FPGA     = xc6slx45tfgg484-3
-XST_DEFINES     = XILINX_FPGA XILINX_SPARTAN6_FPGA $(AMBER_CORE) AMBER_CLK_DIVIDER=21 $(BOOT_LOADER_DEF)
+XST_DEFINES     = XILINX_FPGA XILINX_SPARTAN6_FPGA $(AMBER_CORE) AMBER_CLK_DIVIDER=18 $(BOOT_LOADER_DEF)
 # Xilinx placement and timing constraints
 XST_CONST_FILE  = xs6_constraints.ucf
 # List of verilog source files for Xilinx Spartan-6 device
@@ -214,8 +214,8 @@ $(WORK_FOLDER)/$(RTL_TOP).bit : $(WORK_FOLDER)/$(RTL_TOP).ncd
 	\
 	cd $(WORK_FOLDER); \
 	bitgen -intstyle xflow -f $(BIN_FOLDER)/bitfile_config.ut $(RTL_TOP).ncd
-	cp $(WORK_FOLDER)/$(RTL_TOP).bit $(BITFILE_FOLDER)/$(RTL_TOP).$(RUN_ID).bit
-	mv $(WORK_FOLDER)/$(RTL_TOP).bgn $(LOG_FOLDER)/$(RTL_TOP).bit.$(RUN_ID).bgn
+	cp $(WORK_FOLDER)/$(RTL_TOP).bit $(BITFILE_FOLDER)/$(RTL_TOP).$(AMBER_CORE_NAME).$(RUN_ID).bit
+	mv $(WORK_FOLDER)/$(RTL_TOP).bgn $(LOG_FOLDER)/$(RTL_TOP).$(AMBER_CORE_NAME).$(RUN_ID).bgn
 
 
 # ----------------------------------------------------

@@ -63,22 +63,23 @@ void init_packet()
 {
     /* receive packet buffer */
     rx_packet_g = malloc(sizeof(packet_t));
+    rx_packet_g->tcp_window_scale = 0;
 }
 
 
-
-void ethernet_header(char *buf, mac_ip_t* target, unsigned short type)
+void ethernet_header(char *buf, mac_t* target_mac, unsigned short type)
 {
     /* ethernet header */
     /* DA */
-    buf[ 0] = target->mac[0];
-    buf[ 1] = target->mac[1];
-    buf[ 2] = target->mac[2];
-    buf[ 3] = target->mac[3];
-    buf[ 4] = target->mac[4];
-    buf[ 5] = target->mac[5];
+    strncpy(&buf[0], target_mac, 6);
+    // print_serial("%s:L%d ethernet header target mac %x:%x:%x:%x:%x:%x\n\r",
+    //    __FILE__, __LINE__,
+    //    target_mac->mac[0], target_mac->mac[1], target_mac->mac[2],
+    //    target_mac->mac[3], target_mac->mac[4], target_mac->mac[5]
+    //    );
 
     /* SA */
+    strncpy(&buf[6], &self_g.mac[0], 6);
     buf[ 6] = self_g.mac[0];
     buf[ 7] = self_g.mac[1];
     buf[ 8] = self_g.mac[2];
@@ -92,7 +93,7 @@ void ethernet_header(char *buf, mac_ip_t* target, unsigned short type)
 }
 
 
-void ip_header(char *buf, mac_ip_t* target, unsigned short ip_len, char ip_proto)
+void ip_header(char *buf, ip_t* target_ip, unsigned short ip_len, char ip_proto)
 {
     unsigned short header_checksum;
     static unsigned short ip_id = 0;
@@ -127,16 +128,10 @@ void ip_header(char *buf, mac_ip_t* target, unsigned short ip_len, char ip_proto
     buf[11] = 0;
 
     /* Source IP */
-    buf[12] = self_g.ip[0];
-    buf[13] = self_g.ip[1];
-    buf[14] = self_g.ip[2];
-    buf[15] = self_g.ip[3];
+    strncpy(&buf[12], &self_g.ip[0], 4);
 
     /* Destination IP */
-    buf[16] = target->ip[0];
-    buf[17] = target->ip[1];
-    buf[18] = target->ip[2];
-    buf[19] = target->ip[3];
+    strncpy(&buf[16], target_ip, 4);
 
     /* header checksum */
     header_checksum = header_checksum16(buf, 20, 0);
@@ -145,10 +140,11 @@ void ip_header(char *buf, mac_ip_t* target, unsigned short ip_len, char ip_proto
 }
 
 
-void arp_reply(char *buf, mac_ip_t* arp_sender)
-{
 
-    ethernet_header(buf, arp_sender, 0x0806);
+void arp_reply(mac_t* arp_sender_mac, ip_t* arp_sender_ip)
+{
+    char buf [44];
+    ethernet_header(buf, arp_sender_mac, 0x0806);
 
     /* Hardware Type */
     buf[14] = 0x00;
@@ -180,19 +176,19 @@ void arp_reply(char *buf, mac_ip_t* arp_sender)
     buf[31] = self_g.ip[3];
 
     /* Target MAC */
-    buf[32] = arp_sender->mac[0];
-    buf[33] = arp_sender->mac[1];
-    buf[34] = arp_sender->mac[2];
-    buf[35] = arp_sender->mac[3];
-    buf[36] = arp_sender->mac[4];
-    buf[37] = arp_sender->mac[5];
+    buf[32] = arp_sender_mac->mac[0];
+    buf[33] = arp_sender_mac->mac[1];
+    buf[34] = arp_sender_mac->mac[2];
+    buf[35] = arp_sender_mac->mac[3];
+    buf[36] = arp_sender_mac->mac[4];
+    buf[37] = arp_sender_mac->mac[5];
 
     /* Target IP */
-    buf[38] = arp_sender->ip[0];
-    buf[39] = arp_sender->ip[1];
-    buf[40] = arp_sender->ip[2];
-    buf[41] = arp_sender->ip[3];
-    tx_packet(42);
+    buf[38] = arp_sender_ip->ip[0];
+    buf[39] = arp_sender_ip->ip[1];
+    buf[40] = arp_sender_ip->ip[2];
+    buf[41] = arp_sender_ip->ip[3];
+    ethmac_tx_packet(buf, 42);
 }
 
 
@@ -201,23 +197,11 @@ void ping_reply(packet_t* rx_packet, int ping_id, int ping_seq, char * rxbuf)
 
     int i;
     unsigned short header_checksum;
-    mac_ip_t target;
-    char * buf = (char*)ETHMAC_TX_BUFFER;
+    // mac_ip_t target;
+    char buf [96];  // not sure how long this needs  to be = (char*)ETHMAC_TX_BUFFER;
 
-    target.mac[0] = rx_packet->src_mac[0];
-    target.mac[1] = rx_packet->src_mac[1];
-    target.mac[2] = rx_packet->src_mac[2];
-    target.mac[3] = rx_packet->src_mac[3];
-    target.mac[4] = rx_packet->src_mac[4];
-    target.mac[5] = rx_packet->src_mac[5];
-
-    target.ip[0]  = rx_packet->src_ip[0];
-    target.ip[1]  = rx_packet->src_ip[1];
-    target.ip[2]  = rx_packet->src_ip[2];
-    target.ip[3]  = rx_packet->src_ip[3];
-
-    ethernet_header(buf, &target, 0x0800);  /*bytes 0 to 13*/
-    ip_header(&buf[14], &target, rx_packet->ip_len, 1); /* bytes 14 to 33, ip_proto = 1, ICMP*/
+    ethernet_header(buf, (mac_t*) rx_packet->src_mac, 0x0800);  /*bytes 0 to 13*/
+    ip_header(&buf[14], (ip_t*) rx_packet->src_ip, rx_packet->ip_len, 1); /* bytes 14 to 33, ip_proto = 1, ICMP*/
 
     /* ICMP */
     /* Type = reply */
@@ -245,7 +229,7 @@ void ping_reply(packet_t* rx_packet, int ping_id, int ping_seq, char * rxbuf)
     header_checksum = header_checksum16(&buf[34], (rx_packet->ip_len)-20, 0);
     buf[36] = (header_checksum>>8)&0xff;
     buf[37] = header_checksum&0xff;
-    tx_packet(rx_packet->ip_len+14);
+    ethmac_tx_packet(buf, rx_packet->ip_len+14);
 }
 
 
@@ -288,43 +272,48 @@ void parse_arp_packet(char * buf)
       asking 'does this IP address belong to you?"
     */
     int arp_op;
-    mac_ip_t arp_sender, arp_target;
+    //mac_ip_t arp_sender, arp_target;
+    mac_t arp_sender_mac;
+    ip_t arp_sender_ip;
 
     arp_op = buf[6]<<8 | buf[7];
 
-    arp_sender.mac[0] = buf[8];
-    arp_sender.mac[1] = buf[9];
-    arp_sender.mac[2] = buf[10];
-    arp_sender.mac[3] = buf[11];
-    arp_sender.mac[4] = buf[12];
-    arp_sender.mac[5] = buf[13];
+    strncpy(&arp_sender_mac, &buf[8], 6);
+    strncpy(&arp_sender_ip, &buf[14], 4);
 
-    arp_sender.ip [0] = buf[14];
-    arp_sender.ip [1] = buf[15];
-    arp_sender.ip [2] = buf[16];
-    arp_sender.ip [3] = buf[17];
+    // arp_sender.mac[0] = buf[8];
+    // arp_sender.mac[1] = buf[9];
+    // arp_sender.mac[2] = buf[10];
+    // arp_sender.mac[3] = buf[11];
+    // arp_sender.mac[4] = buf[12];
+    // arp_sender.mac[5] = buf[13];
 
-    arp_target.mac[0] = buf[18];
-    arp_target.mac[1] = buf[19];
-    arp_target.mac[2] = buf[20];
-    arp_target.mac[3] = buf[21];
-    arp_target.mac[4] = buf[22];
-    arp_target.mac[5] = buf[23];
+    // arp_sender.ip [0] = buf[14];
+    // arp_sender.ip [1] = buf[15];
+    // arp_sender.ip [2] = buf[16];
+    // arp_sender.ip [3] = buf[17];
 
-    arp_target.ip [0] = buf[24];
-    arp_target.ip [1] = buf[25];
-    arp_target.ip [2] = buf[26];
-    arp_target.ip [3] = buf[27];
+    // arp_target.mac[0] = buf[18];
+    // arp_target.mac[1] = buf[19];
+    // arp_target.mac[2] = buf[20];
+    // arp_target.mac[3] = buf[21];
+    // arp_target.mac[4] = buf[22];
+    // arp_target.mac[5] = buf[23];
+
+    // arp_target.ip [0] = buf[24];
+    // arp_target.ip [1] = buf[25];
+    // arp_target.ip [2] = buf[26];
+    // arp_target.ip [3] = buf[27];
 
     /* Send a reply ? */
     if (arp_op==1 &&
-        arp_target.ip[0]==self_g.ip[0] &&
-        arp_target.ip[1]==self_g.ip[1] &&
-        arp_target.ip[2]==self_g.ip[2] &&
-        arp_target.ip[3]==self_g.ip[3]) {
+        buf[24]==self_g.ip[0] &&
+        buf[25]==self_g.ip[1] &&
+        buf[26]==self_g.ip[2] &&
+        buf[27]==self_g.ip[3]) {
 
         // ARP reply
-        arp_reply((char*)ETHMAC_TX_BUFFER, &arp_sender);
+        arp_reply(&arp_sender_mac, &arp_sender_ip);
         }
 }
 
@@ -336,7 +325,7 @@ void parse_ip_packet(char * buf, packet_t* rx_packet)
 
     ip_version = buf[0]>>4;
     if (ip_version != 4) {
-        //printf("%s: IP version %d not supported\n", __func__, ip_version);
+        print_serial("%s:L%d IP version %d not supported\n\r", __FILE__, __LINE__, ip_version);
         return;
         }
 

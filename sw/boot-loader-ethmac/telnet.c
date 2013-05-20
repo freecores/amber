@@ -45,14 +45,103 @@
 #include "timer.h"
 #include "line-buffer.h"
 #include "packet.h"
+#include "serial.h"
 #include "tcp.h"
 #include "telnet.h"
+#include "utilities.h"
+
+/* Global variables */
+telnet_t*   first_telnet_g = NULL;
+
+
+/* input argument is a pointer to the previous socket,
+   if this is the first socket object, then it is NULL */
+telnet_t* new_telnet(telnet_t* prev)
+{
+    telnet_t* telnet;
+    app_t* app;
+
+    telnet = (telnet_t*) malloc(sizeof(telnet_t));
+    app = (app_t*) malloc(sizeof(app_t));
+
+    /* cross reference between the two objects */
+    app->telnet = telnet;
+    app->type   = APP_TELNET;
+    telnet->app = app;
+
+    telnet->txbuf = init_line_buffer(0x80000);
+    telnet->rxbuf = init_line_buffer(0x1000);
+
+    telnet->sent_opening_message = 0;
+    telnet->echo_mode = 0;
+    telnet->connection_state = TELNET_CLOSED;
+    telnet->options_sent = 0;
+
+    /* Chain the socket objects together */
+    if (prev == NULL){
+        telnet->first = telnet;
+        telnet->id = 0;
+        }
+    else {
+        telnet->first = prev->first;
+        telnet->id = prev->id + 1;
+        prev->next = telnet;
+        }
+    telnet->next  = NULL;
+
+    return telnet;
+}
+
+
+
+void listen_telnet ()
+{
+    telnet_t* telnet;
+    int telnet_socket;
+
+    /* Add a new socket to the end of the list */
+    if (first_telnet_g == NULL) {
+        trace("first_telnet_g == NULL");
+        first_telnet_g = new_telnet(NULL);
+        telnet = first_telnet_g;
+    }
+    else {
+        telnet = first_telnet_g;
+        for(;;){
+            if (telnet->next!=NULL)
+                telnet=telnet->next;
+            else
+                break;
+            }
+        telnet = new_telnet(telnet);
+    }
+
+    /* Create a new socket and listen on it at port 23 */
+    telnet_socket = listen_socket(23, telnet->app);
+    trace("telnet_socket = %d", telnet_socket);
+}
+
+
+
+void telnet_disconnect(app_t * app)
+{
+    telnet_t* telnet;
+    trace("disconnect!");
+    telnet = (telnet_t*)(app->telnet);
+    telnet->connection_state = TELNET_CLOSED;
+    telnet->options_sent = 0;
+    telnet->sent_opening_message = 0;
+    telnet->echo_mode = 0;  // reset this setting
+}
+
+
 
 void parse_telnet_options(char* buf, socket_t* socket)
 {
     int     i;
     int     stage = 0;
     char    stage1;
+    telnet_t* telnet = (telnet_t*) socket->app->telnet;
 
     for (i=0;i<socket->rx_packet->tcp_payload_len;i++) {
 
@@ -60,8 +149,8 @@ void parse_telnet_options(char* buf, socket_t* socket)
             switch (buf[i]) {
                 case 241: stage = 0; break;  // NOP
                 case 255: stage = 1;
-                                 if (socket->telnet_connection_state == TELNET_CLOSED) {
-                                     socket->telnet_connection_state = TELNET_OPEN;
+                                 if (telnet->connection_state == TELNET_CLOSED) {
+                                     telnet->connection_state = TELNET_OPEN;
                                     }
                          break;  // IAC
 
@@ -87,10 +176,10 @@ void parse_telnet_options(char* buf, socket_t* socket)
                 case 1:   // echo
                     /* Client request that server echos stuff back to client */
                     if (stage1 == TELNET_DO)
-                        socket->telnet_echo_mode = 1;
+                        telnet->echo_mode = 1;
                     /* Client request that server does not echo stuff back to client */
                     else if (stage1 == TELNET_DONT)
-                        socket->telnet_echo_mode = 0;
+                        telnet->echo_mode = 0;
                     break;
 
                 case 3:   break;  // suppress go ahead
@@ -121,6 +210,8 @@ void parse_telnet_payload(char * buf, socket_t* socket)
     int i;
     int cr = 0;
     int windows = 0;
+    telnet_t* telnet = (telnet_t*) socket->app->telnet;
+
     for (i=0;i<socket->rx_packet->telnet_payload_len;i++) {
         if (buf[i] == '\n')
             windows = 1;
@@ -129,15 +220,15 @@ void parse_telnet_payload(char * buf, socket_t* socket)
             /* receive \r\n from Windows, \r from Linux */
             if (buf[i] == '\r') {
                 cr=1;
-                put_byte(socket->telnet_rxbuf, buf[i], 1); /* last byte of line */
+                put_byte(telnet->rxbuf, buf[i], 1); /* last byte of line */
                 }
             else {
-                put_byte(socket->telnet_rxbuf, buf[i], 0); /* not last byte of line */
+                put_byte(telnet->rxbuf, buf[i], 0); /* not last byte of line */
                 }
             }
         }
 
-    if (socket->telnet_echo_mode) {
+    if (telnet->echo_mode) {
         if (cr && !windows) {
             buf[socket->rx_packet->telnet_payload_len] = '\n';
             socket->rx_packet->telnet_payload_len++;
@@ -180,28 +271,34 @@ void telnet_tx(socket_t* socket, line_buf_t* txbuf)
 }
 
 
+
+/* Create a new telnet option, and a new socket to listen on */
+
 void process_telnet(socket_t* socket)
 {
     char* line;
+    telnet_t* telnet = (telnet_t*) socket->app->telnet;
 
-    if (!socket->telnet_options_sent){
+    if (!telnet->options_sent){
         telnet_options(socket);
-        socket->telnet_options_sent = 1;
+        telnet->options_sent = 1;
         }
 
     else {
         /* Send telnet greeting */
-        if (!socket->telnet_sent_opening_message){
-            put_line (socket->telnet_txbuf, "Amber Processor Boot Loader\r\n> ");
-            socket->telnet_sent_opening_message = 1;
+        if (!telnet->sent_opening_message){
+            put_line (telnet->txbuf, "Amber Processor Boot Loader\r\n> ");
+            telnet->sent_opening_message = 1;
+            trace("telnet listen on new socket");
+            listen_telnet();
             }
 
         /* Parse telnet rx buffer */
-        if (get_line(socket->telnet_rxbuf, &line))
-            parse_command (socket, line);
+        if (get_line(telnet->rxbuf, &line))
+            parse_command (telnet, line);
 
         /* Transmit text from telnet tx buffer */
-        telnet_tx(socket, socket->telnet_txbuf);
+        telnet_tx(socket, telnet->txbuf);
         }
 }
 
@@ -209,12 +306,14 @@ void process_telnet(socket_t* socket)
 
 /* Parse a command line passed from main and execute the command */
 /* returns the length of the reply string */
-int parse_command (socket_t* socket, char* line)
+int parse_command (telnet_t* telnet, char* line)
 {
     unsigned int start_addr;
     unsigned int address;
     unsigned int range;
     int len, error = 0;
+
+    socket_t* socket = (socket_t*) telnet->app->socket;
 
     /* All commands are just a single character.
        Just ignore anything else  */
@@ -223,6 +322,7 @@ int parse_command (socket_t* socket, char* line)
         case 'e':
         case 'x':
         case 'q':
+            trace("set disconnect flag on socket");
             socket->tcp_disconnect = 1;
             return 0;
 
@@ -231,12 +331,12 @@ int parse_command (socket_t* socket, char* line)
             if (len = get_hex (&line[2], &start_addr)) {
                 if (len = get_hex (&line[3+len], &range)) {
                     for (address=start_addr; address<start_addr+range; address+=4) {
-                        put_line (socket->telnet_txbuf, "0x%08x 0x%08x\r\n",
+                        put_line (telnet->txbuf, "0x%08x 0x%08x\r\n",
                                     address, *(unsigned int *)address);
                         }
                     }
                 else {
-                    put_line (socket->telnet_txbuf, "0x%08x 0x%08x\r\n",
+                    put_line (telnet->txbuf, "0x%08x 0x%08x\r\n",
                                     start_addr, *(unsigned int *)start_addr);
                     }
                 }
@@ -247,32 +347,33 @@ int parse_command (socket_t* socket, char* line)
 
 
         case 'h': {/* Help */
-            put_line (socket->telnet_txbuf, "You need help alright\r\n");
+            put_line (telnet->txbuf, "You need help alright\r\n");
             break;
             }
 
 
         case 's': {/* Status */
-            put_line (socket->telnet_txbuf, "Socket ID           %d\r\n", socket->id);
-            put_line (socket->telnet_txbuf, "Packets received    %d\r\n", socket->packets_received);
-            put_line (socket->telnet_txbuf, "Packets transmitted %d\r\n", socket->packets_sent);
-            put_line (socket->telnet_txbuf, "Packets resent      %d\r\n", socket->packets_resent);
-            put_line (socket->telnet_txbuf, "TCP checksum errors %d\r\n", tcp_checksum_errors_g);
+            put_line (telnet->txbuf, "Socket ID           %d\r\n", socket->id);
+            put_line (telnet->txbuf, "Packets received    %d\r\n", socket->packets_received);
+            put_line (telnet->txbuf, "Packets transmitted %d\r\n", socket->packets_sent);
+            put_line (telnet->txbuf, "Packets resent      %d\r\n", socket->packets_resent);
+            put_line (telnet->txbuf, "TCP checksum errors %d\r\n", tcp_checksum_errors_g);
 
-            put_line (socket->telnet_txbuf, "Counterparty IP %d.%d.%d.%d\r\n",
+            put_line (telnet->txbuf, "Counterparty IP %d.%d.%d.%d\r\n",
                 socket->rx_packet->src_ip[0],
                 socket->rx_packet->src_ip[1],
                 socket->rx_packet->src_ip[2],
                 socket->rx_packet->src_ip[3]);
 
-            put_line (socket->telnet_txbuf, "Counterparty Port %d\r\n",
+            put_line (telnet->txbuf, "Counterparty Port %d\r\n",
                 socket->rx_packet->tcp_src_port);
 
-            put_line (socket->telnet_txbuf, "Malloc pointer 0x%08x\r\n",
+            put_line (telnet->txbuf, "Malloc pointer 0x%08x\r\n",
                 *(unsigned int *)(ADR_MALLOC_POINTER));
-            put_line (socket->telnet_txbuf, "Malloc count %d\r\n",
+            put_line (telnet->txbuf, "Malloc count %d\r\n",
                 *(unsigned int *)(ADR_MALLOC_COUNT));
-            put_line (socket->telnet_txbuf, "Uptime %d seconds\r\n", current_time_g->seconds);
+            put_line (telnet->txbuf, "Uptime %d seconds\r\n",
+                current_time_g->seconds);
             break;
             }
 
@@ -284,9 +385,10 @@ int parse_command (socket_t* socket, char* line)
 
 
     if (error)
-            put_line (socket->telnet_txbuf, "You're not making any sense\r\n",
+            put_line (telnet->txbuf, "You're not making any sense\r\n",
                         line[0], line[1], line[2]);
 
-    put_line (socket->telnet_txbuf, "> ");
+    put_line (telnet->txbuf, "> ");
     return 0;
 }
+

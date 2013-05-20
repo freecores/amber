@@ -16,7 +16,7 @@
 //                                                              //
 //////////////////////////////////////////////////////////////////
 //                                                              //
-// Copyright (C) 2011 Authors and OPENCORES.ORG                 //
+// Copyright (C) 2011-2013 Authors and OPENCORES.ORG            //
 //                                                              //
 // This source file may be used and distributed without         //
 // restriction provided that this copyright statement is not    //
@@ -53,8 +53,6 @@
 
 
 int main ( void ) {
-    socket_t* socket;
-
     /* Enable the serial debug port */
     init_serial();
     print_serial("Amber debug port\n\r");
@@ -70,18 +68,16 @@ int main ( void ) {
     /* Create a timer to flash a led periodically */
     init_led();
 
-    /* initialize the tftp stuff */
-    init_tftp();
-
-
-    /* create a tcp socket for listening */
-    first_socket_g = new_socket(NULL);
-    socket = first_socket_g;
-
     /* initialize the PHY and MAC and listen for connections
        This is the last init because packets will be received from this point
        onwards. */
     init_ethmac();
+
+    /* create a tcp socket for listening on port 23 */
+    listen_telnet();
+
+    /* initialize the tftp stuff */
+    init_tftp();
 
 
     /* Process loop. Everything is timer, interrupt and queue driven from here on down */
@@ -93,14 +89,8 @@ int main ( void ) {
         /* Check for received tftp files and reboot */
         process_tftp();
 
-        /* handle tcp connections and process buffers */
-            /* Poll all sockets in turn for activity */
-        if (socket->next == NULL)
-            socket = first_socket_g;
-        else
-            socket = socket->next;
-
-        process_tcp(socket);
+        /* Process all socket traffic */
+        process_sockets();
     }
 }
 

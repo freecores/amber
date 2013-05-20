@@ -192,7 +192,8 @@ _jump_to_program:
 
 
 service_irq:
-        @ As this is an interrupt, need tp save all registers to the stack
+        @ As this is an interrupt, need to save all registers to the stack
+        @ that will be used here
         stmfd   sp!, {r0-r3, lr}
 
         @ is it a timer interrupt ?

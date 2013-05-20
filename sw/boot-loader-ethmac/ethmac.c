@@ -156,9 +156,12 @@ void close_link (void)
 }
 
 
-void tx_packet(int len)
+void ethmac_tx_packet(char* buf, int len)
 {
     unsigned int status = 0;
+
+    /* copy the packet into the tx buffer */
+    strncpy((char*)ETHMAC_TX_BUFFER, buf, len);
 
 
     /* Poll the ready bit.
@@ -182,6 +185,7 @@ void tx_packet(int len)
     */
     *(unsigned int *) ( ADR_ETHMAC_BDBASE + 0 ) = len<<16 | 0xf800;
 }
+
 
 
 /* returns 1 if link comes up */
