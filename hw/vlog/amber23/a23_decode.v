@@ -66,6 +66,7 @@ output reg  [31:0]          o_read_data = 1'd0,
 output reg  [4:0]           o_read_data_alignment = 1'd0,  // 2 LSBs of read address used for calculating shift in LDRB ops
 
 output reg  [31:0]          o_imm32 = 'd0,
+output reg                  o_imm32_rotated = 'd0,
 output reg  [4:0]           o_imm_shift_amount = 'd0,
 output reg                  o_shift_imm_zero = 'd0,
 output reg  [3:0]           o_condition = 4'he,             // 4'he = al
@@ -1518,6 +1519,8 @@ always @ ( posedge i_clk )
         o_status_bits_irq_mask      <= status_bits_irq_mask_nxt;
         o_status_bits_firq_mask     <= status_bits_firq_mask_nxt;
         o_imm32                     <= imm32_nxt;
+        o_imm32_rotated             <= type == REGOP && immediate_shifter_operand &&
+                                      instruction[11:8] != 4'd0;
         o_imm_shift_amount          <= imm_shift_amount_nxt;
         o_shift_imm_zero            <= shift_imm_zero_nxt;
         

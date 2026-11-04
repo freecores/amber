@@ -91,6 +91,7 @@ wire                      status_bits_firq_mask_wen;
 wire     [31:0]           execute_status_bits;
                  
 wire     [31:0]           imm32;                   
+wire                     imm32_rotated;
 wire     [4:0]            imm_shift_amount; 
 wire                      shift_imm_zero;      
 wire     [3:0]            condition;               
@@ -212,6 +213,7 @@ a23_decode u_decode (
     .o_status_bits_irq_mask             ( status_bits_irq_mask              ),  
     .o_status_bits_firq_mask            ( status_bits_firq_mask             ),  
     .o_imm32                            ( imm32                             ),
+    .o_imm32_rotated                    ( imm32_rotated                     ),
     .o_imm_shift_amount                 ( imm_shift_amount                  ),
     .o_shift_imm_zero                   ( shift_imm_zero                    ),
     .o_condition                        ( condition                         ),
@@ -291,6 +293,7 @@ a23_execute u_execute (
     .i_status_bits_irq_mask             ( status_bits_irq_mask              ),   
     .i_status_bits_firq_mask            ( status_bits_firq_mask             ),   
     .i_imm32                            ( imm32                             ),   
+    .i_imm32_rotated                    ( imm32_rotated                     ),
     .i_imm_shift_amount                 ( imm_shift_amount                  ),   
     .i_shift_imm_zero                   ( shift_imm_zero                    ),   
     .i_condition                        ( condition                         ),   
