@@ -46,6 +46,7 @@ input       [31:0]          i_a_in,
 input       [31:0]          i_b_in,
 input                       i_barrel_shift_carry,
 input                       i_status_bits_carry,
+input                       i_status_bits_overflow,
 input       [8:0]           i_function,
 
 output      [31:0]          o_out,
@@ -106,12 +107,13 @@ assign carry_out = (cout_sel==1'd0 ) ? fadder_carry_out     :
 // ========================================================
 // Overflow out
 // ========================================================
-// Only assert the overflow flag when using the adder
-assign  overflow_out    = out_sel == 4'd1 &&
+// Arithmetic operations update V; logical operations preserve it.
+assign  overflow_out    = out_sel == 4'd1 ?
                             // overflow if adding two positive numbers and get a negative number
                           ( (!a[31] && !b_not[31] && fadder_out[31]) ||
                             // or adding two negative numbers and get a positive number
-                            (a[31] && b_not[31] && !fadder_out[31])     );
+                            (a[31] && b_not[31] && !fadder_out[31])     ) :
+                          i_status_bits_overflow;
 
 
 // ========================================================

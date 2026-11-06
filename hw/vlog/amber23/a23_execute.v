@@ -490,6 +490,7 @@ a23_alu u_alu (
     .i_b_in                 ( barrel_shift_out      ),
     .i_barrel_shift_carry   ( barrel_shift_carry    ),
     .i_status_bits_carry    ( status_bits_flags[1]  ),
+    .i_status_bits_overflow ( status_bits_flags[0]  ),
     .i_function             ( i_alu_function        ),
 
     .o_out                  ( alu_out               ),
