@@ -81,6 +81,7 @@ input      [1:0]            i_status_bits_mode,
 input                       i_status_bits_irq_mask,
 input                       i_status_bits_firq_mask,
 input      [31:0]           i_imm32,
+input                      i_imm32_rotated,
 input      [4:0]            i_imm_shift_amount,
 input                       i_shift_imm_zero,
 input      [3:0]            i_condition,
@@ -149,6 +150,7 @@ wire [7:0]          shift_amount;
 wire [31:0]         barrel_shift_in;
 wire [31:0]         barrel_shift_out;
 wire                barrel_shift_carry;
+wire                shifter_carry;
 
 wire [3:0]          status_bits_flags_nxt;
 reg  [3:0]          status_bits_flags = 'd0;
@@ -485,10 +487,14 @@ a23_barrel_shift_fpga u_barrel_shift  (
 // ========================================================
 // Instantiate ALU
 // ========================================================
+// Decode has already rotated immediate operands. Only a zero rotation
+// preserves C; a nonzero rotation supplies bit 31 of the expanded immediate.
+assign shifter_carry = i_imm32_rotated ? i_imm32[31] : barrel_shift_carry;
+
 a23_alu u_alu (
     .i_a_in                 ( rn                    ),
     .i_b_in                 ( barrel_shift_out      ),
-    .i_barrel_shift_carry   ( barrel_shift_carry    ),
+    .i_barrel_shift_carry   ( shifter_carry         ),
     .i_status_bits_carry    ( status_bits_flags[1]  ),
     .i_function             ( i_alu_function        ),
 
